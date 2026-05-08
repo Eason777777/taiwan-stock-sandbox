@@ -1,0 +1,194 @@
+% !TEX program = xelatex
+\documentclass[UTF8, a4paper, 12pt, fontset=none]{ctexart}
+
+% === import ===
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage{enumitem}
+\usepackage{setspace}
+\usepackage{xcolor}
+
+% === style ===
+\setCJKmainfont{Noto Serif CJK TC} % 字體
+\onehalfspacing % 1.5 倍行距
+\pagestyle{plain} % 取消左上文字
+
+% === title ===
+\title{資料庫系統期末專題 Report 1\\ \textbf{錢錢錢市－股票模擬系統}}
+\author{
+    \begin{tabular}{c}
+        第八組 \\ 
+        41347001S 楊凱臣 \quad 41347009S 周聖詠 \\ 
+        41347011S 許育綸 \quad 41347041S 盧人豪
+    \end{tabular}
+}
+\date{}
+
+% === content ===
+\begin{document}
+
+    \maketitle
+
+    % === section === 1
+    \section{專題動機與目標}
+    在這個日新月異的時代，愈來愈多人想學習股票交易，但又不知道該如何下手。
+    雖然市面上已有部分模擬交易平台，但多數僅提供即時或近期資料，
+    缺乏讓使用者回到特定歷史時間點、以真實市場情境反覆驗證判斷的環境。
+
+    因此本專題希望設計一套以台灣股市真實歷史資料為基礎的股票模擬系統，
+    讓使用者選擇過去的時間點，透過實際下單與觀察 K 線、均線等技術指標，
+    在零風險的環境下反覆驗證自己對市場走勢的判斷，建立對股票交易的直覺與理解。
+
+    本系統的目標如下：
+    \begin{enumerate}
+        \item 提供以真實歷史資料為基礎的虛擬交易環境。
+        \item 讓使用者體驗完整的交易流程，包含下單、撮合與損益計算。
+        \item 透過反覆模擬，協助使用者建立對 K 線與市場走勢的判斷能力。
+    \end{enumerate}
+
+    % === section === 2
+    \section{系統使用者}
+    \begin{enumerate}
+        \item \textbf{一般使用者}：對股票交易有興趣的新手或初學者。
+            可註冊帳號、建立模擬存檔、進行模擬、
+            進行虛擬股票交易，並查詢持股與損益紀錄。
+    \end{enumerate}
+
+    
+    % === section === 3
+    \section{系統主要功能}
+    \begin{enumerate}
+        \item \textbf{帳戶管理}：使用者可註冊與登入帳號，
+        系統記錄使用者身份資訊作為交易的基礎。
+
+        \item \textbf{模擬存檔管理}：使用者可建立多個獨立的模擬存檔，
+        每個存檔擁有各自的時間軸、資金與持股狀態，互不影響。
+
+        \item \textbf{時間軸控制}：
+        系統會隨機選擇一個過去的歷史日期作為模擬起點，
+        使用者能手動推進模擬時間，每次推進一個交易日，
+        依序經歷盤前、開盤、盤中、收盤、盤後五個階段。
+
+        \item \textbf{資金管理}：每個存檔包含存款戶與交割戶，
+        使用者可在兩者之間進行轉帳，股票交易僅從交割戶扣款。
+
+        \item \textbf{股票查詢}：使用者可透過搜尋或類股分類瀏覽股票，
+        並查看歷史 K 線圖與均線等技術指標。
+
+        \item \textbf{自選股管理}：使用者可將感興趣的股票加入自選清單，
+        方便快速追蹤。
+
+        \item \textbf{下單與撮合}：使用者可提交限價單或市價單進行買賣，
+        系統依照當日開盤價或收盤 OHLC 進行撮合。
+        未成交的委託可查詢或撤銷。
+
+        \item \textbf{持股與損益查詢}：使用者可查看目前持有的股票明細，
+        包含庫存量、平均成本與未實現損益，
+        以及歷史交易紀錄與已實現損益。
+
+        \item \textbf{模擬回顧}：模擬結束後，使用者可查看整段模擬期間的
+        資產走勢、交易紀錄與損益總結，了解自己的操作成效。
+    \end{enumerate}
+    
+    % === section === 4
+    \section{需求功能分析}
+    \subsection{功能性需求}
+    \begin{enumerate}
+        \item 使用者可註冊與登入帳號。
+        \item 使用者可建立與管理多個模擬存檔。
+        \item 系統隨機選擇歷史時間點開始模擬。
+        \item 使用者可手動推進模擬交易日。
+        \item 使用者可在存款戶與交割戶之間進行轉帳。
+        \item 使用者可搜尋股票、瀏覽類股分類與查看 K 線圖。
+        \item 使用者可管理自選股清單。
+        \item 使用者可提交限價單或市價單，並查詢與撤銷待成交委託。
+        \item 系統依照當日真實歷史價格自動撮合委託單。
+        \item 使用者可查詢持股明細與損益紀錄。
+        \item 使用者可在模擬結束後查看整體模擬回顧。
+    \end{enumerate}
+
+    \subsection{非功能性需求}
+    \begin{enumerate}
+        \item \textbf{Security}：使用者名稱須唯一，系統須拒絕重複註冊。
+        \item \textbf{Security}：密碼須符合最低強度要求。
+        \item \textbf{Security}：使用者只能存取自己的模擬存檔與資料。
+        \item \textbf{Reliability}：交易撮合須以 Transaction 處理，確保資料一致性。
+        \item \textbf{Reliability}：交割戶餘額不足時系統須拒絕成交，餘額不得為負數。
+        \item \textbf{Reliability}：同一委託單不得被撮合兩次。
+        \item \textbf{Maintainability}：各模擬存檔之間的資料須完全獨立，互不影響。
+    \end{enumerate}
+
+    % === section === 5
+    \section{資料分析}
+    本系統初步分析後，主要資料對象如下：
+    \subsubsection*{使用者相關資料}
+    \begin{enumerate}
+        \item \textbf{使用者}：記錄帳號與密碼，作為登入驗證的基礎。
+    \end{enumerate}
+    \subsubsection*{股票相關固定資料}
+    \begin{enumerate}
+        \item \textbf{股票}：記錄台股上市股票的基本資料，如代號、名稱、所屬類股。
+        \item \textbf{歷史價格}：記錄每支股票在每個交易日的開盤價、最高價、最低價、收盤價、成交量等資訊。
+    \end{enumerate}
+    \subsubsection*{模擬存檔相關資料}
+    \begin{enumerate}
+        \item \textbf{模擬存檔}：記錄一組模擬的狀態\footnotemark、存檔 ID、玩家 ID。每位使用者可擁有多個獨立的存檔。
+        \footnotetext{狀態，指模擬日期、起始設定與遊玩狀態（進行中/已結束）等資訊。}
+        \item \textbf{帳戶}：每個存檔擁有存款戶與交割戶\footnotemark，
+        分別記錄各自的餘額。
+        \footnotetext{存款戶係指個人資金帳戶，交割戶係指存放交易股票所支出、領取資金的帳戶，使用者能互相進行轉帳操作。}
+        
+        \item \textbf{委託單}：記錄使用者在該次模擬存檔中某個模擬日提交的買賣委託\footnotemark。
+        \footnotetext{委託單具體而言會有：下單時間（盤前中後）、股票 ID、下單類型（限價、市價）、下單金額、股票數量（張）、下單狀態（買或賣）、委託狀態（待成交/已成交/已撤銷/已失效）等資訊。}
+        \item \textbf{交易紀錄}：交易記錄：記錄使用者在該次模擬存檔中的委託單 ID，以及包含成交金額，手續費、證交稅等相關費用。此資料描述委託單成交這件事本身。
+
+        \item \textbf{持股}：記錄使用者在該次模擬存檔目前持有某支股票的數量與平均成本。
+
+        \item \textbf{自選股}：記錄使用者在該次模擬存檔中所關注的股票清單。
+        此資料描述存檔與股票之間的關注關聯。
+        
+        % === 股利，看要不要做 ===
+        % \item \textbf{除權息資料}：記錄每支股票歷年的現金股利資訊，
+        % 供系統在模擬推進至除息日時自動計算並發放股利。
+    \end{enumerate}
+    \section{資料關聯分析}
+    \begin{enumerate}
+        \item 一位使用者可擁有多個模擬存檔。
+        \item 一個模擬存檔可擁有多個委託單、持股、自選股。
+        \item 一個模擬存檔擁有一個帳戶（包括存款戶與交割戶），一個帳戶擁有一個模擬存檔。
+        \item 一個模擬存檔可關注多支股票，一支股票也可被多個模擬存檔關注，兩者之間存在多對多關係，透過自選股來表示。
+        \item 一筆委託單可有至多一個交易記錄。
+        \item 一個股票對應多筆歷史價格，每個交易日一筆。
+    \end{enumerate}
+
+    \section{運作規則}
+    \begin{enumerate}
+        \item 使用者須手動推進模擬時間，系統不會自動前進，依序經歷盤前、開盤、盤中、收盤、盤後五個階段，盤後之後進入下一天並回到盤前狀態。
+        \item 終止條件：直到到達資料集最新日期或者餘額不足。
+        \item 委託單僅支援當日有效(ROD)，收盤後未成交的委託單自動失效。
+
+        \item 股票買賣最小單位為 1,000 股（一張），不接受零股。
+
+        \item 買進委託僅從交割戶扣款，若交割戶餘額不足則無法成交(T+0機制)。 
+
+        \item 當使用者要進行買賣時有兩種委託單可選：
+            \begin{enumerate}
+                \item 限價單
+                \begin{itemize}
+                    \item 限價買單：買入價格須高於或等於當日最低價才可成交。
+                    \item 限價賣單：賣出價格須低於或等於當日最高價才可成交。
+                \end{itemize}
+                \item 市價單：隨機以當日最高價與最低價之間價格成交。
+            \end{enumerate}
+        \item 使用者提交委託單時，委託價格須在當日漲跌停範圍內。
+        系統依據前一交易日的收盤資料取得當日漲跌停價格，
+        超出範圍的委託單將被拒絕。
+        
+        \item 手續費為買賣各 0.1425\%（未滿 20 元以 20 元計），
+        證交稅於賣出時收取（股票 0.3\%）。
+        
+        \item 交易紀錄需經委託單成交後才會產生。
+
+        \item 每個模擬存檔的時間軸與資產狀態互相獨立，互不影響。
+    \end{enumerate}
+\end{document}
