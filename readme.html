@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>錢錢錢市 — 台股模擬交易系統</title>
+  <style>
+    :root {
+      --bg:        #0f1117;
+      --surface:   #1a1d27;
+      --surface2:  #22263a;
+      --border:    #2e334d;
+      --accent:    #4f8ef7;
+      --accent2:   #34d399;
+      --warn:      #f59e0b;
+      --danger:    #f87171;
+      --text:      #e2e8f0;
+      --muted:     #8892aa;
+      --code-bg:   #141821;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.75;
+    }
+
+    /* ── Layout ── */
+    .layout { display: flex; min-height: 100vh; }
+
+    nav {
+      width: 240px;
+      flex-shrink: 0;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 24px 0;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    nav .brand {
+      padding: 0 20px 20px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 12px;
+    }
+    nav .brand .zh { font-size: 18px; font-weight: 700; color: var(--accent); }
+    nav .brand .en { font-size: 11px; color: var(--muted); letter-spacing: .05em; }
+
+    nav a {
+      display: block;
+      padding: 6px 20px;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 13px;
+      border-left: 3px solid transparent;
+      transition: all .15s;
+    }
+    nav a:hover { color: var(--text); background: var(--surface2); border-left-color: var(--accent); }
+    nav .section-label {
+      padding: 14px 20px 4px;
+      font-size: 10px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    main {
+      flex: 1;
+      max-width: 860px;
+      padding: 48px 48px 80px;
+      overflow-x: hidden;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #1a2340 0%, #1a1d27 100%);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 40px 36px;
+      margin-bottom: 48px;
+    }
+    .hero h1 { font-size: 32px; font-weight: 800; color: var(--accent); margin-bottom: 8px; }
+    .hero .subtitle { font-size: 15px; color: var(--muted); margin-bottom: 20px; }
+    .badges { display: flex; gap: 8px; flex-wrap: wrap; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 12px; border-radius: 9999px; font-size: 12px; font-weight: 600;
+      background: var(--surface2); border: 1px solid var(--border);
+    }
+    .badge.blue  { color: var(--accent);  border-color: #2d4a8a; background: #16213a; }
+    .badge.green { color: var(--accent2); border-color: #145c44; background: #0c2820; }
+    .badge.amber { color: var(--warn);    border-color: #7a4f0a; background: #2a1f08; }
+
+    /* ── Sections ── */
+    section { margin-bottom: 52px; scroll-margin-top: 24px; }
+    h2 {
+      font-size: 20px; font-weight: 700;
+      border-bottom: 2px solid var(--accent);
+      padding-bottom: 8px; margin-bottom: 20px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    h2 .icon { font-size: 18px; }
+    h3 { font-size: 15px; font-weight: 700; color: var(--accent); margin: 24px 0 10px; }
+    p { margin-bottom: 12px; color: var(--text); }
+
+    /* ── Cards ── */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; margin-bottom: 16px; }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px;
+    }
+    .card .card-title { font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+    .card .card-body  { font-size: 12px; color: var(--muted); }
+
+    /* ── Code ── */
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 20px;
+      overflow-x: auto;
+      margin: 12px 0;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    code {
+      font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+      font-size: 13px;
+    }
+    p code, li code {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: 12.5px;
+    }
+
+    /* Syntax highlight classes (manual) */
+    .kw  { color: #c792ea; }
+    .str { color: #c3e88d; }
+    .cm  { color: #546e7a; font-style: italic; }
+    .fn  { color: #82aaff; }
+    .num { color: #f78c6c; }
+    .key { color: #89ddff; }
+
+    /* ── Method badges ── */
+    .method {
+      display: inline-block; padding: 2px 8px; border-radius: 4px;
+      font-size: 11px; font-weight: 700; font-family: monospace;
+      margin-right: 6px; vertical-align: middle;
+    }
+    .GET    { background: #133a29; color: #34d399; border: 1px solid #1a5c3f; }
+    .POST   { background: #1a2d50; color: #82aaff; border: 1px solid #2a4a8a; }
+    .DELETE { background: #3a1a1a; color: #f87171; border: 1px solid #6a2020; }
+
+    /* ── Endpoint table ── */
+    .ep-table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13px; }
+    .ep-table th {
+      background: var(--surface2); text-align: left;
+      padding: 8px 12px; color: var(--muted);
+      font-size: 11px; font-weight: 600; letter-spacing: .05em;
+      border-bottom: 1px solid var(--border);
+    }
+    .ep-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    .ep-table tr:last-child td { border-bottom: none; }
+    .ep-table tr:hover td { background: var(--surface2); }
+
+    /* ── Note boxes ── */
+    .note {
+      border-radius: 8px; padding: 14px 18px; margin: 14px 0;
+      border-left: 4px solid;
+      font-size: 13.5px;
+    }
+    .note.info    { background: #101c30; border-color: var(--accent); }
+    .note.warn    { background: #231a08; border-color: var(--warn); }
+    .note.success { background: #0c2318; border-color: var(--accent2); }
+    .note strong  { font-weight: 700; }
+
+    /* ── Phase flow ── */
+    .phase-flow {
+      display: flex; align-items: center; gap: 0;
+      margin: 16px 0; flex-wrap: wrap;
+    }
+    .phase-box {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 16px;
+      text-align: center; font-size: 13px; font-weight: 700;
+    }
+    .phase-arrow {
+      color: var(--accent); font-size: 18px; padding: 0 8px; font-weight: 300;
+    }
+    .phase-loop {
+      font-size: 11px; color: var(--muted); margin-top: 4px; font-weight: 400;
+    }
+
+    /* ── Entity table ── */
+    .entity-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 12px 0; }
+    .entity-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 14px;
+    }
+    .entity-card .ename { font-weight: 700; color: var(--accent2); margin-bottom: 6px; font-size: 13px; }
+    .entity-card .efield { font-size: 12px; color: var(--muted); line-height: 1.8; }
+    .pk { color: var(--warn); font-size: 10px; font-weight: 700;
+           background: #2a1f08; border: 1px solid #5a3f10;
+           border-radius: 3px; padding: 0 4px; margin-left: 4px; }
+    .fk { color: var(--accent); font-size: 10px; font-weight: 700;
+           background: #101c30; border: 1px solid #2a4a8a;
+           border-radius: 3px; padding: 0 4px; margin-left: 4px; }
+
+    /* ── Rules list ── */
+    ul.rules { list-style: none; padding: 0; }
+    ul.rules li {
+      padding: 8px 0 8px 20px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13.5px;
+      position: relative;
+    }
+    ul.rules li::before { content: "▸"; position: absolute; left: 0; color: var(--accent); }
+    ul.rules li:last-child { border-bottom: none; }
+
+    /* ── Flow steps ── */
+    ol.flow { list-style: none; counter-reset: step; padding: 0; }
+    ol.flow li {
+      counter-increment: step;
+      padding: 10px 10px 10px 52px;
+      margin-bottom: 6px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      position: relative;
+      font-size: 13.5px;
+    }
+    ol.flow li::before {
+      content: counter(step);
+      position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+      width: 24px; height: 24px; border-radius: 50%;
+      background: var(--accent); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700;
+    }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- ── Sidebar ── -->
+  <nav>
+    <div class="brand">
+      <div class="zh">錢錢錢市</div>
+      <div class="en">taiwan-stock-sandbox</div>
+    </div>
+
+    <div class="section-label">專案</div>
+    <a href="#overview">專案簡介</a>
+    <a href="#stack">技術架構</a>
+    <a href="#quickstart">快速啟動</a>
+
+    <div class="section-label">API</div>
+    <a href="#auth">認證 /auth</a>
+    <a href="#saves">存檔 /saves</a>
+    <a href="#accounts">帳戶 /accounts</a>
+    <a href="#stocks">股票 /stocks</a>
+    <a href="#orders">下單 /orders</a>
+    <a href="#holdings">持股 /holdings</a>
+    <a href="#watchlist">自選股 /watchlist</a>
+
+    <div class="section-label">設計</div>
+    <a href="#datamodel">資料模型</a>
+    <a href="#rules">業務規則</a>
+    <a href="#flow">典型流程</a>
+  </nav>
+
+  <!-- ── Main ── -->
+  <main>
+
+    <!-- Hero -->
+    <div class="hero">
+      <h1>錢錢錢市</h1>
+      <p class="subtitle">以台灣股市真實歷史資料為基礎的虛擬交易模擬器<br>資料庫系統課程期末專案</p>
+      <div class="badges">
+        <span class="badge blue">FastAPI</span>
+        <span class="badge blue">Python 3</span>
+        <span class="badge green">Vue 3</span>
+        <span class="badge green">Vite</span>
+        <span class="badge amber">MySQL</span>
+        <span class="badge amber">Tailscale</span>
+      </div>
+    </div>
+
+    <!-- ── 專案簡介 ── -->
+    <section id="overview">
+      <h2><span class="icon">📖</span>專案簡介</h2>
+      <p>
+        <strong>錢錢錢市</strong>是一個零風險的股票模擬交易平台。使用者選擇一個歷史起始日期後，可逐日手動推進虛擬時間，並以真實的台股 OHLC 歷史資料進行委託撮合。
+      </p>
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-title">🕰 時間模擬</div>
+          <div class="card-body">自選歷史起始日，每次呼叫 <code>/advance</code> 推進一個交易階段（盤前→盤中→盤後→下一日）</div>
+        </div>
+        <div class="card">
+          <div class="card-title">📊 真實資料</div>
+          <div class="card-body">撮合以當日 DailyPrice 的最高/最低價為依據，限價與市價委託規則分明</div>
+        </div>
+        <div class="card">
+          <div class="card-title">💰 雙帳戶制</div>
+          <div class="card-body">存款戶（閒置資金）與交割戶（買賣專用），手動轉帳、完全隔離</div>
+        </div>
+        <div class="card">
+          <div class="card-title">🗂 多存檔</div>
+          <div class="card-body">每個存檔是完全獨立的模擬，資金、持股、委託互不影響</div>
+        </div>
+      </div>
+      <div class="note warn">
+        <strong>⚠ 注意：</strong>資料庫位於 <code>mysql.shiragaserver.lan</code>，僅可透過 <strong>Tailscale</strong> 連線。本機開發前請確認 Tailscale 已啟動。
+      </div>
+    </section>
+
+    <!-- ── 技術架構 ── -->
+    <section id="stack">
+      <h2><span class="icon">🏗</span>技術架構</h2>
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-title">後端</div>
+          <div class="card-body">FastAPI · uvicorn · httpx · python-dotenv</div>
+        </div>
+        <div class="card">
+          <div class="card-title">前端</div>
+          <div class="card-body">Vue 3 · Vite · vue-router · pnpm</div>
+        </div>
+        <div class="card">
+          <div class="card-title">資料庫</div>
+          <div class="card-body">MySQL（透過自建 HTTP SQL API 存取，非直連驅動）</div>
+        </div>
+        <div class="card">
+          <div class="card-title">SQL API</div>
+          <div class="card-body">POST <code>http://sql-api.shiragaserver.lan/query</code><br>body: <code>{"sql": "..."}</code></div>
+        </div>
+      </div>
+      <h3>專案結構</h3>
+<pre><code>taiwan-stock-sandbox/
+├── app/
+│   ├── main.py          <span class="cm"># FastAPI app entry</span>
+│   ├── database.py      <span class="cm"># SqlApiClient — httpx wrapper</span>
+│   ├── dependencies.py  <span class="cm"># get_db(), get_current_user()</span>
+│   └── routers/
+│       ├── auth.py      <span class="cm"># /auth/*</span>
+│       ├── saves.py     <span class="cm"># /saves/*</span>
+│       ├── accounts.py  <span class="cm"># /saves/{id}/accounts/*</span>
+│       ├── stocks.py    <span class="cm"># /stocks/*</span>
+│       ├── orders.py    <span class="cm"># /saves/{id}/orders/*</span>
+│       ├── holdings.py  <span class="cm"># /saves/{id}/holdings/*</span>
+│       └── watchlist.py <span class="cm"># /saves/{id}/watchlist/*</span>
+├── frontend/
+│   └── src/
+│       ├── App.vue
+│       ├── main.js
+│       └── router/index.js
+├── docs/                <span class="cm"># 課程報告 (XeLaTeX)</span>
+│   ├── report1-1/
+│   ├── report1-2/
+│   └── report2/         <span class="cm"># 最終規格（優先）</span>
+└── requirements.txt</code></pre>
+    </section>
+
+    <!-- ── 快速啟動 ── -->
+    <section id="quickstart">
+      <h2><span class="icon">🚀</span>快速啟動</h2>
+
+      <h3>後端（FastAPI）</h3>
+<pre><code><span class="cm"># 安裝依賴</span>
+pip install -r requirements.txt
+
+<span class="cm"># 選填：覆蓋 SQL API 位址（預設已指向 sql-api.shiragaserver.lan）</span>
+<span class="kw">export</span> SQL_API_URL=<span class="str">"http://sql-api.shiragaserver.lan/query"</span>
+
+<span class="cm"># 啟動開發伺服器</span>
+uvicorn app.main:app --reload</code></pre>
+
+      <p>後端跑在 <code>http://localhost:8000</code>，Swagger UI 在 <code>http://localhost:8000/docs</code>。</p>
+
+      <h3>前端（Vue 3 + Vite）</h3>
+<pre><code>cd frontend
+pnpm install
+pnpm dev      <span class="cm"># dev server → http://localhost:5173</span>
+pnpm build    <span class="cm"># production build</span>
+pnpm lint     <span class="cm"># oxlint + eslint（自動修正）</span>
+pnpm format   <span class="cm"># prettier</span></code></pre>
+
+      <div class="note info">
+        <strong>注意：</strong><code>vite.config.js</code> 尚未設定 API proxy，前端呼叫後端時請自行加上 <code>server.proxy</code> 設定。
+      </div>
+
+      <h3>測試 DB 連線</h3>
+<pre><code>curl -X POST http://sql-api.shiragaserver.lan/query \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -d <span class="str">'{"sql": "SHOW DATABASES"}'</span></code></pre>
+    </section>
+
+    <!-- ── 認證 ── -->
+    <section id="auth">
+      <h2><span class="icon">🔐</span>認證 <code>/auth</code></h2>
+      <p>所有 API（除了 <code>/auth/register</code> 與 <code>/auth/login</code>）都需要在 Header 帶上 session token：</p>
+<pre><code>X-Session-Id: &lt;your_session_id&gt;</code></pre>
+      <p>每次登入都會輪換新 token，舊 token 立即失效（強制單一登入）。</p>
+
+      <table class="ep-table">
+        <tr>
+          <th>方法</th><th>路由</th><th>說明</th><th>需要 Session</th>
+        </tr>
+        <tr>
+          <td><span class="method POST">POST</span></td>
+          <td><code>/auth/register</code></td>
+          <td>建立帳號</td>
+          <td>否</td>
+        </tr>
+        <tr>
+          <td><span class="method POST">POST</span></td>
+          <td><code>/auth/login</code></td>
+          <td>登入，回傳 <code>session_id</code></td>
+          <td>否</td>
+        </tr>
+        <tr>
+          <td><span class="method POST">POST</span></td>
+          <td><code>/auth/logout</code></td>
+          <td>登出，清除 session</td>
+          <td>是</td>
+        </tr>
+      </table>
+
+      <h3>範例</h3>
+<pre><code><span class="cm"># 註冊</span>
+curl -X POST http://localhost:8000/auth/register \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -d <span class="str">'{"account": "alice", "password": "mypassword"}'</span>
+
+<span class="cm"># 登入</span>
+curl -X POST http://localhost:8000/auth/login \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -d <span class="str">'{"account": "alice", "password": "mypassword"}'</span>
+<span class="cm"># → {"session_id": "abc123..."}</span>
+
+<span class="cm"># 登出</span>
+curl -X POST http://localhost:8000/auth/logout \
+  -H <span class="str">"X-Session-Id: $SESSION"</span></code></pre>
+    </section>
+
+    <!-- ── 存檔 ── -->
+    <section id="saves">
+      <h2><span class="icon">💾</span>模擬存檔 <code>/saves</code></h2>
+      <p>每個存檔是一次完全獨立的模擬，擁有各自的時間軸、資金與持股。</p>
+
+      <table class="ep-table">
+        <tr><th>方法</th><th>路由</th><th>說明</th></tr>
+        <tr><td><span class="method POST">POST</span></td><td><code>/saves</code></td><td>建立新存檔</td></tr>
+        <tr><td><span class="method GET">GET</span></td><td><code>/saves</code></td><td>列出所有存檔</td></tr>
+        <tr><td><span class="method GET">GET</span></td><td><code>/saves/{id}</code></td><td>查看單一存檔</td></tr>
+        <tr><td><span class="method POST">POST</span></td><td><code>/saves/{id}/advance</code></td><td>推進至下一交易階段</td></tr>
+        <tr><td><span class="method DELETE">DELETE</span></td><td><code>/saves/{id}</code></td><td>刪除存檔</td></tr>
+      </table>
+
+      <h3>交易階段循環</h3>
+      <div class="phase-flow">
+        <div class="phase-box">盤前<div class="phase-loop">可下單</div></div>
+        <div class="phase-arrow">→</div>
+        <div class="phase-box">盤中<div class="phase-loop">可下單</div></div>
+        <div class="phase-arrow">→</div>
+        <div class="phase-box">盤後<div class="phase-loop">自動撮合</div></div>
+        <div class="phase-arrow">→</div>
+        <div class="phase-box">下一日盤前<div class="phase-loop">重複</div></div>
+      </div>
+      <p>盤後結束時，系統自動以當日歷史價格撮合委託，未成交者失效。</p>
+
+      <h3>建立存檔</h3>
+<pre><code>curl -X POST http://localhost:8000/saves \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -H <span class="str">"X-Session-Id: $SESSION"</span> \
+  -d <span class="str">'{
+    "save_name": "我的第一次模擬",
+    "start_date": "2020-01-02",
+    "initial_savings": 1000000,
+    "initial_trading": 0
+  }'</span></code></pre>
+
+      <h3>查看存檔回應</h3>
+<pre><code>{
+  <span class="key">"save_id"</span>:        <span class="num">1</span>,
+  <span class="key">"save_name"</span>:      <span class="str">"我的第一次模擬"</span>,
+  <span class="key">"current_date"</span>:   <span class="str">"2020-01-02"</span>,
+  <span class="key">"current_phase"</span>:  <span class="str">"盤前"</span>,
+  <span class="key">"status"</span>:         <span class="str">"進行中"</span>,
+  <span class="key">"savings_balance"</span>: <span class="num">1000000</span>,
+  <span class="key">"trading_balance"</span>: <span class="num">0</span>
+}</code></pre>
+    </section>
+
+    <!-- ── 帳戶 ── -->
+    <section id="accounts">
+      <h2><span class="icon">💳</span>帳戶與資金 <code>/saves/{id}/accounts</code></h2>
+      <p>每個存檔有兩個帳戶：</p>
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-title">存款戶（savings）</div>
+          <div class="card-body">閒置資金存放處。無法直接用於股票買賣。</div>
+        </div>
+        <div class="card">
+          <div class="card-title">交割戶（trading）</div>
+          <div class="card-body">股票買賣、手續費、交易稅專用帳戶。餘額不足時買單被拒。</div>
+        </div>
+      </div>
+
+      <table class="ep-table">
+        <tr><th>方法</th><th>路由</th><th>說明</th></tr>
+        <tr><td><span class="method POST">POST</span></td><td><code>/saves/{id}/accounts/transfer</code></td><td>兩帳戶間轉帳</td></tr>
+        <tr><td><span class="method GET">GET</span></td><td><code>/saves/{id}/accounts/history</code></td><td>查看帳戶異動紀錄</td></tr>
+      </table>
+
+      <h3>轉帳</h3>
+<pre><code><span class="cm"># 存款戶 → 交割戶</span>
+curl -X POST http://localhost:8000/saves/1/accounts/transfer \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -H <span class="str">"X-Session-Id: $SESSION"</span> \
+  -d <span class="str">'{"direction": "savings_to_trading", "amount": 500000}'</span>
+
+<span class="cm"># 交割戶 → 存款戶</span>
+curl -X POST http://localhost:8000/saves/1/accounts/transfer \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -H <span class="str">"X-Session-Id: $SESSION"</span> \
+  -d <span class="str">'{"direction": "trading_to_savings", "amount": 100000}'</span></code></pre>
+    </section>
+
+    <!-- ── 股票 ── -->
+    <section id="stocks">
+      <h2><span class="icon">📈</span>股票查詢 <code>/stocks</code></h2>
+
+      <table class="ep-table">
+        <tr><th>方法</th><th>路由</th><th>說明</th></tr>
+        <tr><td><span class="method GET">GET</span></td><td><code>/stocks?q=&amp;sector=</code></td><td>搜尋股票（代號或名稱 / 類股）</td></tr>
+        <tr><td><span class="method GET">GET</span></td><td><code>/stocks/{stock_id}</code></td><td>查看股票基本資料</td></tr>
+        <tr><td><span class="method GET">GET</span></td><td><code>/stocks/{stock_id}/prices</code></td><td>查看 K 線歷史資料</td></tr>
+      </table>
+
+      <h3>範例</h3>
+<pre><code><span class="cm"># 搜尋台積電</span>
+curl <span class="str">"http://localhost:8000/stocks?q=台積電"</span> -H <span class="str">"X-Session-Id: $SESSION"</span>
+
+<span class="cm"># 半導體類股</span>
+curl <span class="str">"http://localhost:8000/stocks?sector=半導體業"</span> -H <span class="str">"X-Session-Id: $SESSION"</span>
+
+<span class="cm"># K 線資料（指定日期範圍）</span>
+curl <span class="str">"http://localhost:8000/stocks/2330/prices?from_date=2020-01-01&amp;to_date=2020-03-31"</span> \
+  -H <span class="str">"X-Session-Id: $SESSION"</span></code></pre>
+
+      <h3>K 線回應</h3>
+<pre><code>[{
+  <span class="key">"trade_date"</span>:  <span class="str">"2020-01-02"</span>,
+  <span class="key">"open"</span>:        <span class="num">330.0</span>,
+  <span class="key">"high"</span>:        <span class="num">335.0</span>,
+  <span class="key">"low"</span>:         <span class="num">328.0</span>,
+  <span class="key">"close"</span>:       <span class="num">333.0</span>,
+  <span class="key">"volume"</span>:      <span class="num">28451</span>,
+  <span class="key">"limit_up"</span>:    <span class="num">363.0</span>,
+  <span class="key">"limit_down"</span>:  <span class="num">297.0</span>
+}]</code></pre>
+    </section>
+
+    <!-- ── 下單 ── -->
+    <section id="orders">
+      <h2><span class="icon">📋</span>委託下單 <code>/saves/{id}/orders</code></h2>
+      <div class="note info">
+        <strong>下單限制：</strong>僅在<strong>盤前</strong>或<strong>盤中</strong>階段有效。所有委託為當日有效（ROD），盤後自動失效。委託價格須在漲跌停範圍內。
+      </div>
+
+      <table class="ep-table">
+        <tr><th>方法</th><th>路由</th><th>說明</th></tr>
+        <tr><td><span class="method POST">POST</span></td><td><code>/saves/{id}/orders</code></td><td>送出委託（限價 / 市價）</td></tr>
+        <tr><td><span class="method GET">GET</span></td><td><code>/saves/{id}/orders</code></td><td>查看所有委託</td></tr>
+        <tr><td><span class="method DELETE">DELETE</span></td><td><code>/saves/{id}/orders/{oid}</code></td><td>撤銷待成交委託</td></tr>
+      </table>
+
+      <h3>限價買單</h3>
+<pre><code>curl -X POST http://localhost:8000/saves/1/orders \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -H <span class="str">"X-Session-Id: $SESSION"</span> \
+  -d <span class="str">'{
+    "stock_id":   "2330",
+    "order_type": "限價",
+    "side":       "買",
+    "price":      330.0,
+    "quantity":   1
+  }'</span>
+<span class="cm"># quantity 單位為張（1 張 = 1,000 股）</span></code></pre>
+
+      <h3>市價賣單</h3>
+<pre><code>curl -X POST http://localhost:8000/saves/1/orders \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -H <span class="str">"X-Session-Id: $SESSION"</span> \
+  -d <span class="str">'{
+    "stock_id":   "2330",
+    "order_type": "市價",
+    "side":       "賣",
+    "quantity":   1
+  }'</span>
+<span class="cm"># 市價單不填 price，以當日最高/最低之間的隨機價格成交</span></code></pre>
+
+      <h3>撮合規則</h3>
+      <ul class="rules">
+        <li>限價買單：委託價 ≥ 當日最低價 → 成交（成交價 = 委託價）</li>
+        <li>限價賣單：委託價 ≤ 當日最高價 → 成交（成交價 = 委託價）</li>
+        <li>市價單：成交價 = random(當日最低, 當日最高)</li>
+        <li>委託為全量成交或全量不成交（All-or-Nothing）</li>
+      </ul>
+    </section>
+
+    <!-- ── 持股 ── -->
+    <section id="holdings">
+      <h2><span class="icon">🗃</span>持股與損益 <code>/saves/{id}/holdings</code></h2>
+
+      <table class="ep-table">
+        <tr><th>方法</th><th>路由</th><th>說明</th></tr>
+        <tr><td><span class="method GET">GET</span></td><td><code>/saves/{id}/holdings</code></td><td>查看目前持股與未實現損益</td></tr>
+        <tr><td><span class="method GET">GET</span></td><td><code>/saves/{id}/holdings/transactions</code></td><td>查看歷史成交紀錄</td></tr>
+      </table>
+
+      <h3>持股回應</h3>
+<pre><code>[{
+  <span class="key">"stock_id"</span>:       <span class="str">"2330"</span>,
+  <span class="key">"stock_name_zh"</span>:  <span class="str">"台積電"</span>,
+  <span class="key">"quantity"</span>:       <span class="num">2</span>,
+  <span class="key">"avg_cost"</span>:       <span class="num">328.5</span>,
+  <span class="key">"current_price"</span>:  <span class="num">345.0</span>,
+  <span class="key">"unrealized_pnl"</span>: <span class="num">33000</span>
+}]</code></pre>
+    </section>
+
+    <!-- ── 自選股 ── -->
+    <section id="watchlist">
+      <h2><span class="icon">⭐</span>自選股 <code>/saves/{id}/watchlist</code></h2>
+
+      <table class="ep-table">
+        <tr><th>方法</th><th>路由</th><th>說明</th></tr>
+        <tr><td><span class="method GET">GET</span></td><td><code>/saves/{id}/watchlist</code></td><td>查看自選清單</td></tr>
+        <tr><td><span class="method POST">POST</span></td><td><code>/saves/{id}/watchlist</code></td><td>加入自選</td></tr>
+        <tr><td><span class="method DELETE">DELETE</span></td><td><code>/saves/{id}/watchlist/{stock_id}</code></td><td>移除自選</td></tr>
+      </table>
+
+<pre><code><span class="cm"># 加入自選</span>
+curl -X POST http://localhost:8000/saves/1/watchlist \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -H <span class="str">"X-Session-Id: $SESSION"</span> \
+  -d <span class="str">'{"stock_id": "2454"}'</span>
+
+<span class="cm"># 移除自選</span>
+curl -X DELETE http://localhost:8000/saves/1/watchlist/2454 \
+  -H <span class="str">"X-Session-Id: $SESSION"</span></code></pre>
+    </section>
+
+    <!-- ── 資料模型 ── -->
+    <section id="datamodel">
+      <h2><span class="icon">🗺</span>資料模型</h2>
+      <p>共八個實體，<code>SaveFile</code> 為核心狀態機，所有模擬資源以 <code>save_id</code> 隔離。</p>
+      <div class="entity-grid">
+        <div class="entity-card">
+          <div class="ename">User</div>
+          <div class="efield">
+            user_id <span class="pk">PK</span><br>
+            account（unique）<br>
+            password（hashed）<br>
+            session_id（登入輪換）
+          </div>
+        </div>
+        <div class="entity-card">
+          <div class="ename">Stock</div>
+          <div class="efield">
+            stock_id <span class="pk">PK</span>（VARCHAR, e.g. 2330）<br>
+            names, market_type, sector_name<br>
+            listing_date, par_value<br>
+            <em>唯讀字典表</em>
+          </div>
+        </div>
+        <div class="entity-card">
+          <div class="ename">DailyPrice</div>
+          <div class="efield">
+            (stock_id, trade_date) <span class="pk">PK</span><br>
+            open, high, low, close, volume<br>
+            ref_price, limit_up, limit_down<br>
+            <em>撮合唯一依據</em>
+          </div>
+        </div>
+        <div class="entity-card">
+          <div class="ename">SaveFile</div>
+          <div class="efield">
+            save_id <span class="pk">PK</span><br>
+            user_id <span class="fk">FK</span><br>
+            start_date, current_date, current_phase<br>
+            savings_balance, trading_balance
+          </div>
+        </div>
+        <div class="entity-card">
+          <div class="ename">StockOrder</div>
+          <div class="efield">
+            order_id <span class="pk">PK</span><br>
+            save_id <span class="fk">FK</span>, stock_id <span class="fk">FK</span><br>
+            order_type（限價/市價）, side（買/賣）<br>
+            price（nullable）, quantity, status
+          </div>
+        </div>
+        <div class="entity-card">
+          <div class="ename">StockTransaction</div>
+          <div class="efield">
+            transaction_id <span class="pk">PK</span><br>
+            order_id <span class="fk">FK</span>（1:1）<br>
+            exec_price, quantity, fee, tax<br>
+            avg_cost_at_transact
+          </div>
+        </div>
+        <div class="entity-card">
+          <div class="ename">AccountTransaction</div>
+          <div class="efield">
+            (save_id, seq) <span class="pk">PK</span><br>
+            每筆現金異動的帳本紀錄<br>
+            含 balance_after 快照
+          </div>
+        </div>
+        <div class="entity-card">
+          <div class="ename">Holding / Watchlist</div>
+          <div class="efield">
+            (save_id, stock_id) <span class="pk">PK</span><br>
+            Holding: quantity, avg_cost<br>
+            Watchlist: 純 M:N 關聯
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 業務規則 ── -->
+    <section id="rules">
+      <h2><span class="icon">⚖</span>業務規則</h2>
+      <ul class="rules">
+        <li><strong>交易單位 1 張 = 1,000 股</strong>，<code>quantity</code> 以張為單位，不支援零股。</li>
+        <li><strong>ROD 委託</strong>：所有委託當日有效，盤後若未成交自動失效。</li>
+        <li><strong>All-or-Nothing</strong>：委託全量成交或全量不成交，不支援部分成交（StockOrder → StockTransaction 為 1:1）。</li>
+        <li><strong>價格檢查</strong>：委託價必須在 <code>limit_up</code>/<code>limit_down</code> 範圍內，超出即拒絕。</li>
+        <li><strong>T+0 扣款</strong>：買單即時從交割戶扣款，餘額不足直接拒絕，帳戶餘額不可為負。</li>
+        <li><strong>手續費</strong>：買賣各收 0.1425%（最低 NT$20）；<strong>交易稅</strong>：賣出 0.3%（僅賣方）。金額存為整數（元）。</li>
+        <li><strong>上市日限制</strong>：委託日早於 <code>listing_date</code> 的股票直接拒絕。</li>
+        <li><strong>匹配原子性</strong>：盤後撮合在單一 DB transaction 中執行，不重複撮合，存檔完全隔離。</li>
+        <li><strong>模擬結束條件</strong>：到達資料集最晚日期，或交割戶 + 持股市值趨近 0。</li>
+      </ul>
+    </section>
+
+    <!-- ── 典型流程 ── -->
+    <section id="flow">
+      <h2><span class="icon">🔄</span>典型使用流程</h2>
+      <ol class="flow">
+        <li>呼叫 <code>POST /auth/register</code> 建立帳號，<code>POST /auth/login</code> 取得 <code>session_id</code></li>
+        <li>呼叫 <code>POST /saves</code> 建立存檔，指定起始日期與初始資金</li>
+        <li>呼叫 <code>POST /saves/{id}/accounts/transfer</code>，將資金從存款戶移入交割戶</li>
+        <li>呼叫 <code>GET /stocks?q=...</code> 或 <code>/stocks/{id}/prices</code> 研究選股</li>
+        <li>（盤前/盤中）呼叫 <code>POST /saves/{id}/orders</code> 掛委託</li>
+        <li>呼叫 <code>POST /saves/{id}/advance</code> 推進階段（盤前 → 盤中 → 盤後）</li>
+        <li>盤後自動撮合，系統依當日歷史價格決定成交與否</li>
+        <li>再次呼叫 <code>POST /saves/{id}/advance</code>，進入下一個交易日的盤前</li>
+        <li>呼叫 <code>GET /saves/{id}/holdings</code> 查看持股與未實現損益</li>
+        <li>重複步驟 4–9 直到模擬結束</li>
+      </ol>
+      <div class="note success">
+        <strong>小提示：</strong>Swagger UI（<code>http://localhost:8000/docs</code>）可以直接在瀏覽器試打所有 API，方便快速驗證功能。
+      </div>
+    </section>
+
+  </main>
+</div>
+</body>
+</html>
