@@ -72,6 +72,47 @@ curl -X POST http://localhost:8000/auth/logout \
   -H "X-Session-Id: $SESSION"
 ```
 
+#### 測試指令
+
+```sh
+# 1. 註冊
+curl -s -X POST http://localhost:8000/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"account": "testuser", "password": "mypassword"}'
+
+# 2. 重複註冊（預期 409）
+curl -s -X POST http://localhost:8000/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"account": "testuser", "password": "mypassword"}'
+
+# 3. 登入
+curl -s -X POST http://localhost:8000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"account": "testuser", "password": "mypassword"}'
+
+# 4. 登入後登出（將上一步拿到的 session_id 帶入）
+SESSION_ID="<上一步拿到的 session_id>"
+curl -s -X POST http://localhost:8000/auth/logout \
+  -H "X-Session-Id: $SESSION_ID"
+```
+
+一行完成完整流程：
+
+```sh
+curl -s -X POST http://localhost:8000/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"account": "testuser", "password": "mypassword"}'
+
+SESSION_ID=$(curl -s -X POST http://localhost:8000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"account": "testuser", "password": "mypassword"}' | python3 -c "import sys,json; print(json.load(sys.stdin)['session_id'])")
+
+echo "session_id: $SESSION_ID"
+
+curl -s -X POST http://localhost:8000/auth/logout \
+  -H "X-Session-Id: $SESSION_ID"
+```
+
 ---
 
 ### 模擬存檔 `/saves`

@@ -457,6 +457,42 @@ curl -X POST http://localhost:8000/auth/login \
 <span class="cm"># 登出</span>
 curl -X POST http://localhost:8000/auth/logout \
   -H <span class="str">"X-Session-Id: $SESSION"</span></code></pre>
+
+      <h3>測試指令</h3>
+<pre><code><span class="cm"># 1. 註冊</span>
+curl -s -X POST http://localhost:8000/auth/register \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -d <span class="str">'{"account": "testuser", "password": "mypassword"}'</span>
+
+<span class="cm"># 2. 重複註冊（預期 409）</span>
+curl -s -X POST http://localhost:8000/auth/register \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -d <span class="str">'{"account": "testuser", "password": "mypassword"}'</span>
+
+<span class="cm"># 3. 登入</span>
+curl -s -X POST http://localhost:8000/auth/login \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -d <span class="str">'{"account": "testuser", "password": "mypassword"}'</span>
+
+<span class="cm"># 4. 登入後登出（將上一步拿到的 session_id 帶入）</span>
+<span class="kw">SESSION_ID</span>=<span class="str">"&lt;上一步拿到的 session_id&gt;"</span>
+curl -s -X POST http://localhost:8000/auth/logout \
+  -H <span class="str">"X-Session-Id: $SESSION_ID"</span></code></pre>
+
+      <h3>一行完成完整流程</h3>
+<pre><code>curl -s -X POST http://localhost:8000/auth/register \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -d <span class="str">'{"account": "testuser", "password": "mypassword"}'</span>
+
+<span class="kw">SESSION_ID</span>=$(curl -s -X POST http://localhost:8000/auth/login \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -d <span class="str">'{"account": "testuser", "password": "mypassword"}'</span> \
+  | python3 -c <span class="str">"import sys,json; print(json.load(sys.stdin)['session_id'])"</span>)
+
+echo <span class="str">"session_id: $SESSION_ID"</span>
+
+curl -s -X POST http://localhost:8000/auth/logout \
+  -H <span class="str">"X-Session-Id: $SESSION_ID"</span></code></pre>
     </section>
 
     <!-- ── 存檔 ── -->
