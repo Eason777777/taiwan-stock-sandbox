@@ -2,7 +2,7 @@ import secrets
 from fastapi import APIRouter, Depends, HTTPException
 from passlib.context import CryptContext
 from pydantic import BaseModel
-from ..database import SqlApiClient
+from ..database import SqlApiClient, sql_str
 from ..dependencies import get_db, get_current_user
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -22,9 +22,8 @@ class LoginRequest(BaseModel):
 async def register(body: RegisterRequest, db: SqlApiClient = Depends(get_db)):
     # 1. 檢查 account 是否已存在
     rows = await db.query(f"""
-        SELECT user_id FROM users WHERE account = '{body.account}'
+        SELECT user_id FROM users WHERE account = '{sql_str(body.account)}'
     """)
-    # print("rows: ",rows) #test
     if rows['ok'] and rows['rows']:
         raise HTTPException(status_code=409, detail="帳號已存在")
 
@@ -32,7 +31,7 @@ async def register(body: RegisterRequest, db: SqlApiClient = Depends(get_db)):
     hashed = pwd_context.hash(body.password)
     await db.query(f"""
         INSERT INTO users (account, password_hash)
-        VALUES ('{body.account}', '{hashed}')
+        VALUES ('{sql_str(body.account)}', '{hashed}')
     """)
     return {"message": "註冊成功"}
 
@@ -41,12 +40,11 @@ async def register(body: RegisterRequest, db: SqlApiClient = Depends(get_db)):
 async def login(body: LoginRequest, db: SqlApiClient = Depends(get_db)):
     # 1. 查出該 account 的 row
     rows = await db.query(f"""
-        SELECT user_id, password_hash FROM users WHERE account = '{body.account}'
+        SELECT user_id, password_hash FROM users WHERE account = '{sql_str(body.account)}'
     """)
-    if not rows:
+    if not rows['ok'] or not rows['rows']:
         raise HTTPException(status_code=401, detail="帳號或密碼錯誤")
     
-    print("rows: ",rows) #test
     user = rows['rows'][0]
 
     # 2. 驗證密碼
