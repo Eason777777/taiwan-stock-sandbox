@@ -1,0 +1,18 @@
+id: MASS-001
+name: Mass Assignment
+vulnerability_class: Mass Assignment
+cwe: CWE-915
+severity_hint: high
+applicable_languages: [python, javascript, typescript, ruby, java, php]
+scope: function
+prompt_template: |
+  Analyze the following function for mass assignment vulnerabilities.
+  Look for: ORM or model update operations that pass an entire user-supplied dict/object
+  to update fields without an explicit allowlist of permitted fields (e.g. Model(**request.json),
+  user.update_attributes(params), Object.assign(model, body)).
+  A finding requires: untrusted input dict merged into a model without field filtering.
+
+  Function:
+  {{function_body}}
+
+  Reply with JSON: {"vulnerable": true/false, "reason": "...", "model": "...", "input_source": "..."}

@@ -1,0 +1,20 @@
+id: SQL-001
+name: SQL Injection
+vulnerability_class: SQL Injection
+cwe: CWE-89
+severity_hint: high
+applicable_languages: [python, javascript, typescript, java, php, ruby, go]
+scope: function
+prompt_template: |
+  Analyze the following function for SQL injection vulnerabilities.
+  Look for: string concatenation or f-string interpolation of untrusted input into SQL queries,
+  use of raw query APIs without parameterization, dynamic ORDER BY / table name construction.
+  A finding requires: (1) the SQL is sent to a database, (2) at least one input originates
+  outside this function (parameter, HTTP field, env var, file read), (3) no sanitization or
+  parameterization separates input from the SQL string.
+
+  Function:
+  {{function_body}}
+
+  Reply with JSON: {"vulnerable": true/false, "reason": "...", "input_source": "...", "sink": "..."}
+  If not vulnerable, reply with {"vulnerable": false, "reason": "..."}

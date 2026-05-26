@@ -1,0 +1,18 @@
+id: DESER-001
+name: Insecure Deserialization
+vulnerability_class: Insecure Deserialization
+cwe: CWE-502
+severity_hint: critical
+applicable_languages: [python, javascript, java, php, ruby]
+scope: function
+prompt_template: |
+  Analyze the following function for insecure deserialization vulnerabilities.
+  Look for: pickle.loads, yaml.load (not safe_load), marshal.loads, eval() on data,
+  Java ObjectInputStream, PHP unserialize() — applied to data that originates from
+  outside this function (HTTP body, file, network, queue message).
+  A finding requires the deserialized data to come from an untrusted boundary.
+
+  Function:
+  {{function_body}}
+
+  Reply with JSON: {"vulnerable": true/false, "reason": "...", "deserializer": "...", "data_source": "..."}

@@ -1,0 +1,18 @@
+id: XXE-001
+name: XML External Entity Injection
+vulnerability_class: XXE
+cwe: CWE-611
+severity_hint: high
+applicable_languages: [python, javascript, java, php, ruby]
+scope: function
+prompt_template: |
+  Analyze the following function for XML External Entity (XXE) injection vulnerabilities.
+  Look for: XML parsing with external entity resolution enabled (lxml with resolve_entities=True,
+  Java DocumentBuilderFactory without FEATURE_SECURE_PROCESSING, PHP SimpleXML / DOMDocument
+  with LIBXML_NOENT) applied to externally-supplied XML content.
+  A finding requires: (1) XML parsed from untrusted input, (2) external entity resolution not disabled.
+
+  Function:
+  {{function_body}}
+
+  Reply with JSON: {"vulnerable": true/false, "reason": "...", "parser": "...", "data_source": "..."}

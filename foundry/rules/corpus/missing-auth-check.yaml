@@ -1,0 +1,18 @@
+id: AUTH-001
+name: Missing Authentication Check
+vulnerability_class: Missing Authentication
+cwe: CWE-306
+severity_hint: critical
+applicable_languages: [python, javascript, typescript, java, php, ruby, go]
+scope: function
+prompt_template: |
+  Analyze the following function for missing authentication or authorization checks.
+  Look for: endpoint handlers or service functions that perform sensitive operations
+  (data modification, user management, admin actions, financial operations) without
+  verifying the caller's identity or permission. A check that is present but trivially
+  bypassable (always True, commented out) also counts.
+
+  Function:
+  {{function_body}}
+
+  Reply with JSON: {"vulnerable": true/false, "reason": "...", "operation": "...", "missing_check": "..."}

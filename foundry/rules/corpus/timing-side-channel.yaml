@@ -1,0 +1,18 @@
+id: TIMING-001
+name: Timing Side Channel
+vulnerability_class: Timing Side Channel
+cwe: CWE-208
+severity_hint: medium
+applicable_languages: [python, javascript, typescript, java, php, ruby, go]
+scope: function
+prompt_template: |
+  Analyze the following function for timing side-channel vulnerabilities in secret comparison.
+  Look for: equality comparisons (==, !=, str comparison, memcmp) of secrets, tokens,
+  passwords, MACs, or cryptographic hashes using non-constant-time comparison.
+  Safe alternatives: hmac.compare_digest, crypto.timingSafeEqual, MessageDigest.isEqual.
+  A finding requires: (1) comparison of a secret/token/hash, (2) using variable-time equality.
+
+  Function:
+  {{function_body}}
+
+  Reply with JSON: {"vulnerable": true/false, "reason": "...", "comparison_type": "...", "secret_type": "..."}

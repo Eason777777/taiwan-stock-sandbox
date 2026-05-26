@@ -1,0 +1,19 @@
+id: TMPL-001
+name: Template Injection (XSS / SSTI)
+vulnerability_class: Template Injection
+cwe: CWE-79
+severity_hint: high
+applicable_languages: [python, javascript, typescript, java, php, ruby]
+scope: function
+prompt_template: |
+  Analyze the following function for template injection vulnerabilities (SSTI or XSS).
+  Look for: Jinja2/Mako/Twig templates rendered with user-controlled template strings
+  (not just user-controlled data), string formatting used as a template engine,
+  HTML/JS output built by concatenating untrusted input without escaping.
+  A finding requires untrusted input reaching a rendering context where code execution
+  or script injection is possible.
+
+  Function:
+  {{function_body}}
+
+  Reply with JSON: {"vulnerable": true/false, "reason": "...", "injection_type": "ssti/xss", "sink": "..."}

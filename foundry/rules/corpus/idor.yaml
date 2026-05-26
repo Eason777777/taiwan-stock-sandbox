@@ -1,0 +1,17 @@
+id: IDOR-001
+name: Insecure Direct Object Reference
+vulnerability_class: IDOR
+cwe: CWE-639
+severity_hint: high
+applicable_languages: [python, javascript, typescript, java, php, ruby, go]
+scope: function
+prompt_template: |
+  Analyze the following function for Insecure Direct Object Reference (IDOR) vulnerabilities.
+  Look for: resource access (database query, file read, API call) using an ID or key
+  that comes from user input without verifying ownership or authorization for the
+  requesting identity. The check must be absent or bypassable, not merely present.
+
+  Function:
+  {{function_body}}
+
+  Reply with JSON: {"vulnerable": true/false, "reason": "...", "missing_check": "...", "resource": "..."}

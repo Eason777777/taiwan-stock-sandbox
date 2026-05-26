@@ -1,0 +1,17 @@
+id: REDIR-001
+name: Open Redirect
+vulnerability_class: Open Redirect
+cwe: CWE-601
+severity_hint: medium
+applicable_languages: [python, javascript, typescript, java, php, ruby, go]
+scope: function
+prompt_template: |
+  Analyze the following function for open redirect vulnerabilities.
+  Look for: HTTP redirect responses (302, 301, Location header) where the redirect URL
+  is constructed from untrusted input (query parameter, request body) without validation
+  against an allowlist of trusted domains. Relative path redirects without host are acceptable.
+
+  Function:
+  {{function_body}}
+
+  Reply with JSON: {"vulnerable": true/false, "reason": "...", "url_source": "...", "redirect_method": "..."}

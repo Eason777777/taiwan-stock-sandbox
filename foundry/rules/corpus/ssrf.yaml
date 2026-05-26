@@ -1,0 +1,18 @@
+id: SSRF-001
+name: Server-Side Request Forgery
+vulnerability_class: SSRF
+cwe: CWE-918
+severity_hint: high
+applicable_languages: [python, javascript, typescript, java, php, ruby, go]
+scope: function
+prompt_template: |
+  Analyze the following function for Server-Side Request Forgery (SSRF) vulnerabilities.
+  Look for: HTTP client calls (requests.get, httpx.get, fetch, curl, urllib) where the URL
+  or hostname is constructed from untrusted input without allowlist enforcement.
+  A finding requires: (1) a network request is made server-side, (2) the URL or host
+  is influenced by external input, (3) no strict allowlist prevents arbitrary host access.
+
+  Function:
+  {{function_body}}
+
+  Reply with JSON: {"vulnerable": true/false, "reason": "...", "url_source": "...", "client": "..."}

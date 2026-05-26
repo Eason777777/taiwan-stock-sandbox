@@ -1,0 +1,18 @@
+id: PATH-001
+name: Path Traversal
+vulnerability_class: Path Traversal
+cwe: CWE-22
+severity_hint: high
+applicable_languages: [python, javascript, typescript, java, php, ruby, go]
+scope: function
+prompt_template: |
+  Analyze the following function for path traversal vulnerabilities.
+  Look for: file open/read/write operations where the path includes untrusted input
+  without canonicalization and boundary enforcement (e.g. Path.resolve + startswith check),
+  directory listing with user-controlled paths, archive extraction without path sanitization.
+  A finding requires input from outside this function flowing to a filesystem operation.
+
+  Function:
+  {{function_body}}
+
+  Reply with JSON: {"vulnerable": true/false, "reason": "...", "input_source": "...", "sink": "..."}

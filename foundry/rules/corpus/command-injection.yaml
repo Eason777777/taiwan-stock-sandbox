@@ -1,0 +1,19 @@
+id: CMD-001
+name: Command Injection
+vulnerability_class: Command Injection
+cwe: CWE-78
+severity_hint: critical
+applicable_languages: [python, javascript, typescript, java, php, ruby, go]
+scope: function
+prompt_template: |
+  Analyze the following function for OS command injection vulnerabilities.
+  Look for: subprocess calls (subprocess.run, os.system, exec, popen) that include
+  untrusted input in the command string or argument list without shell=False + list form,
+  shell metacharacter injection, argument splitting issues.
+  A finding requires: (1) command runs on the OS, (2) input comes from outside this function,
+  (3) no allowlist validation or safe API usage prevents injection.
+
+  Function:
+  {{function_body}}
+
+  Reply with JSON: {"vulnerable": true/false, "reason": "...", "input_source": "...", "sink": "..."}

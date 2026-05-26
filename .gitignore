@@ -6,3 +6,27 @@ __pycache__/
 .venv/
 venv/
 .claude/
+docs/foundry-security-spec/
+*.egg-info/
+dist/
+.pytest_cache/
+*.log
+.DS_Store
+
+# Foundry — 需要 Anthropic API key 才能執行，不對外公開
+.specify/
+foundry/cli/
+foundry/roles/
+foundry/substrate/
+foundry/sandbox/
+foundry/integrations/
+foundry/config.py
+foundry/db.py
+foundry/db_init.py
+foundry/index/query.py
+
+# 整合測試（需要 live DB + API key）
+tests/integration/
+
+# 任務追蹤（開發內部用）
+specs/001-foundry/tasks.md

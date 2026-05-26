@@ -1,0 +1,19 @@
+id: RAND-001
+name: Insecure Randomness
+vulnerability_class: Insecure Randomness
+cwe: CWE-338
+severity_hint: medium
+applicable_languages: [python, javascript, typescript, java, php, ruby, go]
+scope: function
+prompt_template: |
+  Analyze the following function for use of cryptographically weak randomness in a
+  security-sensitive context.
+  Look for: random.random(), Math.random(), rand() — used to generate tokens, session IDs,
+  passwords, CSRF tokens, OTPs, or cryptographic keys. os.urandom, secrets module,
+  crypto.getRandomValues are safe. A finding requires the weak random output to be used
+  for authentication, authorization, or cryptographic purposes.
+
+  Function:
+  {{function_body}}
+
+  Reply with JSON: {"vulnerable": true/false, "reason": "...", "rng": "...", "usage": "..."}

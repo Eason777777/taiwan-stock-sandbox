@@ -1,0 +1,18 @@
+id: LOG-001
+name: Sensitive Data in Log
+vulnerability_class: Sensitive Data Exposure via Logging
+cwe: CWE-532
+severity_hint: medium
+applicable_languages: [python, javascript, typescript, java, php, ruby, go]
+scope: function
+prompt_template: |
+  Analyze the following function for logging of sensitive data.
+  Look for: logging calls (logger.info, print, console.log, log.debug) that include
+  passwords, tokens, API keys, session IDs, PII (email, SSN, credit card), or
+  full request/response bodies that likely contain secrets.
+  Ignore logging of sanitized digests or masked values (e.g. last-4 of card).
+
+  Function:
+  {{function_body}}
+
+  Reply with JSON: {"vulnerable": true/false, "reason": "...", "data_type": "...", "log_call": "..."}

@@ -1,0 +1,94 @@
+# Foundry Evaluation Configuration
+# Run: foundry init --config evaluation-configs/example.toml
+# Then: foundry up   --config evaluation-configs/example.toml --eval-id <id>
+
+# ---------------------------------------------------------------------------
+# Target: the GitHub repository and revision to evaluate
+# ---------------------------------------------------------------------------
+[target]
+github_owner = "your-org"
+github_repo  = "your-repo"
+revision     = "abc1234"           # commit SHA or branch name
+
+# Paths to include/exclude from indexing and analysis (fnmatch patterns)
+include = ["src/**/*.py", "app/**/*.py"]
+exclude = ["tests/**", "docs/**", "**/migrations/**"]
+
+# ---------------------------------------------------------------------------
+# Goals: what the operator wants the fleet to look for
+# ---------------------------------------------------------------------------
+[goals]
+text = """
+Find all externally-reachable SQL injection vulnerabilities.
+Identify any authentication bypass in the login and session management code.
+Check for IDOR in resource access endpoints.
+Look for hardcoded credentials or secrets in application code.
+"""
+
+# ---------------------------------------------------------------------------
+# Testbed (optional): live environment for exploitation demonstration
+# ---------------------------------------------------------------------------
+# [testbed]
+# description = "Docker Compose stack at http://localhost:8080 — see docs/testbed.md"
+
+# ---------------------------------------------------------------------------
+# Fleet: number of agent instances per role
+# ---------------------------------------------------------------------------
+[fleet]
+indexer_instances       = 1
+cartographer_instances  = 1
+detector_instances      = 3   # one rule_sweep + two exploratory
+triager_instances       = 2
+validator_instances     = 1
+coverage_guide_instances = 1
+reporter_instances      = 1
+
+# ---------------------------------------------------------------------------
+# Sandbox: allowed egress hostnames (in addition to sql-api.shiragaserver.lan)
+# ---------------------------------------------------------------------------
+[sandbox]
+allowlist = [
+    "api.anthropic.com",
+    "api.github.com",
+]
+
+# ---------------------------------------------------------------------------
+# Budget: spend and time caps; auto-stop tuning
+# ---------------------------------------------------------------------------
+[budget]
+spend_cap_usd      = 20.0   # hard stop at $20 total spend
+# time_cap_hours   = 8.0    # optional: hard stop after 8h wall-clock
+
+# Auto-stop when yield drops below this (severity-weighted findings per dollar)
+yield_threshold    = 2.0
+# Window over which yield is computed
+yield_window_usd   = 5.0
+# Minimum runtime before auto-stop is eligible
+min_runtime_hours  = 0.5
+
+# Severity weights for yield computation
+[budget.severity_weights]
+critical = 100
+high     = 31
+medium   = 10
+low      = 3
+exploited_multiplier = 2.0
+
+# ---------------------------------------------------------------------------
+# Integrations: LLM models and GitHub publishing
+# ---------------------------------------------------------------------------
+[integrations]
+# GitHub repo where findings will be published as issues
+# Secrets (tokens) must be set via environment variables, not here.
+github_owner    = "your-org"
+github_repo     = "your-repo"
+
+# LLM model tiers (do not set API keys here — use ANTHROPIC_API_KEY env var)
+llm_strong_model = "claude-opus-4-7"
+llm_bulk_model   = "claude-haiku-4-5-20251001"
+
+# ---------------------------------------------------------------------------
+# Rules: detection rule corpus
+# ---------------------------------------------------------------------------
+[rules]
+corpus_path = "foundry/rules/corpus"
