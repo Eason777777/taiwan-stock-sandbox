@@ -1,7 +1,7 @@
 # Security Manual — Foundry 安全審查工具包
 
-> 本手冊說明如何利用 Foundry 的偵測規則與分析工具，透過 Claude Code 對程式碼進行安全審查。
-> 不需要 Anthropic API key，只需要 Claude Code CLI（Claude Pro 即可）。
+> 本手冊說明如何利用 Foundry 的偵測規則與分析工具，透過 AI Agent (下方以 claude code 為例) 對程式碼進行安全審查。
+> 不需要 API key，只需要 Claude Code、Codex 或任意 AI Agent。
 
 ---
 
