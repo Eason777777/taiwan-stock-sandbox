@@ -1,5 +1,6 @@
 from typing import Annotated, AsyncGenerator
 from fastapi import Depends, Header, HTTPException
+from ..database import sql_str
 import httpx
 
 from .database import SqlApiClient, SQL_API_URL
@@ -15,9 +16,9 @@ async def get_current_user(
     db: SqlApiClient = Depends(get_db),
 ):
     rows = await db.query(f"""
-        SELECT user_id, account FROM users
-        WHERE session_id = '{x_session_id}'
-    """)
+    SELECT user_id, account FROM users
+    WHERE session_id = '{sql_str(x_session_id)}'
+""")
     print("rows: ",rows)
     if not rows:
         raise HTTPException(status_code=401, detail="Not authenticated")

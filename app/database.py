@@ -5,8 +5,11 @@ SQL_API_URL = os.getenv("SQL_API_URL", "http://sql-api.shiragaserver.lan/query")
 
 
 def sql_str(value: str) -> str:
-    """Escape a string value for safe interpolation into a SQL query."""
-    return value.replace("'", "''")
+    # 同時逸出反斜線（必須先做，否則會重複逸出）
+    value = value.replace("\\", "\\\\")
+    value = value.replace("'", "''")
+    value = value.replace("\x00", "")   # 刪除 null byte
+    return value
 
 
 class SqlApiClient:
