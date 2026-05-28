@@ -30,3 +30,5 @@ tests/integration/
 
 # 任務追蹤（開發內部用）
 specs/001-foundry/tasks.md
+
+security_report/
