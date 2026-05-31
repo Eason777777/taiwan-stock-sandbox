@@ -1,6 +1,5 @@
 from typing import Annotated, AsyncGenerator
 from fastapi import Depends, Header, HTTPException
-from ..database import sql_str
 import httpx
 
 from .database import SqlApiClient
@@ -23,4 +22,3 @@ async def get_current_user(
     if not rows:
         raise HTTPException(status_code=401, detail="Not authenticated")
     return rows['rows'][0]   # {"user_id": ..., "account": ...}
-
