@@ -6,6 +6,7 @@ __pycache__/
 .venv/
 venv/
 .claude/
+.claude_package/
 docs/foundry-security-spec/
 *.egg-info/
 dist/
