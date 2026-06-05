@@ -43,5 +43,6 @@ data_import_tool/script/log
 
 # LaTeX 編譯產生的檔案
 *.aux
+*.out
 *.log
 *.synctex.gz
