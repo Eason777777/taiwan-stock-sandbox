@@ -859,7 +859,7 @@
         加載存檔後進入的主控制大廳（對應「自選」分頁）。頂端藍色狀態列即時顯示當前虛擬日期、時間階段、存款戶及交割戶餘額。頁面中央展示自選股清單（包含代碼、名稱、股價、漲跌與漲跌幅），並提供黃色按鈕以新增股票至清單；點擊綠色的時間推進按鈕，即可將交易階段向後推進並觸發撮合引擎。
         \begin{figure}[H]
             \centering
-            \includegraphics[width=0.65\textwidth]{flowchart/4_watchlist.png}
+            \includegraphics[width=0.65\textwidth]{flowchart/4_watchlist.jpg}
             \caption{自選股主頁面流程圖}
             \label{fig:flow_watchlist}
         \end{figure}
@@ -874,7 +874,7 @@
         \end{figure}
         \newpage
         \item \textbf{資產庫存與轉帳流程 (Portfolio \& Bank Flow)} \\
-        對應「庫存」分頁。上半部展示交割戶與存款戶的目前餘額，並提供雙向轉帳介面（輸入金額後點擊轉帳圖示即可即時互轉並寫入金流帳本）；下半部則顯示持股庫存清單，包含代碼、名稱、持股數量、損益、獲利率、現價與加權平均成本，方便玩家評估未實現損益。
+        對應「資產」分頁。上半部展示交割戶與存款戶的目前餘額，並提供雙向轉帳介面（輸入金額後點擊轉帳圖示即可即時互轉並寫入金流帳本）；下半部則顯示持股庫存清單，包含代碼、名稱、持股數量、損益、獲利率、現價與加權平均成本，方便玩家評估未實現損益。
         \begin{figure}[H]
             \centering
             \includegraphics[width=0.8\textwidth]{flowchart/8_account.png}
@@ -883,7 +883,7 @@
         \end{figure}
         \newpage
         \item \textbf{紀錄選單 lobby 流程 (Record Menu Flow)} \\
-        在「存檔」分頁中，玩家可查看當前存檔的整體績效與歷史數據。頁面右上方設有切換下拉式選單（Drop-down Menu），作為各項歷史紀錄的整合入口，玩家可在此選擇要檢視交易明細、帳戶轉帳紀錄或管理存檔。
+        在「紀錄」分頁中，玩家可查看當前存檔的整體績效與歷史數據。頁面右上方設有切換下拉式選單（Drop-down Menu），作為各項歷史紀錄的整合入口，玩家可在此選擇要檢視交易明細、帳戶轉帳紀錄或管理存檔。
         \begin{figure}[H]
             \centering
             \includegraphics[width=0.62\textwidth]{flowchart/9_record_savefile.png}
@@ -892,7 +892,7 @@
         \end{figure}
         \newpage
         \item \textbf{交易與交割紀錄流程 (History Records Flow)} \\
-        透過「存檔」分頁的下拉式選單，玩家可切換至「交易紀錄」或「轉帳紀錄」表格。「交易紀錄」詳細列出歷次成交的股票名稱、損益、報酬率、交易類別、成交股數與價格、出帳金額與投資成本；「轉帳紀錄」則列出交割戶與存款戶的資金異動明細，以利玩家進行績效評估與對帳。
+        透過「紀錄」分頁的下拉式選單，玩家可切換至「交易紀錄」或「轉帳紀錄」表格。「交易紀錄」詳細列出歷次成交的股票名稱、損益、報酬率、交易類別、成交股數與價格、出帳金額與投資成本；「轉帳紀錄」則列出交割戶與存款戶的資金異動明細，以利玩家進行績效評估與對帳。
         \begin{figure}[H]
             \centering
             \includegraphics[width=0.85\textwidth]{flowchart/10_watch_transact.png}
@@ -1061,7 +1061,7 @@
         在「交易」分頁下（Figure~\ref{fig:ui_order}），玩家可進行股票下單。左側填入股票代碼、委託價格及張數，設有防呆錯誤提示；右側設有兩個切換開關（Switch），上開關可切換「買/賣」，下開關可切換「限價/市價」，介面設計精簡防呆。
 
         \item \textbf{持股庫存與銀行轉帳畫面} \\
-        在「庫存」分頁下（Figure~\ref{fig:ui_holding}），上半部為銀行帳本互轉介面，直觀展示交割戶與存款戶的金額，點擊中央雙向箭頭即可將款項互轉（Figure~\ref{fig:ui_transfer}）；下半部則顯示持股明細表，列出代碼、名稱、庫存張數、原幣損益、獲利率、現價與加權平均成本，並加總顯示總未實現損益。
+        在「資產」分頁下（Figure~\ref{fig:ui_holding}），上半部為銀行帳本互轉介面，直觀展示交割戶與存款戶的金額，點擊中央雙向箭頭即可將款項互轉（Figure~\ref{fig:ui_transfer}）；下半部則顯示持股明細表，列出代碼、名稱、庫存張數、原幣損益、獲利率、現價與加權平均成本，並加總顯示總未實現損益。
 
         \begin{figure}[H]
             \centering
@@ -1086,13 +1086,19 @@
             \caption{轉帳畫面設計}
             \label{fig:ui_transfer}
         \end{figure}
-        \item \textbf{歷史紀錄與存檔紀錄分頁} \\
-        在「存檔」分頁下（Figure~\ref{fig:ui_history}），左側顯示當前存檔的出帳投資總額、已實現損益與整體投資報酬率；右上角提供下拉式選單（交易紀錄、轉帳紀錄、存檔紀錄），下方則配合選單切換展示對應的歷次股票成交明細或資金異動流水帳，落實全面對帳之功能。
+        \item \textbf{紀錄分頁} \\
+        在「紀錄」分頁下（Figure~\ref{fig:ui_history}），左側顯示當前存檔的出帳投資總額、已實現損益與整體投資報酬率；右上角提供下拉式選單（交易紀錄、轉帳紀錄、存檔紀錄），下方則配合選單切換展示對應的資金異動紀錄和顯示其他存檔資訊（Figure~\ref{fig:ui_record}）。
         \begin{figure}[H]
             \centering
             \includegraphics[width=0.6\textwidth]{frontend_design/7_transact.png}
-            \caption{歷史明細紀錄畫面設計}
+            \caption{紀錄分頁設計}
             \label{fig:ui_history}
+        \end{figure}
+        \begin{figure}[H]
+            \centering
+            \includegraphics[width=0.6\textwidth]{frontend_design/8_record.png}
+            \caption{交易紀錄、轉帳紀錄、存檔紀錄畫面設計}
+            \label{fig:ui_record}
         \end{figure}
     \end{enumerate}
     \subsection{連結資料庫部份之技術}
