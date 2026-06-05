@@ -40,3 +40,8 @@ security_report/
 data_import_tool/raw_data
 data_import_tool/clean_data
 data_import_tool/script/log
+
+# LaTeX 編譯產生的檔案
+*.aux
+*.log
+*.synctex.gz

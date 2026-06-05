@@ -69,6 +69,13 @@
             \item \texttt{limit\_up} / \texttt{limit\_down}：當日漲停價與當日跌停價。
             \item \texttt{is\_attention} / \texttt{is\_disposition} / \texttt{is\_full\_delivery}：交易異常個股 (注意股、處置股、全額交割股) 。採用布林值 (Boolean) 記錄。
         \end{itemize}
+        \item 暫停交易日期 (\texttt{SuspensionDate}) ：記錄台股各檔股票之暫停交易日期與原因，作為時光機引擎判定該檔股票是否可交易的防呆依據，包含：
+        \begin{itemize}
+            \item \texttt{stock\_id}：股票代碼 (Foreign Key) 。對應至 \texttt{Stock} 表，與\\ \texttt{suspensio\_start\_date} 欄位共同組成此表之複合主鍵。
+            \item \texttt{suspend\_start\_date} ：暫停交易開始日期 (Partial Key) 。記錄該檔股票開始暫停交易的日期。
+            \item \texttt{resume\_date}：恢復交易日期。記錄該檔股票恢復交易的日期。 如果是加權指數，則為空值。
+            \item \texttt{reason}：暫停交易原因。記錄該檔股票被暫停交易的原因，如：重大訊息公告、財務報表異常、減資、國定假日或颱風天等。
+        \end{itemize}
     \end{enumerate}
 
     \subsection{模擬存檔相關資料}
@@ -218,7 +225,13 @@
             limit\_down \\ is\_attention \\ 
             is\_disposition \\ is\_full\_delivery 
         };
-
+        
+        % SuspensionDate (Stock 的上方)
+        \node[weakentity] (suspension) [above=3.5cm of stock] {
+            \hfil SuspensionDate \hfil 
+            \nodepart{two} 
+            \dashuline{suspend\_start\_date} \\ resume\_date \\ reason
+        };
         % StockOrder (下)
         \node[entity] (stockorder) [below=3.5cm of savefile] {
             \hfil StockOrder \hfil 
@@ -272,6 +285,11 @@
         \draw[<-] (stock.east) -- (hasdailyprice.west);
         \draw[total] (hasdailyprice.east) -- (dailyprice.west);
 
+        % Stock <-> SuspensionDate (弱關聯)
+        \node[weakrel] (hassuspension) at ($(stock)!0.7!(suspension)$) {has\_suspension\_date};
+        \draw[<-] (stock.north) -- (hassuspension.south);
+        \draw[total] (hassuspension.north) -- (suspension.south);
+
         % SaveFile <-> StockOrder
         \node[relationship] (hasorder) at ($(savefile)!0.5!(stockorder)$) {has\_order};
         \draw[<-] (savefile.south) -- (hasorder.north);
@@ -294,15 +312,15 @@
 }
 \section{設計概念與限制說明}
 \begin{enumerate}
-    % \item \textbf{has\_save:} 測試。
-    \item \texttt{has\_save :} 記錄使用者擁有哪些時光機存檔。使用者（User）對時光機存檔（SaveFile）為一對多，並且時光機存檔（SaveFile）一定對應到唯一一個使用者（User）。
-    \item \texttt{has\_account\_transaction :} 時光機存檔（SaveFile）對帳戶金流明細（AccountTransaction）為一對多，並且帳戶金流明細（AccountTransaction）一定對應到唯一一個時光機存檔（SaveFile）。
-    \item \texttt{has\_order :} 記錄時光機存檔中擁有哪些委託單。時光機存檔（SaveFile）對委託單（StockOrder）為一對多，並且委託單（StockOrder）一定對應到唯一一個時光機存檔（SaveFile）。
-    \item \texttt{exec :} 委託單（StockOrder）對股票交易紀錄（StockTransaction）為一對一，並且股票交易紀錄（StockTransaction）一定對應到唯一一個委託單（StockOrder）。
-    \item \texttt{belong\_to\_stock :} 委託單（StockOrder）對股票基本面（Stock）為多對一，並且委託單（StockOrder）一定對應到唯一一個股票基本面（Stock）。
-    \item \texttt{holding:} 紀錄時光機存檔中有哪些股票。時光機存檔（SaveFile）對股票基本面（Stock）為多對多。同時也記錄股票數量（quantity）和平均價。
-    \item \texttt{watchlist:} 紀錄時光機存檔中關注的股票有哪些。時光機存檔（SaveFile）對股票基本面（Stock）為多對多。
-    \item \texttt{has\_daily\_price :} 股票基本面（Stock）對歷史日線行情（DailyPrice）為一對多，並且歷史日線行情（DailyPrice）一定對應到唯一一個股票基本面（Stock）。
+    \item \texttt{has\_save}: 記錄使用者擁有哪些時光機存檔。使用者（User）對時光機存檔（SaveFile）為一對多，並且時光機存檔（SaveFile）一定對應到唯一一個使用者（User）。
+    \item \texttt{has\_account\_transaction}: 時光機存檔（SaveFile）對帳戶金流明細（AccountTransaction）為一對多，並且帳戶金流明細（AccountTransaction）一定對應到唯一一個時光機存檔（SaveFile）。
+    \item \texttt{has\_order}: 記錄時光機存檔中擁有哪些委託單。時光機存檔（SaveFile）對委託單（StockOrder）為一對多，並且委託單（StockOrder）一定對應到唯一一個時光機存檔（SaveFile）。
+    \item \texttt{exec}: 委託單（StockOrder）對股票交易紀錄（StockTransaction）為一對一，並且股票交易紀錄（StockTransaction）一定對應到唯一一個委託單（StockOrder）。
+    \item \texttt{belong\_to\_stock}: 委託單（StockOrder）對股票基本面（Stock）為多對一，並且委託單（StockOrder）一定對應到唯一一個股票基本面（Stock）。
+    \item \texttt{holding}: 紀錄時光機存檔中有哪些股票。時光機存檔（SaveFile）對股票基本面（Stock）為多對多。同時也記錄股票數量（quantity）和平均價。
+    \item \texttt{watchlist}: 紀錄時光機存檔中關注的股票有哪些。時光機存檔（SaveFile）對股票基本面（Stock）為多對多。
+    \item \texttt{has\_daily\_price} :股票基本面（Stock）對歷史日線行情（DailyPrice）為一對多，並且歷史日線行情（DailyPrice）一定對應到唯一一個股票基本面（Stock）。
+    \item \texttt{has\_suspension\_date} : 股票基本面（Stock）對暫停交易日期（SuspensionDate）為一對多，並且停牌日期（SuspensionDate）一定對應到唯一一個股票基本面（Stock）。
 \end{enumerate} 
 
 \section{其他設計考量}
@@ -315,7 +333,8 @@
 
     \item 目前委託單（StockOrder）與成交紀錄（StockTransaction）是一對一關係，但真實交易中，一筆委託單可能會分成多次成交，因此若想提高模擬真實性，可能需要改成一對多設計。
     
-    本系統為簡化交易邏輯，一筆委託單只會有全部成交和全部不成交這兩種可能，因此維持一對一關係
+    本系統為簡化交易邏輯，一筆委託單只會有全部成交和全部不成交這兩種可能，因此維持一對一關係。
+
 \end{enumerate}
 
 \appendix
