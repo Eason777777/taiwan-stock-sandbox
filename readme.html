@@ -305,25 +305,28 @@
     <section id="overview">
       <h2><span class="icon">📖</span>專案簡介</h2>
       <p>
-        <strong>錢錢錢市</strong>是一個零風險的股票模擬交易平台。使用者選擇一個歷史起始日期後，可逐日手動推進虛擬時間，並以真實的台股 OHLC 歷史資料進行委託撮合。
+        <strong>錢錢錢市</strong>是一個零風險的股票模擬交易平台。玩家自由選擇歷史時間起點，在「平行宇宙」中逐階段推進虛擬時間，並以真實的台股歷史價格進行委託撮合。核心強調 <strong>時空隔離</strong>（無法利用未來資訊套利）與 <strong>邏輯防呆</strong>（在簡化的 MVP 模型下維持金融運作嚴謹性）。
       </p>
       <div class="card-grid">
         <div class="card">
           <div class="card-title">🕰 時間模擬</div>
-          <div class="card-body">自選歷史起始日，每次呼叫 <code>/advance</code> 推進一個交易階段（盤前→盤中→盤後→下一日）</div>
+          <div class="card-body">自選歷史起始日，每次呼叫 <code>/advance</code> 推進一個交易階段（盤前→盤中→盤後→收市→下一日）</div>
         </div>
         <div class="card">
-          <div class="card-title">📊 真實資料</div>
-          <div class="card-body">撮合以當日 DailyPrice 的最高/最低價為依據，限價與市價委託規則分明</div>
+          <div class="card-title">📊 階段化撮合</div>
+          <div class="card-body">各階段委託於推進至下一階段時結算，限價、市價與盤後定價規則分明</div>
         </div>
         <div class="card">
           <div class="card-title">💰 雙帳戶制</div>
-          <div class="card-body">存款戶（閒置資金）與交割戶（買賣專用），手動轉帳、完全隔離</div>
+          <div class="card-body">存款戶（閒置資金）與交割戶（買賣專用），即時轉帳、完全隔離</div>
         </div>
         <div class="card">
           <div class="card-title">🗂 多存檔</div>
-          <div class="card-body">每個存檔是完全獨立的模擬，資金、持股、委託互不影響</div>
+          <div class="card-body">每個存檔是完全獨立的模擬，資金、持股、委託、自選股互不影響</div>
         </div>
+      </div>
+      <div class="note info">
+        <strong>MVP 範圍：</strong>本版本不考慮除權息、減資、T+2 交割、融資融券、選擇權／期貨、圈存、IOC／FOK、零股與部分成交。規則與真實市場衝突時，以白皮書 MVP 規則為準。
       </div>
       <div class="note warn">
         <strong>⚠ 注意：</strong>資料庫位於 <code>mysql.shiragaserver.lan</code>，僅可透過 <strong>Tailscale</strong> 連線。本機開發前請確認 Tailscale 已啟動。
@@ -414,9 +417,9 @@ pnpm format   <span class="cm"># prettier</span></code></pre>
     <!-- ── 認證 ── -->
     <section id="auth">
       <h2><span class="icon">🔐</span>認證 <code>/auth</code></h2>
-      <p>所有 API（除了 <code>/auth/register</code> 與 <code>/auth/login</code>）都需要在 Header 帶上 session token：</p>
+      <p>支援玩家自助註冊：輸入帳號（account）與密碼（password），系統檢查後即註冊成功。所有 API（除了 <code>/auth/register</code> 與 <code>/auth/login</code>）都需要在 Header 帶上 session token：</p>
 <pre><code>X-Session-Id: &lt;your_session_id&gt;</code></pre>
-      <p>每次登入都會輪換新 token，舊 token 立即失效（強制單一登入）。</p>
+      <p><strong>單一登入原則：</strong>同一帳號同一時間僅允許一組有效憑證。再次登入會覆蓋前一次憑證，舊 token 立即失效（避免異地登入與異地操作）。</p>
 
       <table class="ep-table">
         <tr>
@@ -498,7 +501,7 @@ curl -s -X POST http://localhost:8000/auth/logout \
     <!-- ── 存檔 ── -->
     <section id="saves">
       <h2><span class="icon">💾</span>模擬存檔 <code>/saves</code></h2>
-      <p>每個存檔是一次完全獨立的模擬，擁有各自的時間軸、資金與持股。</p>
+      <p>每個存檔是一次完全獨立的模擬，其資產、庫存、委託單、交易紀錄、自選股皆不得跨存檔存取。</p>
 
       <table class="ep-table">
         <tr><th>方法</th><th>路由</th><th>說明</th></tr>
@@ -506,20 +509,48 @@ curl -s -X POST http://localhost:8000/auth/logout \
         <tr><td><span class="method GET">GET</span></td><td><code>/saves</code></td><td>列出所有存檔</td></tr>
         <tr><td><span class="method GET">GET</span></td><td><code>/saves/{id}</code></td><td>查看單一存檔</td></tr>
         <tr><td><span class="method POST">POST</span></td><td><code>/saves/{id}/advance</code></td><td>推進至下一交易階段</td></tr>
-        <tr><td><span class="method DELETE">DELETE</span></td><td><code>/saves/{id}</code></td><td>刪除存檔</td></tr>
+        <tr><td><span class="method DELETE">DELETE</span></td><td><code>/saves/{id}</code></td><td>刪除存檔（釋放名額）</td></tr>
       </table>
+
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-title">建檔名額</div>
+          <div class="card-body">最多 <strong>5</strong> 個進行中存檔；最多保留 <strong>10</strong> 個（含進行中、破產、結束）；同玩家不可同名。</div>
+        </div>
+        <div class="card">
+          <div class="card-title">初始日期</div>
+          <div class="card-body">須介於資料庫最早與最後可用交易日之間，且為有效交易日；可由系統隨機抽取。</div>
+        </div>
+        <div class="card">
+          <div class="card-title">起始資金</div>
+          <div class="card-body"><strong>50,000 ~ 1,000,000</strong> 元，可由系統隨機決定；全數配發至存款戶。</div>
+        </div>
+        <div class="card">
+          <div class="card-title">列表揭露</div>
+          <div class="card-body">名稱、虛擬日期、總資產、累積報酬率、狀態。報酬率 =（總資產 − 初始資金）/ 初始資金。</div>
+        </div>
+      </div>
+
+      <h3>存檔生命週期（status）</h3>
+      <ul class="rules">
+        <li><code>ACTIVE</code> — 進行中，可正常推進時間與交易。</li>
+        <li><code>BANKRUPT</code> — 已破產。無法再交易或推進時間，僅能查詢、刪除或封存。</li>
+        <li><code>FINISHED</code> — 玩家手動結束並封存，不可再恢復進行。</li>
+      </ul>
 
       <h3>交易階段循環</h3>
       <div class="phase-flow">
-        <div class="phase-box">盤前<div class="phase-loop">可下單</div></div>
+        <div class="phase-box">盤前<div class="phase-loop">限價單</div></div>
         <div class="phase-arrow">→</div>
-        <div class="phase-box">盤中<div class="phase-loop">可下單</div></div>
+        <div class="phase-box">盤中<div class="phase-loop">限價＋市價</div></div>
         <div class="phase-arrow">→</div>
-        <div class="phase-box">盤後<div class="phase-loop">自動撮合</div></div>
+        <div class="phase-box">盤後<div class="phase-loop">定價交易</div></div>
+        <div class="phase-arrow">→</div>
+        <div class="phase-box">收市<div class="phase-loop">鎖定交易</div></div>
         <div class="phase-arrow">→</div>
         <div class="phase-box">下一日盤前<div class="phase-loop">重複</div></div>
       </div>
-      <p>盤後結束時，系統自動以當日歷史價格撮合委託，未成交者失效。</p>
+      <p>每次推進都會結算「上一階段送出且尚未結算的委託單」，未成交者自動失效（詳見<a href="#orders">撮合規則</a>）。一旦推進時間，不可回到過去日期。</p>
 
       <h3>建立存檔</h3>
 <pre><code>curl -X POST http://localhost:8000/saves \
@@ -528,26 +559,28 @@ curl -s -X POST http://localhost:8000/auth/logout \
   -d <span class="str">'{
     "save_name": "我的第一次模擬",
     "start_date": "2020-01-02",
-    "initial_savings": 1000000,
-    "initial_trading": 0
-  }'</span></code></pre>
+    "initial_funds": 1000000
+  }'</span>
+<span class="cm"># initial_funds 範圍 50,000 ~ 1,000,000，全數配發至存款戶</span></code></pre>
 
       <h3>查看存檔回應</h3>
 <pre><code>{
-  <span class="key">"save_id"</span>:        <span class="num">1</span>,
-  <span class="key">"save_name"</span>:      <span class="str">"我的第一次模擬"</span>,
-  <span class="key">"current_date"</span>:   <span class="str">"2020-01-02"</span>,
-  <span class="key">"current_phase"</span>:  <span class="str">"盤前"</span>,
-  <span class="key">"status"</span>:         <span class="str">"進行中"</span>,
-  <span class="key">"savings_balance"</span>: <span class="num">1000000</span>,
-  <span class="key">"trading_balance"</span>: <span class="num">0</span>
+  <span class="key">"save_id"</span>:           <span class="num">1</span>,
+  <span class="key">"save_name"</span>:         <span class="str">"我的第一次模擬"</span>,
+  <span class="key">"current_date"</span>:      <span class="str">"2020-01-02"</span>,
+  <span class="key">"current_phase"</span>:     <span class="str">"盤前"</span>,
+  <span class="key">"status"</span>:            <span class="str">"ACTIVE"</span>,
+  <span class="key">"savings_balance"</span>:   <span class="num">1000000</span>,
+  <span class="key">"trading_balance"</span>:   <span class="num">0</span>,
+  <span class="key">"total_asset"</span>:       <span class="num">1000000</span>,
+  <span class="key">"cumulative_return"</span>: <span class="num">0.0</span>
 }</code></pre>
     </section>
 
     <!-- ── 帳戶 ── -->
     <section id="accounts">
       <h2><span class="icon">💳</span>帳戶與資金 <code>/saves/{id}/accounts</code></h2>
-      <p>每個存檔有兩個帳戶：</p>
+      <p>每個存檔有兩個帳戶，兩者間可即時轉帳、無手續費。本版本採 <strong>T+0 瞬間交割</strong>。</p>
       <div class="card-grid">
         <div class="card">
           <div class="card-title">存款戶（savings）</div>
@@ -555,8 +588,11 @@ curl -s -X POST http://localhost:8000/auth/logout \
         </div>
         <div class="card">
           <div class="card-title">交割戶（trading）</div>
-          <div class="card-body">股票買賣、手續費、交易稅專用帳戶。餘額不足時買單被拒。</div>
+          <div class="card-body">股票買賣、手續費、交易稅專用帳戶。餘額不足以支付即破產。</div>
         </div>
+      </div>
+      <div class="note info">
+        <strong>資產估值：</strong>持股市值依當前階段採不同價格 —— 盤前以上一交易日收盤價、盤中以當日開盤價、盤後／收市以當日收盤價估算。總資產 = 存款戶 + 交割戶 + 持股市值。
       </div>
 
       <table class="ep-table">
@@ -587,8 +623,11 @@ curl -X POST http://localhost:8000/saves/1/accounts/transfer \
         <tr><th>方法</th><th>路由</th><th>說明</th></tr>
         <tr><td><span class="method GET">GET</span></td><td><code>/stocks?q=&amp;sector=</code></td><td>搜尋股票（代號或名稱 / 類股）</td></tr>
         <tr><td><span class="method GET">GET</span></td><td><code>/stocks/{stock_id}</code></td><td>查看股票基本資料</td></tr>
-        <tr><td><span class="method GET">GET</span></td><td><code>/stocks/{stock_id}/prices</code></td><td>查看 K 線歷史資料</td></tr>
+        <tr><td><span class="method GET">GET</span></td><td><code>/stocks/{stock_id}/prices</code></td><td>查看 K 線歷史資料（日／週／月線）</td></tr>
       </table>
+      <div class="note warn">
+        <strong>當日揭露原則：</strong>K 線僅顯示<strong>前一交易日以前</strong>的資料；技術指標（MA、RSI、MACD 等）計算僅能使用當前虛擬日期以前之歷史資料，不得使用未來資料。副圖成交量週期須與主圖一致。
+      </div>
 
       <h3>範例</h3>
 <pre><code><span class="cm"># 搜尋台積電</span>
@@ -618,15 +657,40 @@ curl <span class="str">"http://localhost:8000/stocks/2330/prices?from_date=2020-
     <section id="orders">
       <h2><span class="icon">📋</span>委託下單 <code>/saves/{id}/orders</code></h2>
       <div class="note info">
-        <strong>下單限制：</strong>僅在<strong>盤前</strong>或<strong>盤中</strong>階段有效。所有委託為當日有效（ROD），盤後自動失效。委託價格須在漲跌停範圍內。
+        <strong>下單限制：</strong>所有委託為當日有效（ROD）、整股交易，且只有「全部成交」或「全部不成交」（不支援部分成交）。委託可於對應撮合前主動撤單。可交易標的須已上市、未暫停交易，且當前為允許下單之階段。
       </div>
 
       <table class="ep-table">
         <tr><th>方法</th><th>路由</th><th>說明</th></tr>
-        <tr><td><span class="method POST">POST</span></td><td><code>/saves/{id}/orders</code></td><td>送出委託（限價 / 市價）</td></tr>
+        <tr><td><span class="method POST">POST</span></td><td><code>/saves/{id}/orders</code></td><td>送出委託（限價 / 市價 / 定價）</td></tr>
         <tr><td><span class="method GET">GET</span></td><td><code>/saves/{id}/orders</code></td><td>查看所有委託</td></tr>
-        <tr><td><span class="method DELETE">DELETE</span></td><td><code>/saves/{id}/orders/{oid}</code></td><td>撤銷待成交委託</td></tr>
+        <tr><td><span class="method DELETE">DELETE</span></td><td><code>/saves/{id}/orders/{oid}</code></td><td>撤銷 PENDING 委託（該階段結算前）</td></tr>
       </table>
+
+      <h3>各階段可下單類型</h3>
+      <table class="ep-table">
+        <tr><th>階段</th><th>可下單類型</th></tr>
+        <tr><td>盤前</td><td>限價單</td></tr>
+        <tr><td>盤中</td><td>限價單、市價單</td></tr>
+        <tr><td>盤後</td><td>定價交易（成交價固定為收盤價）</td></tr>
+      </table>
+
+      <h3>限價單升降單位</h3>
+      <p>限價單價格須符合台股升降單位，且不得高於當日漲停價、不得低於當日跌停價。</p>
+      <table class="ep-table">
+        <tr><th>股價範圍</th><th>升降單位</th></tr>
+        <tr><td>未滿 10 元</td><td>0.01 元</td></tr>
+        <tr><td>10 ~ 未滿 50 元</td><td>0.05 元</td></tr>
+        <tr><td>50 ~ 未滿 100 元</td><td>0.1 元</td></tr>
+        <tr><td>100 ~ 未滿 500 元</td><td>0.5 元</td></tr>
+        <tr><td>500 ~ 未滿 1000 元</td><td>1 元</td></tr>
+        <tr><td>1000 元以上</td><td>5 元</td></tr>
+      </table>
+
+      <div class="note warn">
+        <strong>賣單檢查：</strong>買單下單時不先圈存現金；賣單不允許超額。送出賣單時系統檢查可賣持股是否足夠，不足即拒絕。<br>
+        <code>可賣持股 = 現有持股 − 同階段尚未結算之賣單總量</code>
+      </div>
 
       <h3>限價買單</h3>
 <pre><code>curl -X POST http://localhost:8000/saves/1/orders \
@@ -651,14 +715,32 @@ curl <span class="str">"http://localhost:8000/stocks/2330/prices?from_date=2020-
     "side":       "賣",
     "quantity":   1
   }'</span>
-<span class="cm"># 市價單不填 price，以當日最高/最低之間的隨機價格成交</span></code></pre>
+<span class="cm"># 市價單不填 price；盤中市價以當日收盤價成交</span></code></pre>
 
-      <h3>撮合規則</h3>
+      <h3>撮合規則（階段化結算）</h3>
+      <p>委託送出時列入「待成交委託」（<code>PENDING</code>），於玩家推進至<strong>下一階段</strong>時結算：</p>
+      <table class="ep-table">
+        <tr><th>委託</th><th>撮合時機</th><th>成交條件</th><th>成交價</th></tr>
+        <tr><td>盤前 限價買</td><td>推進至盤中</td><td>限價 ≥ 開盤價</td><td>當日開盤價</td></tr>
+        <tr><td>盤前 限價賣</td><td>推進至盤中</td><td>限價 ≤ 開盤價</td><td>當日開盤價</td></tr>
+        <tr><td>盤中 限價買</td><td>推進至盤後</td><td>限價 ≥ 最低價</td><td>玩家指定限價</td></tr>
+        <tr><td>盤中 限價賣</td><td>推進至盤後</td><td>限價 ≤ 最高價</td><td>玩家指定限價</td></tr>
+        <tr><td>盤中 市價買/賣</td><td>推進至盤後</td><td>當日有有效價格</td><td>當日收盤價</td></tr>
+        <tr><td>盤後 定價買/賣</td><td>推進至收市</td><td>當日有有效收盤價</td><td>當日收盤價</td></tr>
+      </table>
       <ul class="rules">
-        <li>限價買單：委託價 ≥ 當日最低價 → 成交（成交價 = 委託價）</li>
-        <li>限價賣單：委託價 ≤ 當日最高價 → 成交（成交價 = 委託價）</li>
-        <li>市價單：成交價 = random(當日最低, 當日最高)</li>
-        <li>委託為全量成交或全量不成交（All-or-Nothing）</li>
+        <li>盤中限價單不提供價格改善（避免藉歷史最低價套利）。</li>
+        <li>市價／定價單若當日無法交易則委託失效。</li>
+        <li>買單成交後立即扣成交金額與手續費；交割戶不足則破產。</li>
+        <li>賣單成交後立即扣手續費與證交稅，餘額入帳交割戶。</li>
+      </ul>
+
+      <h3>委託單狀態</h3>
+      <ul class="rules">
+        <li><code>PENDING</code> — 待撮合</li>
+        <li><code>FILLED</code> — 已成交</li>
+        <li><code>CANCELED</code> — 玩家主動撤單</li>
+        <li><code>EXPIRED</code> — 階段結束仍未成交，自動失效</li>
       </ul>
     </section>
 
@@ -686,6 +768,7 @@ curl <span class="str">"http://localhost:8000/stocks/2330/prices?from_date=2020-
     <!-- ── 自選股 ── -->
     <section id="watchlist">
       <h2><span class="icon">⭐</span>自選股 <code>/saves/{id}/watchlist</code></h2>
+      <p>自選股清單隸屬個別存檔，不跨存檔共享。同一檔股票不得重複加入，每個存檔最多 <strong>100</strong> 筆。</p>
 
       <table class="ep-table">
         <tr><th>方法</th><th>路由</th><th>說明</th></tr>
@@ -787,15 +870,16 @@ curl -X DELETE http://localhost:8000/saves/1/watchlist/2454 \
     <section id="rules">
       <h2><span class="icon">⚖</span>業務規則</h2>
       <ul class="rules">
-        <li><strong>交易單位 1 張 = 1,000 股</strong>，<code>quantity</code> 以張為單位，不支援零股。</li>
-        <li><strong>ROD 委託</strong>：所有委託當日有效，盤後若未成交自動失效。</li>
+        <li><strong>交易單位 1 張 = 1,000 股</strong>，<code>quantity</code> 以張為單位，僅整股交易，不支援零股。</li>
+        <li><strong>ROD 委託</strong>：所有委託當日有效，對應階段結束仍未成交即自動失效（<code>EXPIRED</code>）。</li>
         <li><strong>All-or-Nothing</strong>：委託全量成交或全量不成交，不支援部分成交（StockOrder → StockTransaction 為 1:1）。</li>
-        <li><strong>價格檢查</strong>：委託價必須在 <code>limit_up</code>/<code>limit_down</code> 範圍內，超出即拒絕。</li>
-        <li><strong>T+0 扣款</strong>：買單即時從交割戶扣款，餘額不足直接拒絕，帳戶餘額不可為負。</li>
+        <li><strong>升降單位＋漲跌停</strong>：限價單須符合台股升降單位，且不得高於漲停價、不得低於跌停價，超出即拒絕。</li>
+        <li><strong>賣單不可超額</strong>：可賣持股 = 現有持股 − 同階段未結算賣單量；不足則拒絕。買單下單時不圈存現金。</li>
+        <li><strong>T+0 瞬間交割</strong>：成交立即更新持股與交割戶。帳戶正常狀態不得為負，交割戶不足以支付即破產。</li>
         <li><strong>手續費</strong>：買賣各收 0.1425%（最低 NT$20）；<strong>交易稅</strong>：賣出 0.3%（僅賣方）。金額存為整數（元）。</li>
-        <li><strong>上市日限制</strong>：委託日早於 <code>listing_date</code> 的股票直接拒絕。</li>
-        <li><strong>匹配原子性</strong>：盤後撮合在單一 DB transaction 中執行，不重複撮合，存檔完全隔離。</li>
-        <li><strong>模擬結束條件</strong>：到達資料集最晚日期，或交割戶 + 持股市值趨近 0。</li>
+        <li><strong>交易標的限制</strong>：尚未上市、暫停交易，或非允許下單階段，皆不得下單。</li>
+        <li><strong>時空隔離</strong>：僅可查詢當前虛擬日期以前已揭露之資訊；未來盤中／盤後／收市結果不得提前顯示。</li>
+        <li><strong>存檔隔離</strong>：各存檔資產、庫存、委託、交易紀錄、自選股完全獨立，不得跨存檔存取。</li>
       </ul>
     </section>
 
@@ -806,13 +890,13 @@ curl -X DELETE http://localhost:8000/saves/1/watchlist/2454 \
         <li>呼叫 <code>POST /auth/register</code> 建立帳號，<code>POST /auth/login</code> 取得 <code>session_id</code></li>
         <li>呼叫 <code>POST /saves</code> 建立存檔，指定起始日期與初始資金</li>
         <li>呼叫 <code>POST /saves/{id}/accounts/transfer</code>，將資金從存款戶移入交割戶</li>
-        <li>呼叫 <code>GET /stocks?q=...</code> 或 <code>/stocks/{id}/prices</code> 研究選股</li>
-        <li>（盤前/盤中）呼叫 <code>POST /saves/{id}/orders</code> 掛委託</li>
-        <li>呼叫 <code>POST /saves/{id}/advance</code> 推進階段（盤前 → 盤中 → 盤後）</li>
-        <li>盤後自動撮合，系統依當日歷史價格決定成交與否</li>
-        <li>再次呼叫 <code>POST /saves/{id}/advance</code>，進入下一個交易日的盤前</li>
+        <li>呼叫 <code>GET /stocks?q=...</code> 或 <code>/stocks/{id}/prices</code> 研究歷史盤面與 K 線</li>
+        <li>於各階段呼叫 <code>POST /saves/{id}/orders</code> 掛委託（盤前限價、盤中限價／市價、盤後定價）</li>
+        <li>呼叫 <code>POST /saves/{id}/advance</code> 推進階段，系統結算上一階段委託</li>
+        <li>檢視撮合結果與損益（<code>GET /saves/{id}/orders</code>、<code>/holdings</code>）</li>
+        <li>持續推進 盤前 → 盤中 → 盤後 → 收市 → 下一交易日盤前</li>
         <li>呼叫 <code>GET /saves/{id}/holdings</code> 查看持股與未實現損益</li>
-        <li>重複步驟 4–9 直到模擬結束</li>
+        <li>重複循環，追求更高累積報酬率並避免破產（交割戶不足即 <code>BANKRUPT</code>）</li>
       </ol>
       <div class="note success">
         <strong>小提示：</strong>Swagger UI（<code>http://localhost:8000/docs</code>）可以直接在瀏覽器試打所有 API，方便快速驗證功能。
