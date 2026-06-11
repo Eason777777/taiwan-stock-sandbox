@@ -1,11 +1,20 @@
-<script setup></script>
+<script setup>
+import { RouterLink, RouterView } from 'vue-router'
+import Login from './views/Login.vue';
+</script>
 
 <template>
-  <h1>You did it!</h1>
-  <p>
-    Visit <a href="https://vuejs.org/" target="_blank" rel="noopener">vuejs.org</a> to read the
-    documentation
-  </p>
+  <!-- <header>
+    <nav class="navbar">
+      <RouterLink :to="{ name: 'home' }">home</RouterLink> | 
+      <RouterLink :to="{ name: 'test' }">test</RouterLink>
+    </nav>
+  </header>
+
+  <main class="content">
+    <RouterView />
+  </main> -->
+  <Login />
 </template>
 
 <style scoped></style>
