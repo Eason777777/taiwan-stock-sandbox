@@ -46,3 +46,4 @@ data_import_tool/script/log
 *.out
 *.log
 *.synctex.gz
+node_modules/
