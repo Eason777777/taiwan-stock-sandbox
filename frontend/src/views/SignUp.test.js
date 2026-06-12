@@ -1,9 +1,9 @@
 import { mount, flushPromises } from '@vue/test-utils'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import Login from './Login.vue' // 確保路徑對應到你的 Login.vue
+import SignUp from './SignUp.vue' // 確保路徑對應到你的 Login.vue
 
 // 測試套件 (Test Suite)
-describe('Login.vue 登入頁面測試', () => {
+describe('SignUp.vue 註冊頁面測試', () => {
   
   // 每次測試前，清空所有的 Mock 紀錄，保持環境乾淨
   beforeEach(() => {
@@ -21,15 +21,15 @@ describe('Login.vue 登入頁面測試', () => {
     // 攔截 fetch API，不讓它真的發送網路請求，而是直接回傳我們捏造的假成功資料
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({ session_id: 'fake-session-123456' })
+      json: () => Promise.resolve({ message: '註冊成功' })
     })
 
-    // 把 Login 元件掛載到虛擬環境中
-    const wrapper = mount(Login, {
-      global: {
-        stubs: ['router-link'] // 👈 告訴測試環境：把 router-link 當作空標籤略過，不要報錯
-      }
-    })
+    // 把 SignUp 元件掛載到虛擬環境中
+      const wrapper = mount(SignUp, {
+        global: {
+          stubs: ['router-link'] // 👈 告訴測試環境：把 router-link 當作空標籤略過，不要報錯
+        }
+      })
 
     // -----------------------------------------
     // 2. Act (操作階段：模擬使用者行為)
@@ -52,7 +52,7 @@ describe('Login.vue 登入頁面測試', () => {
     expect(fetch).toHaveBeenCalledTimes(1)
     
     // 驗證 2：確認 fetch 送出去的網址和資料格式正不正確 (這非常重要，確保前端沒送錯欄位)
-    expect(fetch).toHaveBeenCalledWith('http://127.0.0.1:8000/auth/login', {
+    expect(fetch).toHaveBeenCalledWith('http://127.0.0.1:8000/auth/register', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -63,8 +63,8 @@ describe('Login.vue 登入頁面測試', () => {
       })
     })
 
-    // 驗證 3：確認登入成功的 alert 有沒有跳出來
-    expect(alertMock).toHaveBeenCalledWith('登入成功！')
+    // 驗證 3：確認註冊成功的 alert 有沒有跳出來
+    expect(alertMock).toHaveBeenCalledWith('註冊成功！')
   })
 
   it('當後端回傳錯誤時，應該要顯示錯誤訊息', async () => {
@@ -78,9 +78,9 @@ describe('Login.vue 登入頁面測試', () => {
       json: () => Promise.resolve({ detail: '帳號或密碼錯誤' })
     })
 
-    const wrapper = mount(Login, {
+    const wrapper = mount(SignUp, {
       global: {
-        stubs: ['router-link'] // 👈 告訴測試環境：把 router-link 當作空標籤略過，不要報錯
+        stubs: ['router-link']
       }
     })
 

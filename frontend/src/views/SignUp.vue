@@ -3,10 +3,10 @@
     <div class="w-full max-w-md flex flex-col items-center px-6">
       
       <h1 class="text-7xl font-bold text-white mb-5">
-        錢錢錢市
+        註冊帳號
       </h1>
 
-      <form class="w-full flex flex-col gap-6" @submit.prevent="handleLogin">
+      <form class="w-full flex flex-col gap-6" @submit.prevent="handleSignUp">
         
         <div class="flex flex-col gap-2">
           <label class="text-white font-bold text-lg">User Name</label>
@@ -38,13 +38,13 @@
             :disabled="isLoading"
             class="w-full bg-[#FFC107] hover:bg-[#B79300] hover:cursor-pointer text-[#212529] font-bold text-xl py-3 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {{ isLoading ? '登入中...' : 'Login' }}
+            {{ isLoading ? '註冊中...' : 'Sign Up' }}
           </button>
           
           <p class="text-gray-300 text-sm mt-2">
-            Don't have account? 
-            <router-link to="/signup" class="text-white hover:underline hover:cursor-pointer">
-              sign up
+            Already have an account? 
+            <router-link to="/" class="text-white hover:underline hover:cursor-pointer">
+              login
             </router-link>
           </p>
         </div>
@@ -66,8 +66,8 @@ const password = ref('')
 const errorMessage = ref('')
 const isLoading = ref(false)
 
-// --- 登入邏輯 ---
-const handleLogin = async () => {
+// --- 註冊邏輯 ---
+const handleSignUp = async () => {
   if (!username.value || !password.value) {
     errorMessage.value = '請填寫完整的帳號與密碼！'
     return
@@ -78,7 +78,7 @@ const handleLogin = async () => {
 
   try {
     // 注意：FastAPI 預設跑在 8000 port
-    const response = await fetch('http://127.0.0.1:8000/auth/login', {
+    const response = await fetch('http://127.0.0.1:8000/auth/register', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -93,11 +93,11 @@ const handleLogin = async () => {
 
     if (response.ok) {
       // 成功：接收 session_id
-      console.log('登入成功，取得 Session ID:', data.session_id)
-      alert('登入成功！')
+      console.log('註冊成功', data.message)
+      alert('註冊成功！')
     } else {
       // 失敗：接住 FastAPI 的 detail 錯誤訊息
-      errorMessage.value = data.detail || '登入失敗，請檢查帳號密碼'
+      errorMessage.value = data.detail || '註冊失敗，請檢查輸入資訊'
     }
 
   } catch (error) {
