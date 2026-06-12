@@ -46,10 +46,18 @@ async def register(body: RegisterRequest, db: SqlApiClient = Depends(get_db)):
 
     # 2. Hash 密碼，INSERT
     hashed = pwd_context.hash(body.password)
-    await db.query(
-        "INSERT INTO users (account, password_hash) VALUES (?, ?)",
-        [body.account, hashed],
-    )
+    try:
+        await db.query(
+            "INSERT INTO users (account, password_hash) VALUES (?, ?)",
+            [body.account, hashed],
+        )
+    except RuntimeError as e:
+        # 步驟 1 的存在性檢查與此處的 INSERT 之間並非原子操作；
+        # 並發註冊同一帳號時，第二個請求會違反 uq_users_account 而由 sql-api 回傳錯誤。
+        # 將此情況視為「帳號已存在」(409)，而非讓其以未預期錯誤 (500) 外洩。
+        if "duplicate" in str(e).lower():
+            raise HTTPException(status_code=409, detail="帳號已存在")
+        raise
     return {"message": "註冊成功"}
 
 

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from ..database import SqlApiClient
 from ..dependencies import get_db, get_current_user
 
@@ -12,7 +12,7 @@ router = APIRouter(
 
 class TransferRequest(BaseModel):
     direction: str   # "savings_to_trading" | "trading_to_savings"
-    amount: float
+    amount: float = Field(allow_inf_nan=False)
 
 
 async def _fetch_save(save_id: int, current_user: dict, db: SqlApiClient) -> dict:

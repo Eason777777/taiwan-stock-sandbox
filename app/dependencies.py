@@ -12,10 +12,14 @@ async def get_db() -> AsyncGenerator[SqlApiClient, None]:
 
 def get_client_ip(request: Request) -> str:
     # 優先採用 X-Forwarded-For 第一個位址（反向代理場景），否則用連線本身的位址
+    # 截斷至 45 字元（IPv6 文字表示法最大長度），避免偽造過長的 header
+    # 在寫入 users.session_ip（VARCHAR(45)）時造成 DB 錯誤
     forwarded = request.headers.get("x-forwarded-for")
     if forwarded:
-        return forwarded.split(",")[0].strip()
-    return request.client.host if request.client else ""
+        ip = forwarded.split(",")[0].strip()
+    else:
+        ip = request.client.host if request.client else ""
+    return ip[:45]
 
 
 def _ip_subnet(ip: str) -> str:

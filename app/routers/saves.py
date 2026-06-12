@@ -1,6 +1,6 @@
 import random
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from ..database import SqlApiClient
 from ..dependencies import get_db, get_current_user
 
@@ -19,9 +19,9 @@ PHASE_SEQUENCE = ["PRE_MARKET", "INTRADAY", "POST_MARKET", "CLOSED"]
 
 
 class CreateSaveRequest(BaseModel):
-    save_name: str
+    save_name: str = Field(min_length=1, max_length=100)
     start_date: str | None = None       # YYYY-MM-DD；未提供則由系統隨機抽取有效交易日
-    initial_funds: float | None = None  # 50,000 ~ 1,000,000；未提供則由系統隨機決定
+    initial_funds: float | None = Field(default=None, allow_inf_nan=False)  # 50,000 ~ 1,000,000；未提供則由系統隨機決定
 
 
 async def _fetch_save_owned(save_id: int, current_user: dict, db: SqlApiClient) -> dict:
@@ -92,7 +92,7 @@ async def _save_summary(db: SqlApiClient, save: dict) -> dict:
         (total_asset - initial_funds) / initial_funds if initial_funds else None
     )
 
-    return {
+    summary = {
         **save,
         "start_date": str(save["start_date"])[:10],
         "current_trade_date": current_trade_date,
@@ -101,6 +101,9 @@ async def _save_summary(db: SqlApiClient, save: dict) -> dict:
         "total_asset": round(total_asset, 2),
         "cumulative_return": round(cumulative_return, 4) if cumulative_return is not None else None,
     }
+    # advancing 為內部推進鎖旗標，非對外 API 欄位
+    summary.pop("advancing", None)
+    return summary
 
 
 async def _settle_phase(db: SqlApiClient, save: dict, phase_to_settle: str) -> tuple[float, bool]:
@@ -133,6 +136,17 @@ async def _settle_phase(db: SqlApiClient, save: dict, phase_to_settle: str) -> t
         order_type = order["order_type"]  # LIMIT | MARKET
         quantity = int(order["quantity"])
         price = float(order["price"]) if order["price"] is not None else None
+
+        # 條件式 UPDATE：搶佔仍為 PENDING 的訂單，與 cancel_order 互斥，
+        # 避免「結算進行中同時被玩家撤銷」造成的 race condition。
+        # 以 affectedRows 判斷是否搶到此單（== 0 代表已被 cancel_order 搶先撤銷）。
+        claim = await db.query(
+            "UPDATE stock_orders SET status = 'FILLED' WHERE order_id = ? AND status = 'PENDING'",
+            [order_id],
+        )
+        if int(claim["rows"]["affectedRows"]) == 0:
+            # 已被玩家撤銷，跳過此單
+            continue
 
         dp_rows = (await db.query(
             "SELECT open_price, high_price, low_price, close_price FROM daily_prices"
@@ -190,6 +204,8 @@ async def _settle_phase(db: SqlApiClient, save: dict, phase_to_settle: str) -> t
 
             if trading_balance < total_cost:
                 # 交割戶餘額不足：存檔破產，終止該存檔本次的交易與時間推進
+                # 此單已透過搶佔 UPDATE 標記為 FILLED，但實際未成交，復原為 PENDING
+                await db.query("UPDATE stock_orders SET status = 'PENDING' WHERE order_id = ?", [order_id])
                 bankrupt = True
                 break
 
@@ -241,7 +257,7 @@ async def _settle_phase(db: SqlApiClient, save: dict, phase_to_settle: str) -> t
             )
             next_seq += 1
 
-        await db.query("UPDATE stock_orders SET status = 'FILLED' WHERE order_id = ?", [order_id])
+        # status 已由前面的搶佔 UPDATE 設為 FILLED，此處無需再次更新
         await db.query(
             "INSERT INTO stock_transactions (order_id, exec_price, quantity, fee, tax, avg_cost_at_transact)"
             " VALUES (?, ?, ?, ?, ?, ?)",
@@ -278,7 +294,7 @@ async def create_save(
     if dup["rows"]:
         raise HTTPException(status_code=409, detail="已存在同名存檔")
 
-    # 建檔數量上限
+    # 建檔數量上限（快速預檢，仍為 TOCTOU；真正的把關在 INSERT 之後的回滾檢查）
     active_result = await db.query(
         "SELECT COUNT(*) AS c FROM save_files WHERE user_id = ? AND status = 'ACTIVE'", [user_id],
     )
@@ -320,14 +336,37 @@ async def create_save(
                 detail=f"initial_funds 須介於 {MIN_INITIAL_FUNDS} 與 {MAX_INITIAL_FUNDS} 之間",
             )
 
-    await db.query(
+    # 直接讀取本次 INSERT 回應中的 insertId，不另外呼叫 SELECT LAST_INSERT_ID()：
+    # 每次 db.query() 都是獨立的 HTTP request，sql-api 不保證後續查詢與這次 INSERT
+    # 使用同一條 MySQL connection，LAST_INSERT_ID() 在不同 connection 上不可靠
+    # （並發下會拿到 0 或別的 request 的值，導致後續以錯誤的 save_id 操作）。
+    insert_result = await db.query(
         "INSERT INTO save_files"
         " (user_id, save_name, start_date, current_trade_date, current_phase, status, savings_balance, trading_balance)"
         " VALUES (?, ?, ?, ?, 'PRE_MARKET', 'ACTIVE', ?, 0)",
         [user_id, body.save_name, start_date, start_date, initial_funds],
     )
+    save_id = int(insert_result["rows"]["insertId"])
 
-    save_id = int((await db.query("SELECT LAST_INSERT_ID() AS save_id", []))["rows"][0]["save_id"])
+    # 上面的數量上限預檢與這筆 INSERT 之間並非原子操作，並發建檔時可能多個請求都通過
+    # 預檢、各自成功 INSERT，導致實際存檔數量超過上限。INSERT 完成後依 save_id（建立
+    # 先後）重新計算累計數量：若加上本筆後超過上限，代表本筆是「後到」者，刪除剛剛
+    # 建立的 save_files row（rollback）並回 400。較小 save_id（先到）者保留。
+    active_rank = await db.query(
+        "SELECT COUNT(*) AS c FROM save_files WHERE user_id = ? AND status = 'ACTIVE' AND save_id <= ?",
+        [user_id, save_id],
+    )
+    if int(active_rank["rows"][0]["c"]) > MAX_ACTIVE_SAVES:
+        await db.query("DELETE FROM save_files WHERE save_id = ?", [save_id])
+        raise HTTPException(status_code=400, detail=f"進行中存檔已達上限（{MAX_ACTIVE_SAVES} 個）")
+
+    total_rank = await db.query(
+        "SELECT COUNT(*) AS c FROM save_files WHERE user_id = ? AND save_id <= ?",
+        [user_id, save_id],
+    )
+    if int(total_rank["rows"][0]["c"]) > MAX_TOTAL_SAVES:
+        await db.query("DELETE FROM save_files WHERE save_id = ?", [save_id])
+        raise HTTPException(status_code=400, detail=f"存檔總數已達上限（{MAX_TOTAL_SAVES} 個）")
 
     await db.query(
         "INSERT INTO account_transactions"
@@ -368,9 +407,17 @@ async def finish_save(
     if save["status"] != "ACTIVE":
         raise HTTPException(status_code=400, detail="存檔已結束，無法再次結束")
 
-    await db.query(
-        "UPDATE save_files SET status = 'FINISHED' WHERE save_id = ?", [save_id],
+    # 條件式 UPDATE：僅在仍為 ACTIVE 且未被 /advance 鎖住（advancing = 0）時才結束。
+    # /advance 在呼叫 _settle_phase 之前會先把 advancing 設為 1，並在結算完成、
+    # 寫回 save_files 的同一個陳述句中才設回 0；因此只要 /advance 正在進行中，
+    # finish 必定 affectedRows == 0，避免「結算副作用已寫入但 finish 把狀態
+    # 改成 FINISHED」造成的資料不一致。
+    update_result = await db.query(
+        "UPDATE save_files SET status = 'FINISHED' WHERE save_id = ? AND status = 'ACTIVE' AND advancing = 0",
+        [save_id],
     )
+    if int(update_result["rows"]["affectedRows"]) == 0:
+        raise HTTPException(status_code=400, detail="存檔已結束或正在推進中，無法結束")
     save["status"] = "FINISHED"
     return await _save_summary(db, save)
 
@@ -408,6 +455,18 @@ async def advance_phase(
     if save["status"] != "ACTIVE":
         raise HTTPException(status_code=400, detail="存檔已破產或結束，無法推進")
 
+    # 推進鎖：在呼叫 _settle_phase（會寫入 stock_orders/holdings/account_transactions
+    # 等副作用）之前，先搶佔 advancing 旗標。finish_save 僅在 advancing = 0 時才能
+    # 成功，因此本次 advance 完成並寫回 save_files（同一陳述句中把 advancing 設回 0）
+    # 之前，finish 不可能把 status 改成 FINISHED，避免「結算副作用已寫入但
+    # save_files 最終狀態未更新」的不一致。
+    claim = await db.query(
+        "UPDATE save_files SET advancing = 1 WHERE save_id = ? AND status = 'ACTIVE' AND advancing = 0",
+        [save_id],
+    )
+    if int(claim["rows"]["affectedRows"]) == 0:
+        raise HTTPException(status_code=409, detail="存檔正在推進中或狀態已變更，請稍後再試")
+
     phase = save["current_phase"]
     current_date = str(save["current_trade_date"])[:10]
 
@@ -418,7 +477,8 @@ async def advance_phase(
         new_status = "BANKRUPT" if bankrupt else "ACTIVE"
 
         await db.query(
-            "UPDATE save_files SET current_phase = ?, trading_balance = ?, status = ? WHERE save_id = ?",
+            "UPDATE save_files SET current_phase = ?, trading_balance = ?, status = ?, advancing = 0"
+            " WHERE save_id = ?",
             [next_phase, round(new_balance, 2), new_status, save_id],
         )
         return {"current_phase": next_phase, "current_trade_date": current_date, "status": new_status}
@@ -428,7 +488,7 @@ async def advance_phase(
 
     if bankrupt:
         await db.query(
-            "UPDATE save_files SET trading_balance = ?, status = 'BANKRUPT' WHERE save_id = ?",
+            "UPDATE save_files SET trading_balance = ?, status = 'BANKRUPT', advancing = 0 WHERE save_id = ?",
             [round(new_balance, 2), save_id],
         )
         return {"current_phase": "CLOSED", "current_trade_date": current_date, "status": "BANKRUPT"}
@@ -440,15 +500,15 @@ async def advance_phase(
 
     if next_date is None:
         await db.query(
-            "UPDATE save_files SET trading_balance = ?, status = 'FINISHED' WHERE save_id = ?",
+            "UPDATE save_files SET trading_balance = ?, status = 'FINISHED', advancing = 0 WHERE save_id = ?",
             [round(new_balance, 2), save_id],
         )
         return {"current_phase": "CLOSED", "current_trade_date": current_date, "status": "FINISHED"}
 
     next_date = str(next_date)[:10]
     await db.query(
-        "UPDATE save_files SET current_trade_date = ?, current_phase = 'PRE_MARKET', trading_balance = ?"
-        " WHERE save_id = ?",
+        "UPDATE save_files SET current_trade_date = ?, current_phase = 'PRE_MARKET', trading_balance = ?,"
+        " advancing = 0 WHERE save_id = ?",
         [next_date, round(new_balance, 2), save_id],
     )
     return {"current_phase": "PRE_MARKET", "current_trade_date": next_date, "status": "ACTIVE"}
