@@ -567,8 +567,8 @@ curl -s -X POST http://localhost:8000/auth/logout \
 <pre><code>{
   <span class="key">"save_id"</span>:           <span class="num">1</span>,
   <span class="key">"save_name"</span>:         <span class="str">"我的第一次模擬"</span>,
-  <span class="key">"current_date"</span>:      <span class="str">"2020-01-02"</span>,
-  <span class="key">"current_phase"</span>:     <span class="str">"盤前"</span>,
+  <span class="key">"current_trade_date"</span>: <span class="str">"2020-01-02"</span>,
+  <span class="key">"current_phase"</span>:     <span class="str">"PRE_MARKET"</span>,
   <span class="key">"status"</span>:            <span class="str">"ACTIVE"</span>,
   <span class="key">"savings_balance"</span>:   <span class="num">1000000</span>,
   <span class="key">"trading_balance"</span>:   <span class="num">0</span>,
@@ -636,20 +636,25 @@ curl <span class="str">"http://localhost:8000/stocks?q=台積電"</span> -H <spa
 <span class="cm"># 半導體類股</span>
 curl <span class="str">"http://localhost:8000/stocks?sector=半導體業"</span> -H <span class="str">"X-Session-Id: $SESSION"</span>
 
-<span class="cm"># K 線資料（指定日期範圍）</span>
-curl <span class="str">"http://localhost:8000/stocks/2330/prices?from_date=2020-01-01&amp;to_date=2020-03-31"</span> \
+<span class="cm"># K 線資料（save_id 必填；可選 interval=day|week|month、indicators=ma5,rsi14,macd）</span>
+curl <span class="str">"http://localhost:8000/stocks/2330/prices?save_id=1&amp;from_date=2020-01-01&amp;to_date=2020-03-31&amp;indicators=ma5,rsi14,macd"</span> \
   -H <span class="str">"X-Session-Id: $SESSION"</span></code></pre>
 
       <h3>K 線回應</h3>
 <pre><code>[{
-  <span class="key">"trade_date"</span>:  <span class="str">"2020-01-02"</span>,
-  <span class="key">"open"</span>:        <span class="num">330.0</span>,
-  <span class="key">"high"</span>:        <span class="num">335.0</span>,
-  <span class="key">"low"</span>:         <span class="num">328.0</span>,
-  <span class="key">"close"</span>:       <span class="num">333.0</span>,
-  <span class="key">"volume"</span>:      <span class="num">28451</span>,
-  <span class="key">"limit_up"</span>:    <span class="num">363.0</span>,
-  <span class="key">"limit_down"</span>:  <span class="num">297.0</span>
+  <span class="key">"trade_date"</span>:   <span class="str">"2020-01-02"</span>,
+  <span class="key">"open_price"</span>:   <span class="num">330.0</span>,
+  <span class="key">"high_price"</span>:   <span class="num">335.0</span>,
+  <span class="key">"low_price"</span>:    <span class="num">328.0</span>,
+  <span class="key">"close_price"</span>: <span class="num">333.0</span>,
+  <span class="key">"volume"</span>:       <span class="num">28451</span>,
+  <span class="key">"limit_up"</span>:     <span class="num">363.0</span>,
+  <span class="key">"limit_down"</span>:   <span class="num">297.0</span>,
+  <span class="key">"ma5"</span>:          <span class="num">331.2</span>,
+  <span class="key">"rsi14"</span>:        <span class="num">55.3</span>,
+  <span class="key">"macd"</span>:         <span class="num">1.2</span>,
+  <span class="key">"macd_signal"</span>:  <span class="num">0.9</span>,
+  <span class="key">"macd_hist"</span>:    <span class="num">0.3</span>
 }]</code></pre>
     </section>
 
@@ -698,8 +703,8 @@ curl <span class="str">"http://localhost:8000/stocks/2330/prices?from_date=2020-
   -H <span class="str">"X-Session-Id: $SESSION"</span> \
   -d <span class="str">'{
     "stock_id":   "2330",
-    "order_type": "限價",
-    "side":       "買",
+    "order_type": "LIMIT",
+    "side":       "BUY",
     "price":      330.0,
     "quantity":   1
   }'</span>
@@ -711,8 +716,8 @@ curl <span class="str">"http://localhost:8000/stocks/2330/prices?from_date=2020-
   -H <span class="str">"X-Session-Id: $SESSION"</span> \
   -d <span class="str">'{
     "stock_id":   "2330",
-    "order_type": "市價",
-    "side":       "賣",
+    "order_type": "MARKET",
+    "side":       "SELL",
     "quantity":   1
   }'</span>
 <span class="cm"># 市價單不填 price；盤中市價以當日收盤價成交</span></code></pre>
@@ -760,8 +765,11 @@ curl <span class="str">"http://localhost:8000/stocks/2330/prices?from_date=2020-
   <span class="key">"stock_name_zh"</span>:  <span class="str">"台積電"</span>,
   <span class="key">"quantity"</span>:       <span class="num">2</span>,
   <span class="key">"avg_cost"</span>:       <span class="num">328.5</span>,
-  <span class="key">"current_price"</span>:  <span class="num">345.0</span>,
-  <span class="key">"unrealized_pnl"</span>: <span class="num">33000</span>
+  <span class="key">"market_price"</span>:   <span class="num">345.0</span>,
+  <span class="key">"cost_value"</span>:     <span class="num">657000</span>,
+  <span class="key">"market_value"</span>:   <span class="num">690000</span>,
+  <span class="key">"unrealized_pnl"</span>: <span class="num">33000</span>,
+  <span class="key">"unrealized_pnl_pct"</span>: <span class="num">5.02</span>
 }]</code></pre>
     </section>
 

@@ -14,5 +14,6 @@ class SqlApiClient:
             payload["params"] = params
         r = await self._client.post(SQL_API_URL, json=payload)
         if r.status_code >= 400:
-            raise RuntimeError(f"sql-api error {r.status_code} for {sql!r} params={params!r}: {r.text}")
+            # 不附帶 params：可能包含密碼雜湊等敏感資料，避免外洩至例外訊息／日誌
+            raise RuntimeError(f"sql-api error {r.status_code} for {sql!r}: {r.text}")
         return r.json()
