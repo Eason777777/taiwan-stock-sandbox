@@ -1,4 +1,4 @@
-import { mount } from '@vue/test-utils'
+import { mount, flushPromises } from '@vue/test-utils'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import Login from './Login.vue' // 確保路徑對應到你的 Login.vue
 
@@ -61,5 +61,45 @@ describe('Login.vue 登入頁面測試', () => {
 
     // 驗證 3：確認登入成功的 alert 有沒有跳出來
     expect(alertMock).toHaveBeenCalledWith('登入成功！')
+  })
+
+  it('當後端回傳錯誤時，應該要顯示錯誤訊息', async () => {
+    // -----------------------------------------
+    // 1. Arrange (準備階段：設定 Mock 假資料)
+    // -----------------------------------------
+    
+    // 攔截瀏覽器的 alert 彈窗，並記錄它有沒有被呼叫
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      json: () => Promise.resolve({ detail: '帳號或密碼錯誤' })
+    })
+
+    const wrapper = mount(Login)
+
+    // -----------------------------------------
+    // 2. Act (操作階段：模擬使用者行為)
+    // -----------------------------------------
+    
+    // 填入錯誤的帳號密碼
+    const inputs = wrapper.findAll('input')
+    await inputs[0].setValue('wrong_account')
+    await inputs[1].setValue('wrong_password')
+
+    // 觸發表單送出
+    await wrapper.find('form').trigger('submit.prevent')
+
+    // 關鍵：等待所有的 Promise (包含 fetch 與 Vue 的重新渲染) 執行完畢
+    await flushPromises()
+
+    // -----------------------------------------
+    // 3. Assert (驗證階段：檢查程式有沒有做對事情)
+    // -----------------------------------------
+    
+    // 驗證 1：確認 fetch 真的有被呼叫
+    expect(fetch).toHaveBeenCalledTimes(1)
+
+    // 驗證畫面上是否出現了預期的紅色錯誤訊息
+    // wrapper.text() 會抓取整個元件渲染出來的所有純文字
+    expect(wrapper.text()).toContain('帳號或密碼錯誤')
   })
 })
