@@ -13,5 +13,6 @@ class SqlApiClient:
         if params is not None:
             payload["params"] = params
         r = await self._client.post(SQL_API_URL, json=payload)
-        r.raise_for_status()
+        if r.status_code >= 400:
+            raise RuntimeError(f"sql-api error {r.status_code} for {sql!r} params={params!r}: {r.text}")
         return r.json()

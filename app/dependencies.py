@@ -14,11 +14,10 @@ async def get_current_user(
     x_session_id: Annotated[str, Header()],
     db: SqlApiClient = Depends(get_db),
 ):
-    rows = await db.query(
+    result = await db.query(
         "SELECT user_id, account FROM users WHERE session_id = ?",
         [x_session_id],
     )
-    print("rows: ",rows)
-    if not rows:
+    if not result["rows"]:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    return rows['rows'][0]   # {"user_id": ..., "account": ...}
+    return result["rows"][0]   # {"user_id": ..., "account": ...}
