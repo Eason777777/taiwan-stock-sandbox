@@ -96,6 +96,8 @@ async def _save_summary(db: SqlApiClient, save: dict) -> dict:
         **save,
         "start_date": str(save["start_date"])[:10],
         "current_trade_date": current_trade_date,
+        "savings_balance": float(save["savings_balance"]),
+        "trading_balance": float(save["trading_balance"]),
         "total_asset": round(total_asset, 2),
         "cumulative_return": round(cumulative_return, 4) if cumulative_return is not None else None,
     }
@@ -351,6 +353,25 @@ async def get_save(
     current_user: dict = Depends(get_current_user),
 ):
     save = await _fetch_save_owned(save_id, current_user, db)
+    return await _save_summary(db, save)
+
+
+@router.patch("/{save_id}/finish")
+async def finish_save(
+    save_id: int,
+    db: SqlApiClient = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    save = await _fetch_save_owned(save_id, current_user, db)
+    save_id = int(save_id)
+
+    if save["status"] != "ACTIVE":
+        raise HTTPException(status_code=400, detail="存檔已結束，無法再次結束")
+
+    await db.query(
+        "UPDATE save_files SET status = 'FINISHED' WHERE save_id = ?", [save_id],
+    )
+    save["status"] = "FINISHED"
     return await _save_summary(db, save)
 
 

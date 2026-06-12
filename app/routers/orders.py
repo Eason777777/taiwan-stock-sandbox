@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from ..database import SqlApiClient
 from ..dependencies import get_db, get_current_user
@@ -18,6 +18,21 @@ class PlaceOrderRequest(BaseModel):
     quantity: int     # lots (張); must be >= 1
 
 
+def _tick_size(price: float) -> float:
+    """依台股升降單位規則，回傳該價位適用的最小跳動單位。"""
+    if price < 10:
+        return 0.01
+    if price < 50:
+        return 0.05
+    if price < 100:
+        return 0.1
+    if price < 500:
+        return 0.5
+    if price < 1000:
+        return 1.0
+    return 5.0
+
+
 async def _fetch_save_owned(save_id: int, current_user: dict, db: SqlApiClient) -> dict:
     result = await db.query(
         "SELECT * FROM save_files WHERE save_id = ?",
@@ -34,13 +49,15 @@ async def _fetch_save_owned(save_id: int, current_user: dict, db: SqlApiClient) 
 @router.get("")
 async def list_orders(
     save_id: int,
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
     db: SqlApiClient = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     await _fetch_save_owned(save_id, current_user, db)
     result = await db.query(
-        "SELECT * FROM stock_orders WHERE save_id = ? ORDER BY order_id DESC",
-        [int(save_id)],
+        "SELECT * FROM stock_orders WHERE save_id = ? ORDER BY order_id DESC LIMIT ? OFFSET ?",
+        [int(save_id), limit, offset],
     )
     return result["rows"]
 
@@ -122,6 +139,11 @@ async def place_order(
                 status_code=400,
                 detail=f"委託價格須介於跌停 {limit_down} 與漲停 {limit_up} 之間",
             )
+
+        # ── Tick size check (LIMIT only) ─────────────────────────────────
+        tick = _tick_size(price)
+        if abs(round(price / tick) * tick - price) > 1e-6:
+            raise HTTPException(status_code=422, detail=f"委託價格須符合升降單位（{tick} 元）")
 
     # ── Funds / holdings pre-check ──────────────────────────────────────
     if body.side == "BUY":

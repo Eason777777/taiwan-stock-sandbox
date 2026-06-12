@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from ..database import SqlApiClient
 from ..dependencies import get_db, get_current_user
@@ -32,13 +32,15 @@ async def _fetch_save(save_id: int, current_user: dict, db: SqlApiClient) -> dic
 @router.get("/history")
 async def get_account_history(
     save_id: int,
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
     db: SqlApiClient = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     await _fetch_save(save_id, current_user, db)
     result = await db.query(
-        "SELECT * FROM account_transactions WHERE save_id = ? ORDER BY seq",
-        [save_id],
+        "SELECT * FROM account_transactions WHERE save_id = ? ORDER BY seq LIMIT ? OFFSET ?",
+        [save_id, limit, offset],
     )
     return result["rows"]
 

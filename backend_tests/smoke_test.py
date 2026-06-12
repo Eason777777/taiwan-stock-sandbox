@@ -58,6 +58,8 @@
   6c.      GET /stocks/{STOCK_ID}/prices?save_id={save_id} -> 200（K 線資料）
   6d.      時空隔離檢查：回傳的 K 線資料不應包含 >= current_trade_date 的日期
            （玩家不該看到「未來」的股價）
+  6e.      GET /stocks/{STOCK_ID}/prices?save_id={save_id}&indicators=ma5,rsi14,macd -> 200
+           且每筆資料含 ma5/rsi14/macd/macd_signal/macd_hist 欄位（技術指標）
 
 【7. 盤前下單（PRE_MARKET，限價單）】
   7-pre.   確認 START_DATE 當天有報價資料（否則無法繼續後續撮合測試）
@@ -66,6 +68,7 @@
   7b.      新委託單 status == PENDING（待成交）
   7c.      新委託單 phase == PRE_MARKET（記錄為下單時的階段）
   7d.      GET /saves/{id}/orders -> 200（委託單列表）
+  7e.      送出「限價買、價格不符升降單位」-> 422（升降單位檢查）
 
 【8. 推進：盤前 -> 盤中（結算盤前限價單）】
   8a.      POST /saves/{id}/advance -> 200
@@ -283,6 +286,23 @@ def run(client, account, password, state):
             f"找到 {len(future_rows)} 筆 >= {START_DATE} 的資料: {future_rows[:3]}",
         )
 
+    r = client.get(
+        f"/stocks/{STOCK_ID}/prices",
+        headers=headers,
+        params={"save_id": save_id, "indicators": "ma5,rsi14,macd"},
+    )
+    check("6e. get price history with indicators 200", r.status_code == 200, f"{r.status_code}: {r.text}")
+    if r.status_code == 200:
+        rows = r.json()
+        has_fields = bool(rows) and all(
+            key in rows[-1] for key in ("ma5", "rsi14", "macd", "macd_signal", "macd_hist")
+        )
+        check(
+            "6e. price rows include ma5/rsi14/macd fields",
+            has_fields,
+            f"last row keys: {list(rows[-1].keys()) if rows else rows}",
+        )
+
     # ── 7. 盤前下限價買單 ─────────────────────────────────────────────
     # 用前一日收盤價附近的價格掛單，確保開盤價落在合理範圍內能成交
     prev_close = db_query(
@@ -315,6 +335,15 @@ def run(client, account, password, state):
     # POST_MARKET 不可下單測試之前先確認 list works
     r = client.get(f"/saves/{save_id}/orders", headers=headers)
     check("7d. list orders 200", r.status_code == 200, f"{r.status_code}: {r.text}")
+
+    # 升降單位檢查：價格加上一個不符任何升降單位的零頭 -> 422
+    bad_price = buy_price + 0.003
+    r = client.post(
+        f"/saves/{save_id}/orders",
+        json={"stock_id": STOCK_ID, "order_type": "LIMIT", "side": "BUY", "price": bad_price, "quantity": 1},
+        headers=headers,
+    )
+    check("7e. LIMIT order with invalid tick size -> 422", r.status_code == 422, f"{r.status_code}: {r.text}")
 
     # ── 8. 推進: 盤前 -> 盤中（結算盤前限價單，成交價=開盤價）──────────
     r = client.post(f"/saves/{save_id}/advance", headers=headers)
