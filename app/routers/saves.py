@@ -332,7 +332,7 @@ async def create_save(
         initial_funds = int(body.initial_funds)
         if initial_funds < MIN_INITIAL_FUNDS or initial_funds > MAX_INITIAL_FUNDS:
             raise HTTPException(
-                status_code=422,
+                status_code=400,
                 detail=f"initial_funds 須介於 {MIN_INITIAL_FUNDS} 與 {MAX_INITIAL_FUNDS} 之間",
             )
 

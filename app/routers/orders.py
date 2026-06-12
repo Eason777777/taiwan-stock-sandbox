@@ -79,15 +79,15 @@ async def place_order(
 
     # ── Validate request shape ──────────────────────────────────────────
     if body.order_type not in ("LIMIT", "MARKET"):
-        raise HTTPException(status_code=422, detail="order_type 必須為 'LIMIT' 或 'MARKET'")
+        raise HTTPException(status_code=400, detail="order_type 必須為 'LIMIT' 或 'MARKET'")
     if body.side not in ("BUY", "SELL"):
-        raise HTTPException(status_code=422, detail="side 必須為 'BUY' 或 'SELL'")
+        raise HTTPException(status_code=400, detail="side 必須為 'BUY' 或 'SELL'")
     if body.quantity < 1:
-        raise HTTPException(status_code=422, detail="quantity 必須 >= 1 (張)")
+        raise HTTPException(status_code=400, detail="quantity 必須 >= 1 (張)")
     if body.order_type == "LIMIT" and body.price is None:
-        raise HTTPException(status_code=422, detail="限價單必須指定 price")
+        raise HTTPException(status_code=400, detail="限價單必須指定 price")
     if body.order_type == "MARKET" and body.price is not None:
-        raise HTTPException(status_code=422, detail="市價單不可指定 price")
+        raise HTTPException(status_code=400, detail="市價單不可指定 price")
 
     # ── Phase-based order type restrictions ──────────────────────────────
     if phase == "CLOSED":
@@ -143,7 +143,7 @@ async def place_order(
         # ── Tick size check (LIMIT only) ─────────────────────────────────
         tick = _tick_size(price)
         if abs(round(price / tick) * tick - price) > 1e-6:
-            raise HTTPException(status_code=422, detail=f"委託價格須符合升降單位（{tick} 元）")
+            raise HTTPException(status_code=400, detail=f"委託價格須符合升降單位（{tick} 元）")
 
     # ── Funds / holdings pre-check ──────────────────────────────────────
     if body.side == "BUY":

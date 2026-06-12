@@ -26,12 +26,12 @@
   B1. 同帳號重新登入後，舊 session_id 立即失效         -> 401      (預期 PASS)
 
 【C. 輸入驗證邊界】
-  C1. 註冊空帳號/空密碼                                 -> 422      (預期 FAIL，目前無長度/空值檢查)
-  C2. 轉帳金額為負數                                    -> 422      (預期 PASS，現有檢查)
-  C3. 下單 quantity <= 0                               -> 422      (預期 PASS，現有檢查)
+  C1. 註冊空帳號/空密碼                                 -> 400      (預期 PASS，現有檢查)
+  C2. 轉帳金額為負數                                    -> 400      (預期 PASS，現有檢查)
+  C3. 下單 quantity <= 0                               -> 422      (預期 PASS，pydantic Field(ge=1) 檢查)
   C4. 限價單價格不符合台股升降單位（例如 500.37 元）     -> 4xx      (預期 FAIL，未驗證 tick size)
-  C5. 建立存檔 initial_funds = -100（負數）             -> 422      (預期 PASS，現有檢查)
-  C6. 建立存檔 initial_funds = 2000000（超過上限）       -> 422      (預期 PASS，現有檢查)
+  C5. 建立存檔 initial_funds = -100（負數）             -> 400      (預期 PASS，現有檢查)
+  C6. 建立存檔 initial_funds = 2000000（超過上限）       -> 400      (預期 PASS，現有檢查)
 
 【Q. SQL Injection 探測】
   Q1. /stocks?q=2330' OR '1'='1 不應 500/洩漏異常資料   -> 200      (預期 PASS，已用參數化查詢)
@@ -57,6 +57,9 @@
   H2. 用不同網段來源 IP (X-Forwarded-For) 帶同一個 session_id -> 401 (預期 PASS，session 已綁定登入時的 /24 網段)
   H3. 換回原本的來源 IP，session 仍可正常使用 -> 200 (預期 PASS，僅拒絕跨網段使用，不影響原裝置)
   H4. 同網段內換一個 IP (DHCP 情境) -> 200 (預期 PASS，/24 比對可容忍同網段換 IP)
+  H5. 後續請求改用 IPv6 loopback "::1" -> 200 (預期 PASS，::1 正規化為 127.0.0.1，視為同網段)
+  H6. 登入時來源 IP 即為 "::1"，之後改用 IPv4 loopback -> 200 (預期 PASS，雙向正規化一致)
+  H7. 後續請求帶 IPv4-mapped IPv6（"::ffff:203.0.113.1"，實際為不同網段）-> 401 (預期 PASS，正規化不應放寬跨網段限制)
 
 【I. 登入暴力破解防護】
   I1. 連續 10 次錯誤密碼登入，應在某次回應 429/鎖定        -> 預期 PASS（每帳號 60 秒內錯誤達 5 次即鎖定）
@@ -96,9 +99,9 @@
 【U. 是否信任前端（mass-assignment / 偽造欄位 / enum 驗證）】
   U1. 下單時夾帶偽造欄位 order_id/status/exec_price/save_id
       -> 後端應忽略，回傳的 order_id 為新值、status 為 PENDING (預期 PASS)
-  U2. 下單 order_type="HACK"（非法 enum 值）                -> 422 (預期 PASS，現有手動檢查)
-  U3. 下單 side="HACK"（非法 enum 值）                      -> 422 (預期 PASS，現有手動檢查)
-  U4. 轉帳 direction="HACK"（非法 enum 值）                 -> 422 (預期 PASS，現有手動檢查)
+  U2. 下單 order_type="HACK"（非法 enum 值）                -> 400 (預期 PASS，現有手動檢查)
+  U3. 下單 side="HACK"（非法 enum 值）                      -> 400 (預期 PASS，現有手動檢查)
+  U4. 轉帳 direction="HACK"（非法 enum 值）                 -> 400 (預期 PASS，現有手動檢查)
   U5. 下單 quantity=1.5（非整數）                           -> 422 (預期 PASS，pydantic 型別檢查)
   U6. 限價單 price=-100（負數價格）                         -> 4xx (預期 PASS，會落在漲跌停檢查之外)
 
@@ -134,7 +137,7 @@
   X4. X-Session-Id 為極長字串 (10000 字元)                    -> 401，非 500 (預期 PASS)
 
 【Y. 字串長度邊界（應用層驗證 vs DB schema 長度限制）】
-  Y1. 註冊 account 長度 60（> users.account VARCHAR(50)）     -> 422 (預期 PASS，現有長度檢查)
+  Y1. 註冊 account 長度 60（> users.account VARCHAR(50)）     -> 400 (預期 PASS，現有長度檢查)
   Y2. 登入時帶超長且不含逗號的 X-Forwarded-For（200 字元）
       寫入 users.session_ip（VARCHAR(45)）                    -> 200，非 500 (預期 PASS)
   Y2b. 寫入的 session_ip 應被截斷至 <= 45 字元                 -> 預期 PASS
@@ -391,7 +394,7 @@ def run(client, account_a, account_b, password, state):
 
     # ── C. 輸入驗證邊界 ───────────────────────────────────────────────
     r = client.post("/auth/register", json={"account": "", "password": ""})
-    check("C1. register with empty account/password -> 422", r.status_code == 422, f"{r.status_code}: {r.text}")
+    check("C1. register with empty account/password -> 400", r.status_code == 400, f"{r.status_code}: {r.text}")
     if r.status_code == 201:
         # 若後端目前仍接受空帳號，立刻清掉這筆髒資料，避免殘留在 users 表
         db_query("DELETE FROM users WHERE account = ?", [""])
@@ -401,7 +404,7 @@ def run(client, account_a, account_b, password, state):
         json={"direction": "savings_to_trading", "amount": -100},
         headers=headers_a,
     )
-    check("C2. transfer negative amount -> 422", r.status_code == 422, f"{r.status_code}: {r.text}")
+    check("C2. transfer negative amount -> 400", r.status_code == 400, f"{r.status_code}: {r.text}")
 
     r = client.post(
         f"/saves/{save_id_a}/orders",
@@ -424,14 +427,14 @@ def run(client, account_a, account_b, password, state):
         json={"save_name": f"sec_neg_{rand_c}", "start_date": START_DATE, "initial_funds": -100},
         headers=headers_a,
     )
-    check("C5. create save with initial_funds = -100 -> 422", r.status_code == 422, f"{r.status_code}: {r.text}")
+    check("C5. create save with initial_funds = -100 -> 400", r.status_code == 400, f"{r.status_code}: {r.text}")
 
     r = client.post(
         "/saves",
         json={"save_name": f"sec_over_{rand_c}", "start_date": START_DATE, "initial_funds": 2000000},
         headers=headers_a,
     )
-    check("C6. create save with initial_funds = 2000000 -> 422", r.status_code == 422, f"{r.status_code}: {r.text}")
+    check("C6. create save with initial_funds = 2000000 -> 400", r.status_code == 400, f"{r.status_code}: {r.text}")
 
     # ── Q. SQL Injection 探測 ─────────────────────────────────────────
     r = client.get("/stocks", params={"q": "2330' OR '1'='1"}, headers=headers_a)
@@ -531,6 +534,47 @@ def run(client, account_a, account_b, password, state):
         "H4. session still works from a different IP in the same /24 (DHCP)",
         r.status_code == 200,
         f"{r.status_code}: {r.text}（/24 網段比對未生效，DHCP 換 IP 會被誤判為跨機使用）",
+    )
+
+    # H5/H6/H7: IPv6 loopback／IPv4-mapped 位址正規化（_normalize_ip）
+    # H5: 後續請求改用 IPv6 loopback "::1"，應正規化為 127.0.0.1，與登入時記錄的
+    # loopback 網段一致 -> 仍視為同網段
+    r = client.get(f"/saves/{save_id_a}", headers={**headers_a, "X-Forwarded-For": "::1"})
+    check(
+        "H5. session still works when a follow-up request reports IPv6 loopback (::1)",
+        r.status_code == 200,
+        f"{r.status_code}: {r.text}（::1 應正規化為 127.0.0.1，與登入時記錄的 loopback 網段視為相同）",
+    )
+
+    # H6: 登入時來源 IP 即為 "::1"（session_ip 直接存成 "::1"），之後改用一般 IPv4
+    # loopback 存取 -> 正規化後仍應視為同網段
+    rand_h6 = "".join(random.choices(string.ascii_lowercase + string.digits, k=8))
+    account_h6 = f"sectest_h6_{rand_h6}"
+    client.post("/auth/register", json={"account": account_h6, "password": password})
+    r = client.post(
+        "/auth/login",
+        json={"account": account_h6, "password": password},
+        headers={"X-Forwarded-For": "::1"},
+    )
+    session_h6 = r.json().get("session_id") if r.status_code == 200 else None
+    if session_h6:
+        headers_h6 = {"X-Session-Id": session_h6}
+        r = client.get("/saves", headers={**headers_h6, "X-Forwarded-For": "127.0.0.9"})
+        check(
+            "H6. session logged in from ::1 still works from IPv4 loopback afterwards",
+            r.status_code == 200,
+            f"{r.status_code}: {r.text}（登入時 session_ip 存成 \"::1\"，正規化後應與 127.0.0.x 視為同網段）",
+        )
+    else:
+        record("H6. session logged in from ::1 still works from IPv4 loopback afterwards", False, "setup login failed")
+    db_query("DELETE FROM users WHERE account=?", [account_h6])
+
+    # H7: 正規化不應放寬跨網段限制 -- IPv4-mapped IPv6 位址若實際對應到不同網段，仍應被擋
+    r = client.get(f"/saves/{save_id_a}", headers={**headers_a, "X-Forwarded-For": "::ffff:203.0.113.1"})
+    check(
+        "H7. IPv4-mapped IPv6 address from a genuinely different subnet -> 401",
+        r.status_code == 401,
+        f"{r.status_code}: {r.text}（::ffff:203.0.113.1 正規化為 203.0.113.1，與 loopback 不同網段，應被擋）",
     )
 
     # ── I. 登入暴力破解防護 ───────────────────────────────────────────
@@ -797,14 +841,14 @@ def run(client, account_a, account_b, password, state):
         json={"stock_id": STOCK_ID, "order_type": "HACK", "side": "BUY", "price": 500, "quantity": 1},
         headers=headers_a,
     )
-    check("U2. place order with order_type='HACK' -> 422", r.status_code == 422, f"{r.status_code}: {r.text}")
+    check("U2. place order with order_type='HACK' -> 400", r.status_code == 400, f"{r.status_code}: {r.text}")
 
     r = client.post(
         f"/saves/{save_id_a}/orders",
         json={"stock_id": STOCK_ID, "order_type": "LIMIT", "side": "HACK", "price": 500, "quantity": 1},
         headers=headers_a,
     )
-    check("U3. place order with side='HACK' -> 422", r.status_code == 422, f"{r.status_code}: {r.text}")
+    check("U3. place order with side='HACK' -> 400", r.status_code == 400, f"{r.status_code}: {r.text}")
 
     # U4: 非法 enum direction
     r = client.post(
@@ -812,7 +856,7 @@ def run(client, account_a, account_b, password, state):
         json={"direction": "HACK", "amount": 1},
         headers=headers_a,
     )
-    check("U4. transfer with direction='HACK' -> 422", r.status_code == 422, f"{r.status_code}: {r.text}")
+    check("U4. transfer with direction='HACK' -> 400", r.status_code == 400, f"{r.status_code}: {r.text}")
 
     # U5: quantity 非整數
     r = client.post(
@@ -1105,8 +1149,8 @@ def run(client, account_a, account_b, password, state):
     long_account = "y_" + "".join(random.choices(string.ascii_lowercase + string.digits, k=60))
     r = client.post("/auth/register", json={"account": long_account, "password": "test1234"})
     check(
-        "Y1. register with 60-char account (> VARCHAR(50)) -> 422",
-        r.status_code == 422,
+        "Y1. register with 60-char account (> VARCHAR(50)) -> 400",
+        r.status_code == 400,
         f"{r.status_code}: {r.text}",
     )
 

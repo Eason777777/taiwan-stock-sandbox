@@ -53,10 +53,10 @@ async def transfer(
     current_user: dict = Depends(get_current_user),
 ):
     if body.direction not in ("savings_to_trading", "trading_to_savings"):
-        raise HTTPException(status_code=422, detail="direction 必須為 'savings_to_trading' 或 'trading_to_savings'")
+        raise HTTPException(status_code=400, detail="direction 必須為 'savings_to_trading' 或 'trading_to_savings'")
     amount = float(body.amount)
     if amount <= 0:
-        raise HTTPException(status_code=422, detail="amount 必須為正數")
+        raise HTTPException(status_code=400, detail="amount 必須為正數")
 
     save = await _fetch_save(save_id, current_user, db)
     savings = float(save["savings_balance"])

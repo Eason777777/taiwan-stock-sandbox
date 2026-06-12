@@ -32,9 +32,9 @@ class LoginRequest(BaseModel):
 async def register(body: RegisterRequest, db: SqlApiClient = Depends(get_db)):
     # 0. 帳號/密碼基本格式檢查
     if not body.account.strip() or not body.password:
-        raise HTTPException(status_code=422, detail="帳號與密碼不可為空")
+        raise HTTPException(status_code=400, detail="帳號與密碼不可為空")
     if len(body.account) > 50 or len(body.password) > 72:
-        raise HTTPException(status_code=422, detail="帳號或密碼長度超過限制")
+        raise HTTPException(status_code=400, detail="帳號或密碼長度超過限制")
 
     # 1. 檢查 account 是否已存在
     rows = await db.query(

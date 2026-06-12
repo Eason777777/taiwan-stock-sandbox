@@ -22,10 +22,21 @@ def get_client_ip(request: Request) -> str:
     return ip[:45]
 
 
+def _normalize_ip(ip: str) -> str:
+    # 將 IPv6 表示的 loopback／IPv4-mapped 位址正規化為對應的 IPv4 字串，
+    # 避免同一台機器因連線走 IPv4 或 IPv6（例如 "::1" vs "127.0.0.1"）
+    # 而被 _ip_subnet 判定為不同網段，導致合法 session 被誤擋。
+    if ip == "::1":
+        return "127.0.0.1"
+    if ip.startswith("::ffff:"):
+        return ip[len("::ffff:"):]
+    return ip
+
+
 def _ip_subnet(ip: str) -> str:
     # IPv4 只比對前三段（/24），容忍同網段內 DHCP 換 IP；
     # 非 IPv4（IPv6 或無法解析）則整串比對
-    parts = ip.split(".")
+    parts = _normalize_ip(ip).split(".")
     if len(parts) == 4 and all(p.isdigit() for p in parts):
         return ".".join(parts[:3])
     return ip
