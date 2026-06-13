@@ -1,29 +1,48 @@
+<!-- 頂部工具列 -->
 <template>
-  <div class="topbar-wrapper">
-    <!-- 1. 頂部狀態列 (傳遞日期、狀態、餘額資料) -->
-    <TopState 
-      :date="date" 
-      :status="status" 
-      :savings="savings" 
-      :delivery="delivery" 
-    />
-    <!-- 2. 下方導覽分頁列 (雙向綁定 activeTab) -->
-    <NavBar v-model="currentTab" />
+  <div class="w-full flex flex-col">
+    <!-- 1. 頂部狀態列 TopState -->
+    <div class="w-full bg-topbar-blue text-white text-01 px-8.5 py-3.5 flex justify-between items-center font-sans font-medium shadow-sm">
+      <!-- 左側：日期與狀態 -->
+      <div class="flex items-center gap-4 flex-1">
+        <div>日期：<span class="text-white font-semibold">{{ date }}</span></div>
+        <div>狀態：<span class="text-white font-semibold">{{ status }}</span></div>
+      </div>
+      
+      <!-- 右側：帳戶餘額 -->
+      <div class="flex justify-end items-center gap-4 flex-1">
+        <div>存款戶：<span class="text-white font-bold">{{ savings }}</span></div>
+        <div>交割戶：<span class="text-white font-bold">{{ delivery }}</span></div>
+      </div>
+    </div>
+
+    <!-- 2. 下方導覽分頁列 NavBar  -->
+    <div class="w-full max-w-480 bg-navbar-background p-1.25 gap-2.5 flex font-sans">
+      <button
+        v-for="tab in tabs"
+        :key="tab"
+        @click="selectTab(tab)"
+        class="flex-1 py-3 text-center text-02 font-bold rounded border-2 cursor-pointer transition-all duration-150 outline-none"
+        :class="[
+          activeTab === tab
+            ? 'bg-nature-600 text-white border-white'
+            : 'bg-white text-nature-900 border-transparent hover:bg-nature-100'
+        ]"
+      >
+        {{ tab }}
+      </button>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import TopState from './TopState.vue'
-import NavBar from './NavBar.vue'
-
 const props = defineProps({
-  // 雙向綁定目前選中的 Tab 頁面
+  // 雙向綁定目前選中的 Tab
   activeTab: {
     type: String,
     required: true
   },
-  // 傳遞給 TopState 的資料
+  // 傳遞給狀態列的資料
   date: {
     type: String,
     default: '2026/04/31'
@@ -44,17 +63,9 @@ const props = defineProps({
 
 const emit = defineEmits(['update:activeTab'])
 
-// 透過 computed 代理 v-model 的值，將異動同步回父組件
-const currentTab = computed({
-  get: () => props.activeTab,
-  set: (val) => emit('update:activeTab', val)
-})
-</script>
+const tabs = ['自選', '交易', '資產', '紀錄']
 
-<style scoped>
-.topbar-wrapper {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
+const selectTab = (tab) => {
+  emit('update:activeTab', tab)
 }
-</style>
+</script>
