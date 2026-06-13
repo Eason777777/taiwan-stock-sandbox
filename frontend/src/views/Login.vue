@@ -2,6 +2,11 @@
   <div class="min-h-screen w-full flex items-center justify-center bg-[#212529] font-sans">
     <div class="w-full max-w-md flex flex-col items-center px-6">
       
+      <SaveRecordsOverlay 
+        v-if="isShowSaveModal" 
+        @close="isShowSaveModal = false" 
+      />
+
       <h1 class="text-7xl font-bold text-white mb-5">
         錢錢錢市
       </h1>
@@ -56,16 +61,18 @@
 
 <script setup>
 import { ref } from 'vue'
-// 如果你有設定 Vue Router，通常登入成功後會用它來跳轉頁面
-// import { useRouter } from 'vue-router'
-// const router = useRouter()
+import SaveRecordsOverlay from '../components/SaveRecordsOverlay.vue'
 
 // --- 變數狀態管理 ---
 const username = ref('')
 const password = ref('')
 const errorMessage = ref('')
 const isLoading = ref(false)
+const isShowSaveModal = ref(false)
 
+const saveRecords = ref([
+  { id: 1, name: '存檔一', date: '4/31', time: '9:00', assets: 1000, returnRate: '10%', status: '遊玩中', note: '別點我' },
+])
 // --- 登入邏輯 ---
 const handleLogin = async () => {
   if (!username.value || !password.value) {
@@ -95,7 +102,7 @@ const handleLogin = async () => {
     if (response.ok) {
       // 成功：接收 session_id
       console.log('登入成功，取得 Session ID:', data.session_id)
-      alert('登入成功！')
+      isShowSaveModal.value = true
     } else {
       // 失敗：接住 FastAPI 的 detail 錯誤訊息
       errorMessage.value = data.detail || '登入失敗，請檢查帳號密碼'
