@@ -77,8 +77,9 @@ const handleSignUp = async () => {
   errorMessage.value = ''
 
   try {
-    // 注意：FastAPI 預設跑在 8000 port
-    const response = await fetch('http://127.0.0.1:8000/auth/register', {
+    // 透過 Vite dev server 的 proxy 轉發到後端（見 vite.config.js），
+    // 避免外部裝置（如透過 tailscale funnel）直連 127.0.0.1:8000 連不到的問題
+    const response = await fetch('/api/auth/register', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
