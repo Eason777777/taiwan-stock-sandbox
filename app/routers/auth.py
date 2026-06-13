@@ -32,9 +32,9 @@ class LoginRequest(BaseModel):
 async def register(body: RegisterRequest, db: SqlApiClient = Depends(get_db)):
     # 0. 帳號/密碼基本格式檢查
     if not body.account.strip() or not body.password:
-        raise HTTPException(status_code=422, detail="帳號與密碼不可為空")
+        raise HTTPException(status_code=400, detail="帳號與密碼不可為空")
     if len(body.account) > 50 or len(body.password) > 72:
-        raise HTTPException(status_code=422, detail="帳號或密碼長度超過限制")
+        raise HTTPException(status_code=400, detail="帳號或密碼長度超過限制")
 
     # 1. 檢查 account 是否已存在
     rows = await db.query(
@@ -46,10 +46,18 @@ async def register(body: RegisterRequest, db: SqlApiClient = Depends(get_db)):
 
     # 2. Hash 密碼，INSERT
     hashed = pwd_context.hash(body.password)
-    await db.query(
-        "INSERT INTO users (account, password_hash) VALUES (?, ?)",
-        [body.account, hashed],
-    )
+    try:
+        await db.query(
+            "INSERT INTO users (account, password_hash) VALUES (?, ?)",
+            [body.account, hashed],
+        )
+    except RuntimeError as e:
+        # 步驟 1 的存在性檢查與此處的 INSERT 之間並非原子操作；
+        # 並發註冊同一帳號時，第二個請求會違反 uq_users_account 而由 sql-api 回傳錯誤。
+        # 將此情況視為「帳號已存在」(409)，而非讓其以未預期錯誤 (500) 外洩。
+        if "duplicate" in str(e).lower():
+            raise HTTPException(status_code=409, detail="帳號已存在")
+        raise
     return {"message": "註冊成功"}
 
 

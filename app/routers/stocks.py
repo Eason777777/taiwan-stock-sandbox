@@ -159,12 +159,12 @@ def _apply_indicators(rows: list[dict], indicators: str) -> list[dict]:
     requested = {token.strip().lower() for token in indicators.split(",") if token.strip()}
     closes = [row["close_price"] for row in rows]
 
-    ma_periods = sorted({int(t[2:]) for t in requested if t.startswith("ma") and t[2:].isdigit()})
+    ma_periods = sorted({int(t[2:]) for t in requested if t.startswith("ma") and t[2:].isdigit() and int(t[2:]) >= 1})
     for period in ma_periods:
         for row, value in zip(rows, _moving_average(closes, period)):
             row[f"ma{period}"] = value
 
-    rsi_periods = sorted({int(t[3:]) for t in requested if t.startswith("rsi") and t[3:].isdigit()})
+    rsi_periods = sorted({int(t[3:]) for t in requested if t.startswith("rsi") and t[3:].isdigit() and int(t[3:]) >= 1})
     for period in rsi_periods:
         for row, value in zip(rows, _rsi(closes, period)):
             row[f"rsi{period}"] = value

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from ..database import SqlApiClient
 from ..dependencies import get_db, get_current_user
 
@@ -14,8 +14,8 @@ class PlaceOrderRequest(BaseModel):
     stock_id: str
     order_type: str   # "LIMIT" | "MARKET"
     side: str         # "BUY" | "SELL"
-    price: float | None = None   # required for LIMIT, null for MARKET
-    quantity: int     # lots (張); must be >= 1
+    price: float | None = Field(default=None, allow_inf_nan=False)   # required for LIMIT, null for MARKET
+    quantity: int = Field(ge=1, le=10 ** 9)  # lots (張); 上限為避免巨大整數導致浮點運算 OverflowError
 
 
 def _tick_size(price: float) -> float:
@@ -79,15 +79,15 @@ async def place_order(
 
     # ── Validate request shape ──────────────────────────────────────────
     if body.order_type not in ("LIMIT", "MARKET"):
-        raise HTTPException(status_code=422, detail="order_type 必須為 'LIMIT' 或 'MARKET'")
+        raise HTTPException(status_code=400, detail="order_type 必須為 'LIMIT' 或 'MARKET'")
     if body.side not in ("BUY", "SELL"):
-        raise HTTPException(status_code=422, detail="side 必須為 'BUY' 或 'SELL'")
+        raise HTTPException(status_code=400, detail="side 必須為 'BUY' 或 'SELL'")
     if body.quantity < 1:
-        raise HTTPException(status_code=422, detail="quantity 必須 >= 1 (張)")
+        raise HTTPException(status_code=400, detail="quantity 必須 >= 1 (張)")
     if body.order_type == "LIMIT" and body.price is None:
-        raise HTTPException(status_code=422, detail="限價單必須指定 price")
+        raise HTTPException(status_code=400, detail="限價單必須指定 price")
     if body.order_type == "MARKET" and body.price is not None:
-        raise HTTPException(status_code=422, detail="市價單不可指定 price")
+        raise HTTPException(status_code=400, detail="市價單不可指定 price")
 
     # ── Phase-based order type restrictions ──────────────────────────────
     if phase == "CLOSED":
@@ -143,7 +143,7 @@ async def place_order(
         # ── Tick size check (LIMIT only) ─────────────────────────────────
         tick = _tick_size(price)
         if abs(round(price / tick) * tick - price) > 1e-6:
-            raise HTTPException(status_code=422, detail=f"委託價格須符合升降單位（{tick} 元）")
+            raise HTTPException(status_code=400, detail=f"委託價格須符合升降單位（{tick} 元）")
 
     # ── Funds / holdings pre-check ──────────────────────────────────────
     if body.side == "BUY":
@@ -170,16 +170,57 @@ async def place_order(
             raise HTTPException(status_code=400, detail="持股不足以支應此賣單")
 
     # ── Insert the order as PENDING ──────────────────────────────────────
-    await db.query(
-        "INSERT INTO stock_orders"
-        " (save_id, stock_id, sim_date, phase, order_type, side, price, quantity, status)"
-        " VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'PENDING')",
-        [int(save_id), str(body.stock_id), current_date, phase,
-         body.order_type, body.side, price, quantity],
-    )
+    # 直接讀取本次 INSERT 回應中的 insertId，不另外呼叫 SELECT LAST_INSERT_ID()：
+    # 每次 db.query() 都是獨立的 HTTP request，sql-api 不保證後續查詢與這次 INSERT
+    # 使用同一條 MySQL connection，LAST_INSERT_ID() 在不同 connection 上不可靠
+    # （並發下會拿到 0 或別的 request 的值）。
+    try:
+        insert_result = await db.query(
+            "INSERT INTO stock_orders"
+            " (save_id, stock_id, sim_date, phase, order_type, side, price, quantity, status)"
+            " VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'PENDING')",
+            [int(save_id), str(body.stock_id), current_date, phase,
+             body.order_type, body.side, price, quantity],
+        )
+    except RuntimeError as e:
+        # 上面讀取的 phase（save["current_phase"]）與這筆 INSERT 之間並非原子操作；
+        # 若同時有 /advance 推進了階段，DB 端的 trigger 會擋下「訂單 phase 與
+        # save_files.current_phase 不符」的 INSERT 並回傳錯誤。將此情況視為
+        # 「下單時存檔階段已變更」(409)，而非讓其以未預期錯誤 (500) 外洩。
+        if "phase" in str(e).lower():
+            raise HTTPException(status_code=409, detail="存檔階段已變更，請重新查詢存檔狀態後再下單")
+        raise
+    order_id = int(insert_result["rows"]["insertId"])
 
-    id_result = await db.query("SELECT LAST_INSERT_ID() AS order_id", [])
-    order_id = int(id_result["rows"][0]["order_id"])
+    if body.side == "SELL":
+        # 上面的「持股 - 待成交賣單」預檢與這筆 INSERT 之間並非原子操作，並發下單時
+        # 多個請求可能都通過預檢、各自成功 INSERT，導致賣單總量超過實際持股。
+        # INSERT 完成後依 order_id（下單先後）重新計算累計賣單數量：
+        # 若加上本單後超過實際持股，代表本單是「後到」的超賣單，撤銷本單並回 400。
+        holding_check = await db.query(
+            "SELECT quantity FROM holdings WHERE save_id = ? AND stock_id = ?",
+            [int(save_id), str(body.stock_id)],
+        )
+        held_now = int(holding_check["rows"][0]["quantity"]) if holding_check["rows"] else 0
+
+        pending_sells = (await db.query(
+            "SELECT order_id, quantity FROM stock_orders"
+            " WHERE save_id = ? AND stock_id = ? AND side = 'SELL' AND status = 'PENDING'"
+            " ORDER BY order_id",
+            [int(save_id), str(body.stock_id)],
+        ))["rows"]
+
+        cumulative = 0
+        for o in pending_sells:
+            cumulative += int(o["quantity"])
+            if int(o["order_id"]) == order_id:
+                if cumulative > held_now:
+                    await db.query(
+                        "UPDATE stock_orders SET status = 'CANCELED' WHERE order_id = ? AND status = 'PENDING'",
+                        [order_id],
+                    )
+                    raise HTTPException(status_code=400, detail="持股不足以支應此賣單")
+                break
 
     order_result = await db.query(
         "SELECT * FROM stock_orders WHERE order_id = ?",
@@ -207,7 +248,13 @@ async def cancel_order(
     if result["rows"][0]["status"] != "PENDING":
         raise HTTPException(status_code=400, detail="僅能撤銷待成交的委託單")
 
-    await db.query(
-        "UPDATE stock_orders SET status = 'CANCELED' WHERE order_id = ?",
+    # 條件式 UPDATE：僅在仍為 PENDING 時才撤銷，避免與 /advance 結算、或另一個並發的
+    # cancel 請求發生 race condition。以 affectedRows 判斷本次請求是否真正搶到此單
+    # （兩個並發請求即使都讀到 status='PENDING'，MySQL 仍會序列化這兩個 UPDATE，
+    # 只有一個能真正將 status 從 PENDING 改為 CANCELED）。
+    update_result = await db.query(
+        "UPDATE stock_orders SET status = 'CANCELED' WHERE order_id = ? AND status = 'PENDING'",
         [int(order_id)],
     )
+    if int(update_result["rows"]["affectedRows"]) == 0:
+        raise HTTPException(status_code=400, detail="僅能撤銷待成交的委託單")
