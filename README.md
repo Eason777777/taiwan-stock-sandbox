@@ -47,6 +47,8 @@ X-Session-Id: <your_session_id>
 
 **單一登入原則**：同一帳號同一時間僅允許一組有效登入憑證。同一帳號再次登入會覆蓋前一次的憑證，舊 token 立即失效（避免異地登入與異地操作）。
 
+**Session 有效期與來源限制**：session 於登入後 2 小時過期，過期需重新登入；同一 session 僅能在登入時的來源網段（/24）使用，從不同網段帶相同 session 會被拒絕（401）。
+
 ---
 
 ## API 說明
@@ -193,8 +195,8 @@ curl http://localhost:8000/saves/1 \
 {
   "save_id": 1,
   "save_name": "我的第一次模擬",
-  "current_date": "2020-01-02",
-  "current_phase": "盤前",
+  "current_trade_date": "2020-01-02",
+  "current_phase": "PRE_MARKET",
   "status": "ACTIVE",
   "savings_balance": 1000000,
   "trading_balance": 0,
@@ -223,6 +225,15 @@ curl -X DELETE http://localhost:8000/saves/1 \
 ```
 
 刪除後該存檔資料自系統移除，並釋放存檔名額。
+
+#### 結束存檔
+
+```sh
+curl -X PATCH http://localhost:8000/saves/1/finish \
+  -H "X-Session-Id: $SESSION"
+```
+
+將存檔狀態手動轉為 `FINISHED`，封存不可再恢復進行。
 
 ---
 
@@ -318,9 +329,12 @@ curl http://localhost:8000/stocks/2330 \
 K 線僅顯示**前一交易日以前**的資料；技術指標計算僅能使用當前虛擬日期以前之歷史資料，不得使用未來資料。
 支援日線、週線、月線；副圖成交量週期需與主圖一致。
 
+`save_id` 為必填參數，用來決定時空隔離的截止日；可加上 `interval=day|week|month` 切換 K 線週期，
+並可用 `indicators=ma5,rsi14,macd` 取得移動平均線、RSI、MACD 等技術指標。
+
 ```sh
 # 不指定日期範圍則回傳全部
-curl "http://localhost:8000/stocks/2330/prices?from_date=2020-01-01&to_date=2020-03-31" \
+curl "http://localhost:8000/stocks/2330/prices?save_id=1&from_date=2020-01-01&to_date=2020-03-31&indicators=ma5,rsi14,macd" \
   -H "X-Session-Id: $SESSION"
 ```
 
@@ -329,13 +343,18 @@ curl "http://localhost:8000/stocks/2330/prices?from_date=2020-01-01&to_date=2020
 [
   {
     "trade_date": "2020-01-02",
-    "open": 330.0,
-    "high": 335.0,
-    "low": 328.0,
-    "close": 333.0,
+    "open_price": 330.0,
+    "high_price": 335.0,
+    "low_price": 328.0,
+    "close_price": 333.0,
     "volume": 28451,
     "limit_up": 363.0,
-    "limit_down": 297.0
+    "limit_down": 297.0,
+    "ma5": 331.2,
+    "rsi14": 55.3,
+    "macd": 1.2,
+    "macd_signal": 0.9,
+    "macd_hist": 0.3
   }
 ]
 ```
@@ -377,8 +396,8 @@ curl -X POST http://localhost:8000/saves/1/orders \
   -H "X-Session-Id: $SESSION" \
   -d '{
     "stock_id": "2330",
-    "order_type": "限價",
-    "side": "買",
+    "order_type": "LIMIT",
+    "side": "BUY",
     "price": 330.0,
     "quantity": 1
   }'
@@ -394,8 +413,8 @@ curl -X POST http://localhost:8000/saves/1/orders \
   -H "X-Session-Id: $SESSION" \
   -d '{
     "stock_id": "2330",
-    "order_type": "市價",
-    "side": "賣",
+    "order_type": "MARKET",
+    "side": "SELL",
     "quantity": 1
   }'
 ```
@@ -466,8 +485,11 @@ curl http://localhost:8000/saves/1/holdings \
     "stock_name_zh": "台積電",
     "quantity": 2,
     "avg_cost": 328.5,
-    "current_price": 345.0,
-    "unrealized_pnl": 33000
+    "market_price": 345.0,
+    "cost_value": 657000,
+    "market_value": 690000,
+    "unrealized_pnl": 33000,
+    "unrealized_pnl_pct": 5.02
   }
 ]
 ```

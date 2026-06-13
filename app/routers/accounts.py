@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field
 from ..database import SqlApiClient
 from ..dependencies import get_db, get_current_user
 
@@ -12,7 +12,7 @@ router = APIRouter(
 
 class TransferRequest(BaseModel):
     direction: str   # "savings_to_trading" | "trading_to_savings"
-    amount: float
+    amount: float = Field(allow_inf_nan=False)
 
 
 async def _fetch_save(save_id: int, current_user: dict, db: SqlApiClient) -> dict:
@@ -32,13 +32,15 @@ async def _fetch_save(save_id: int, current_user: dict, db: SqlApiClient) -> dic
 @router.get("/history")
 async def get_account_history(
     save_id: int,
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
     db: SqlApiClient = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     await _fetch_save(save_id, current_user, db)
     result = await db.query(
-        "SELECT * FROM account_transactions WHERE save_id = ? ORDER BY seq",
-        [save_id],
+        "SELECT * FROM account_transactions WHERE save_id = ? ORDER BY seq LIMIT ? OFFSET ?",
+        [save_id, limit, offset],
     )
     return result["rows"]
 
@@ -51,10 +53,10 @@ async def transfer(
     current_user: dict = Depends(get_current_user),
 ):
     if body.direction not in ("savings_to_trading", "trading_to_savings"):
-        raise HTTPException(status_code=422, detail="direction 必須為 'savings_to_trading' 或 'trading_to_savings'")
+        raise HTTPException(status_code=400, detail="direction 必須為 'savings_to_trading' 或 'trading_to_savings'")
     amount = float(body.amount)
     if amount <= 0:
-        raise HTTPException(status_code=422, detail="amount 必須為正數")
+        raise HTTPException(status_code=400, detail="amount 必須為正數")
 
     save = await _fetch_save(save_id, current_user, db)
     savings = float(save["savings_balance"])

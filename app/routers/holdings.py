@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from ..database import SqlApiClient
 from ..dependencies import get_db, get_current_user
 
@@ -102,6 +102,8 @@ async def list_holdings(
 @router.get("/transactions")
 async def list_transactions(
     save_id: int,
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
     db: SqlApiClient = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
@@ -114,7 +116,7 @@ async def list_transactions(
         " JOIN stock_orders o ON o.order_id = t.order_id"
         " LEFT JOIN stocks s ON s.stock_id = o.stock_id"
         " WHERE o.save_id = ?"
-        " ORDER BY t.transaction_id DESC",
-        [int(save_id)],
+        " ORDER BY t.transaction_id DESC LIMIT ? OFFSET ?",
+        [int(save_id), limit, offset],
     )
     return result["rows"]
