@@ -68,7 +68,7 @@
   7b.      新委託單 status == PENDING（待成交）
   7c.      新委託單 phase == PRE_MARKET（記錄為下單時的階段）
   7d.      GET /saves/{id}/orders -> 200（委託單列表）
-  7e.      送出「限價買、價格不符升降單位」-> 422（升降單位檢查）
+  7e.      送出「限價買、價格不符升降單位」-> 400（升降單位檢查）
 
 【8. 推進：盤前 -> 盤中（結算盤前限價單）】
   8a.      POST /saves/{id}/advance -> 200
@@ -336,14 +336,14 @@ def run(client, account, password, state):
     r = client.get(f"/saves/{save_id}/orders", headers=headers)
     check("7d. list orders 200", r.status_code == 200, f"{r.status_code}: {r.text}")
 
-    # 升降單位檢查：價格加上一個不符任何升降單位的零頭 -> 422
+    # 升降單位檢查：價格加上一個不符任何升降單位的零頭 -> 400
     bad_price = buy_price + 0.003
     r = client.post(
         f"/saves/{save_id}/orders",
         json={"stock_id": STOCK_ID, "order_type": "LIMIT", "side": "BUY", "price": bad_price, "quantity": 1},
         headers=headers,
     )
-    check("7e. LIMIT order with invalid tick size -> 422", r.status_code == 422, f"{r.status_code}: {r.text}")
+    check("7e. LIMIT order with invalid tick size -> 400", r.status_code == 400, f"{r.status_code}: {r.text}")
 
     # ── 8. 推進: 盤前 -> 盤中（結算盤前限價單，成交價=開盤價）──────────
     r = client.post(f"/saves/{save_id}/advance", headers=headers)

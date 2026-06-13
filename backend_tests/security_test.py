@@ -209,6 +209,13 @@
        -> 驗證 advance/finish 之間的推進鎖（advancing 旗標）在反覆並發下
           皆能正確互斥且不會死鎖
 
+【AG. /auth/register 的 hash thread pool + queue 上限】
+  AG1. 同時送出超過 HASH_QUEUE_MAX 個註冊請求
+       -> 預期 PASS：無 500；部分回 201、部分回 429（佇列已滿）；
+          201 數量不超過 HASH_QUEUE_MAX
+          （bcrypt hash 改丟 ThreadPoolExecutor 執行，避免卡住 event loop，
+          並用 _hash_pending 計數做佇列上限）
+
 ────────────────────────────────────────────────────────────────────────
 """
 
@@ -227,6 +234,7 @@ SQL_API_URL = "http://sql-api.shiragaserver.lan/query"
 STOCK_ID = "2330"
 START_DATE = "2023-01-04"
 MAX_ACTIVE_SAVES_LIMIT = 5
+HASH_QUEUE_MAX = 10  # 對應 app/routers/auth.py 的 HASH_QUEUE_MAX
 
 PHASE_SEQUENCE = ["PRE_MARKET", "INTRADAY", "POST_MARKET", "CLOSED"]
 
@@ -1724,6 +1732,32 @@ def run(client, account_a, account_b, password, state):
         )
 
         client.delete(f"/saves/{save_id_af}", headers=headers_a)
+
+    # ── AG1: /auth/register 同時送出超過 HASH_QUEUE_MAX 個請求 ────────
+    ag_name = "AG1. concurrent registration burst is throttled by hash queue cap (429), no 500s"
+    n_ag = HASH_QUEUE_MAX + 5
+    rand_ag = "".join(random.choices(string.ascii_lowercase + string.digits, k=8))
+    accounts_ag = [f"sectest_ag_{rand_ag}_{i}" for i in range(n_ag)]
+
+    with ThreadPoolExecutor(max_workers=n_ag) as pool:
+        futures = [
+            pool.submit(client.post, "/auth/register", json={"account": acc, "password": "test1234"})
+            for acc in accounts_ag
+        ]
+        responses = [f.result() for f in futures]
+
+    statuses = [r.status_code for r in responses]
+    n_201 = statuses.count(201)
+    n_429 = statuses.count(429)
+    check(
+        ag_name,
+        500 not in statuses and n_201 + n_429 == n_ag and n_429 > 0 and n_201 <= HASH_QUEUE_MAX,
+        f"statuses={sorted(statuses)}（預期無 500、部分 201 部分 429，"
+        f"且 201 數量不超過 HASH_QUEUE_MAX={HASH_QUEUE_MAX}）",
+    )
+
+    for acc in accounts_ag:
+        db_query("DELETE FROM users WHERE account=?", [acc])
 
 
 def print_summary():
