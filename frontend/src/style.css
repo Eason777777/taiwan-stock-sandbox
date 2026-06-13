@@ -3,6 +3,9 @@
 @import "tailwindcss";
 
 @theme {
+  --Navbar-Background: #E9ECEF;
+  --color-navbar-background: #E9ECEF;
+
   /* Nature */
   --color-nature-100: #F8F9FA;
   --color-nature-200: #E9ECEF;
