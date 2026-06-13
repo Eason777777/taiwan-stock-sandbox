@@ -1,37 +1,32 @@
 <template>
+  <div class="absolute flex justify-center items-center w-full h-full bg-black/60 backdrop-blur-sm"
+      v-if="isShowSaveModal" 
+      @close="isShowSaveModal = false" >
+    <SaveRecords />
+  </div>
+  
   <div class="min-h-screen w-full flex items-center justify-center bg-[#212529] font-sans">
     <div class="w-full max-w-md flex flex-col items-center px-6">
-      
-      <SaveRecordsOverlay 
-        v-if="isShowSaveModal" 
-        @close="isShowSaveModal = false" 
-      />
 
       <h1 class="text-7xl font-bold text-white mb-5">
         錢錢錢市
       </h1>
 
       <form class="w-full flex flex-col gap-6" @submit.prevent="handleLogin">
-        
-        <div class="flex flex-col gap-2">
-          <label class="text-white font-bold text-lg">User Name</label>
-          <input 
-            v-model="username"
-            type="text" 
-            placeholder="請輸入帳號" 
-            class="w-full bg-transparent border border-gray-400 text-white rounded-full px-5 py-3 focus:outline-none focus:border-yellow-400 transition-colors"
-          />
-        </div>
+        <Input
+          v-model="username"
+          label="User Name"
+          placeholder="請輸入帳號"
+          variant="soft"
+        />
 
-        <div class="flex flex-col gap-2">
-          <label class="text-white font-bold text-lg">Password</label>
-          <input 
-            v-model="password"
-            type="password" 
-            placeholder="請輸入密碼" 
-            class="w-full bg-transparent border border-gray-400 text-white rounded-full px-5 py-3 focus:outline-none focus:border-yellow-400 transition-colors"
-          />
-        </div>
+        <Input
+          v-model="password"
+          label="Password"
+          type="password"
+          placeholder="請輸入密碼"
+          variant="soft"
+        />
 
         <div v-if="errorMessage" class="text-red-500 text-sm text-center font-medium">
           {{ errorMessage }}
@@ -61,7 +56,8 @@
 
 <script setup>
 import { ref } from 'vue'
-import SaveRecordsOverlay from '../components/SaveRecordsOverlay.vue'
+import SaveRecords from '../components/SaveRecords.vue'
+import Input from '../components/Input.vue'
 
 // --- 變數狀態管理 ---
 const username = ref('')
@@ -102,6 +98,7 @@ const handleLogin = async () => {
     if (response.ok) {
       // 成功：接收 session_id
       console.log('登入成功，取得 Session ID:', data.session_id)
+      localStorage.setItem('session_id', data.session_id)
       isShowSaveModal.value = true
     } else {
       // 失敗：接住 FastAPI 的 detail 錯誤訊息
