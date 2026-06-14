@@ -43,18 +43,13 @@
       />
     </div>
 
-    <!-- 公司資訊（暫停交易紀錄）彈窗 -->
-    <div
-      v-if="showCompanyInfoModal && companyInfoStock"
-      class="fixed inset-0 z-[100] flex justify-center items-center w-full h-full bg-black/60 backdrop-blur-sm"
-      @click.self="showCompanyInfoModal = false"
-    >
-      <CompanyInfo
-        :stock="companyInfoStock"
-        :save-id="saveId"
-        @close="showCompanyInfoModal = false"
-      />
-    </div>
+    <!-- 4. 公司基本面資訊彈窗 -->
+    <CompanyInfo
+      v-if="showCompanyInfoModal && companyInfoDetail"
+      :stock="companyInfoDetail"
+      :suspensions="companyInfoSuspensions"
+      @close="showCompanyInfoModal = false; showStockInfoModal = true"
+    />
   </div>
 </template>
 
@@ -87,9 +82,10 @@ const router = useRouter()
 // --- 狀態定義 ---
 const watchlistStocks = ref([])
 const showAddWatchlistModal = ref(false)
-const showCompanyInfoModal = ref(false)
-const companyInfoStock = ref(null)
 const showStockInfoModal = ref(false)
+const showCompanyInfoModal = ref(false)
+const companyInfoDetail = ref(null)
+const companyInfoSuspensions = ref([])
 
 // K線圖歷史資料與當前選中週期
 const klinePrices = ref([])
@@ -112,7 +108,7 @@ const addHasMore = ref(true)
 const addIsLoading = ref(false)
 
 // --- 1. 取得自選股與價格資料 ---
-const fetchWatchlistWithPrices = async () => {
+const loadWatchlist = async () => {
   if (!props.saveId) return
 
   try {
@@ -125,62 +121,22 @@ const fetchWatchlistWithPrices = async () => {
     if (!response.ok) return
     const watchlistData = await response.json()
 
-    // 針對自選清單中的每檔股票，平行呼叫 prices API 取得最新報價與漲跌資訊
-    const listWithPrices = await Promise.all(
-      watchlistData.map(async (item) => {
-        try {
-          const priceRes = await fetch(`/api/stocks/${item.stock_id}/prices?save_id=${props.saveId}&limit=5`, {
-            headers: {
-              'x-session-id': localStorage.getItem('session_id') || ''
-            }
-          })
-          
-          let price = 100
-          let change = 0
-          let changePercent = 0
-          let is_attention = false
-          let is_disposition = false
-          let is_full_delivery = false
-
-          if (priceRes.ok) {
-            const priceHistory = await priceRes.json()
-            if (priceHistory && priceHistory.length > 0) {
-              const latest = priceHistory[priceHistory.length - 1]
-              price = latest.close_price || latest.ref_price || 100
-              const refPrice = latest.ref_price || price
-              change = price - refPrice
-              changePercent = (change / refPrice) * 100
-              is_attention = latest.is_attention || false
-              is_disposition = latest.is_disposition || false
-              is_full_delivery = latest.is_full_delivery || false
-            }
-          }
-          return {
-            id: item.stock_id,
-            name: item.stock_name_zh,
-            price: price,
-            change: parseFloat(change.toFixed(2)),
-            changePercent: parseFloat(changePercent.toFixed(2)),
-            is_attention,
-            is_disposition,
-            is_full_delivery,
-            sector_name: item.sector_name
-          }
-        } catch (e) {
-          console.error(`無法獲取股號價格: ${item.stock_id}`, e)
-          return {
-            id: item.stock_id,
-            name: item.stock_name_zh,
-            price: 100,
-            change: 0,
-            changePercent: 0,
-            sector_name: item.sector_name
-          }
-        }
-      })
-    )
-
-    watchlistStocks.value = listWithPrices
+    watchlistStocks.value = watchlistData.map((item) => {
+      const price = item.current_price !== null ? parseFloat(item.current_price) : 100
+      const change = item.price_change !== null ? parseFloat(item.price_change) : 0
+      const changePercent = item.price_change_percent !== null ? parseFloat(item.price_change_percent) : 0
+      return {
+        id: item.stock_id,
+        name: item.stock_name_zh,
+        price: price,
+        change: parseFloat(change.toFixed(2)),
+        changePercent: parseFloat(changePercent.toFixed(2)),
+        is_attention: !!item.is_attention,
+        is_disposition: !!item.is_disposition,
+        is_full_delivery: !!item.is_full_delivery,
+        sector_name: item.sector_name
+      }
+    })
   } catch (error) {
     console.error('取得自選清單異常:', error)
   }
@@ -200,7 +156,7 @@ const handleNextPhase = async () => {
       const data = await response.json()
       alert(`已推進至下一階段！`)
       emit('refresh-save') // 通知 Game.vue 重新拉取最新的存檔狀態
-      fetchWatchlistWithPrices()
+      loadWatchlist()
     } else {
       const errorData = await response.json()
       alert(`推進失敗：${errorData.detail || '未知錯誤'}`)
@@ -319,7 +275,7 @@ const confirmAddWatchlist = async () => {
     }
 
     closeAddWatchlist()
-    fetchWatchlistWithPrices()
+    loadWatchlist()
   } catch (error) {
     console.error('同步自選股清單失敗:', error)
     alert('自選股更新失敗，請重試。')
@@ -427,20 +383,40 @@ const handleGoToTrade = (stockId) => {
   })
 }
 
-const handleViewCompanyInfo = (stockId) => {
-  // 沿用已開啟的股票詳情；若無則以股號最小化組出 stock 物件。
-  companyInfoStock.value =
-    selectedStockDetail.value && selectedStockDetail.value.stock_id === stockId
-      ? selectedStockDetail.value
-      : { stock_id: stockId, stock_name_zh: '' }
-  showCompanyInfoModal.value = true
+const handleViewCompanyInfo = async (stockId) => {
+  try {
+    const resProfile = await fetch(`/api/stocks/${stockId}`, {
+      headers: {
+        'x-session-id': localStorage.getItem('session_id') || ''
+      }
+    })
+    if (!resProfile.ok) throw new Error('無法取得股票基本資料')
+    companyInfoDetail.value = await resProfile.json()
+
+    const resSuspensions = await fetch(`/api/stocks/${stockId}/suspensions?save_id=${props.saveId}`, {
+      headers: {
+        'x-session-id': localStorage.getItem('session_id') || ''
+      }
+    })
+    if (resSuspensions.ok) {
+      companyInfoSuspensions.value = await resSuspensions.json()
+    } else {
+      companyInfoSuspensions.value = []
+    }
+
+    showStockInfoModal.value = false
+    showCompanyInfoModal.value = true
+  } catch (err) {
+    console.error('載入基本面資料與暫停交易紀錄失敗:', err)
+    alert('載入公司資料失敗，請稍後再試。')
+  }
 }
 
 // 監聽 saveId、階段、日期的變更以即時刷新資料
 watch(
   () => [props.saveId, props.currentPhase, props.currentDate],
   () => {
-    fetchWatchlistWithPrices()
+    loadWatchlist()
   },
   { immediate: true }
 )

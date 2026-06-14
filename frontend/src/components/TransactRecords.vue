@@ -1,5 +1,5 @@
 <template>
-  <div class="min-w-[1080px] gap-[10px] p-[30px] bg-nature-800 border-nature-500 border-[10px] w-[90%] h-fit flex flex-col">
+  <div class="min-w-[1280px] gap-[10px] p-[30px] bg-nature-800 border-nature-500 border-[10px] w-[90%] h-fit flex flex-col">
     
     <div class="flex w-full h-full">
       <div class="text-07 text-nature-100 w-full"> 轉帳紀錄 </div>
@@ -7,48 +7,48 @@
     </div>
 
     <div class="bg-nature-200 rounded-[10px] overflow-y-auto max-h-[400px]">
-        <table class="w-full text-center relative">
+        <table class="w-full text-center text-nature-800 relative">
             
             <thead class="sticky top-0 bg-nature-200 border-b-3 text-nature-900 font-05 text-04">
             <tr>
                 <th class="py-3 px-2">交易日期</th>
                 <th class="py-3 px-2">交易時間</th> 
                 <th class="py-3 px-2">摘要</th>
-                <th class="py-3 px-2">提款 (支出)</th>
-                <th class="py-3 px-2">存款 (存入)</th>
+                <th class="py-3 px-2">提款</th>
+                <th class="py-3 px-2">存款</th>
                 <th class="py-3 px-2">結餘</th>
                 <th class="py-3 px-2">註記</th>
             </tr>
             </thead>
 
-            <tbody class="text-03">
-            <tr 
-                v-for="record in saveRecords" 
-                :key="record.seq" 
-                class="border-b-[3px] border-nature-800 hover:bg-nature-600 hover:text-nature-200 transition-colors"
-            >
-                <td class="py-3 px-2">{{ record.sim_date }}</td>
+            <tbody class="text-04">
+                <tr 
+                    v-for="record in saveRecords" 
+                    :key="record.seq" 
+                    class="border-b-[3px] border-nature-800 hover:bg-nature-600 hover:text-nature-200 transition-colors"
+                >
+                    <td class="py-3 px-2">{{ record.sim_date.slice(0, 10) }}</td>
+                    
+                    <td class="py-3 px-2">{{ formatAccountType(record.account_type) }}</td>
+                    
+                    <td class="py-3 px-2">{{ formatChangeType(record.change_type) }}</td>
+                    
+                    <td class="py-3 px-2 text-green-500">
+                        {{ isWithdrawal(record.change_type) ? formatNumber(record.amount) : '-' }}
+                    </td>
+                    
+                    <td class="py-3 px-2 text-red-500">
+                        {{ isDeposit(record.change_type) ? formatNumber(record.amount) : '-' }}
+                    </td>
+                    
+                    <td class="py-3 px-2">{{ formatNumber(record.balance_after) }}</td>
+                    
+                    <td class="py-3 px-2">{{ record.note || '-' }}</td>
+                </tr>
                 
-                <td class="py-3 px-2"> - </td>
-                
-                <td class="py-3 px-2">{{ record.change_type }}</td>
-                
-                <td class="py-3 px-2 text-green-500">
-                {{ record.amount < 0 ? Math.abs(record.amount) : '-' }}
-                </td>
-                
-                <td class="py-3 px-2 text-red-500">
-                {{ record.amount > 0 ? record.amount : '-' }}
-                </td>
-                
-                <td class="py-3 px-2">{{ record.balance_after }}</td>
-                
-                <td class="py-3 px-2">{{ record.note || '-' }}</td>
-            </tr>
-            
-            <tr class="h-[50px] bg-nature-200">
-                <td colspan="7"></td>
-            </tr>
+                <tr class="h-[50px] bg-nature-200">
+                    <td colspan="7"></td>
+                </tr>
             </tbody>
         </table>
       </div>
@@ -62,10 +62,6 @@
 
   const saveRecords = ref([])
   const isLoading = ref(true)
-  
-  const spendingAmount = ref(0)
-  const profitLoss = ref(0)
-  const returnRate = ref(0)
 
   // 🚀 2. 啟動 route 物件，用來讀取當前網址的資訊
   const route = useRoute()
@@ -83,7 +79,7 @@
 
     try {
       // 將拿到的 saveId 動態帶入 API 網址中
-      const response = await fetch(`/api/holding/transactions?save_id=${saveId}`, {
+      const response = await fetch(`/api/saves/${saveId}/accounts/history`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -108,4 +104,40 @@
   onMounted(() => {
     fetchSaves()
   })
+
+    // --- 顯示轉換邏輯 (Formatters) ---
+
+    // 轉換帳戶類型
+    const formatAccountType = (type) => {
+    if (type === 'SAVINGS') return '存款戶'
+    if (type === 'TRADING') return '交割戶'
+    return type
+    }
+
+    // 轉換摘要
+    const formatChangeType = (type) => {
+    const typeMap = {
+        'INITIAL_DEPOSIT': '開戶存入',
+        'TRANSFER_IN': '帳戶轉入',
+        'TRANSFER_OUT': '帳戶轉出',
+        'BUY': '買進扣款',
+        'SELL': '賣出入帳'
+    }
+    return typeMap[type] || type
+    }
+
+    // 數字千分位格式化 (把 "1000000.00" 變成 "1,000,000")
+    const formatNumber = (numStr) => {
+    if (!numStr) return '0'
+    // 轉成數字並加上千分位，同時自動去掉不必要的 .00
+    return Number(numStr).toLocaleString()
+    }
+
+    // --- 提款/存款 判斷邏輯 ---
+
+    // 判斷提款 (轉出、買股扣款)
+    const isWithdrawal = (type) => ['TRANSFER_OUT', 'BUY'].includes(type)
+
+    // 判斷存款 (初始存入、轉入、賣股入帳)
+    const isDeposit = (type) => ['TRANSFER_IN', 'INITIAL_DEPOSIT', 'SELL'].includes(type)
 </script>

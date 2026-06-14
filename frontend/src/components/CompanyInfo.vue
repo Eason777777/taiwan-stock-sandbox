@@ -1,124 +1,185 @@
 <template>
-  <div class="company-info bg-nature-800 border-[10px] border-nature-500 rounded-lg text-white font-sans flex flex-col gap-6 shadow-2xl">
-    <!-- 標頭 -->
-    <div class="flex justify-between items-center w-full border-b border-nature-600 pb-3">
-      <div class="flex items-center gap-2.5">
-        <span class="text-04 font-bold text-nature-100 font-mono">{{ stock.stock_id }}</span>
-        <span class="text-04 font-bold text-nature-100">{{ stock.stock_name_zh }}</span>
-        <span class="text-02 text-nature-300 ml-2">暫停交易紀錄</span>
-      </div>
-      <button
+  <!-- 遮罩背景 -->
+  <div class="fixed inset-0 z-[150] flex justify-center items-center w-full h-full bg-black/60 backdrop-blur-sm" @click.self="emit('close')">
+    
+    <!-- 圓角卡片容器：恢復為精簡規格 (max-w-[800px], p-8, gap-5) -->
+    <div class="company-info-card w-full max-w-[800px] max-h-[90vh] overflow-y-auto flex flex-col items-stretch p-8 gap-5 border-10 border-solid border-nature-500 bg-nature-800 rounded-xl shadow-2xl relative text-white font-sans custom-scrollbar">
+      
+      <!-- 關閉按鈕 -->
+      <button 
         @click="emit('close')"
-        class="text-nature-400 hover:text-white bg-transparent border-none text-2xl cursor-pointer leading-none p-1 transition-colors"
+        class="absolute top-3 right-5 text-nature-400 hover:text-white bg-transparent border-none text-3xl cursor-pointer leading-none p-1 transition-colors z-50"
       >
         &times;
       </button>
-    </div>
 
-    <!-- 內容 -->
-    <div class="w-full">
-      <!-- 載入中 -->
-      <div v-if="isLoading" class="text-center text-nature-300 py-10">
-        載入中…
+      <!-- 標頭：股票編號 股票中文簡稱 -->
+      <div class="text-center font-bold text-03 text-nature-100 mt-1 mb-1 tracking-wide font-sans">
+        {{ stock.stock_id }} {{ stock.stock_name_zh }}
       </div>
 
-      <!-- 錯誤 -->
-      <div v-else-if="error" class="text-center text-red-400 py-10">
-        無法載入暫停交易紀錄
+      <!-- 1. 股票資訊表區域 -->
+      <div class="flex flex-col gap-2.5">
+        <!-- 表頭 -->
+        <div class="w-full bg-nature-200 rounded-t-lg px-4 py-3 flex text-center font-bold text-02 text-nature-900">
+          <div class="flex-1">資訊</div>
+          <div class="flex-1">內容</div>
+        </div>
+
+        <!-- 表身 (限制最多顯示 5 筆，多出時內部滾動，高度剛好 5 筆 * 52px + 4 筆 * 10px = 300px) -->
+        <div class="flex flex-col gap-2.5 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
+          <div class="group w-full bg-nature-200 hover:bg-nature-600 rounded px-4 py-3.5 flex text-center text-01 items-center transition-colors duration-300 ease-out">
+            <div class="flex-1 font-bold text-nature-900 group-hover:text-nature-200 transition-colors duration-300 ease-out">股票中文全名</div>
+            <div class="flex-1 text-nature-900 group-hover:text-nature-200 transition-colors duration-300 ease-out">{{ stock.stock_full_name_zh || '無' }}</div>
+          </div>
+          <div class="group w-full bg-nature-200 hover:bg-nature-600 rounded px-4 py-3.5 flex text-center text-01 items-center transition-colors duration-300 ease-out">
+            <div class="flex-1 font-bold text-nature-900 group-hover:text-nature-200 transition-colors duration-300 ease-out">股票英文簡稱</div>
+            <div class="flex-1 font-mono text-nature-900 group-hover:text-nature-200 transition-colors duration-300 ease-out">{{ stock.stock_name_en || '無' }}</div>
+          </div>
+          <div class="group w-full bg-nature-200 hover:bg-nature-600 rounded px-4 py-3.5 flex text-center text-01 items-center transition-colors duration-300 ease-out">
+            <div class="flex-1 font-bold text-nature-900 group-hover:text-nature-200 transition-colors duration-300 ease-out">股票英文全名</div>
+            <div class="flex-1 font-mono text-nature-900 group-hover:text-nature-200 transition-colors duration-300 ease-out">{{ stock.stock_full_name_en || '無' }}</div>
+          </div>
+          <div class="group w-full bg-nature-200 hover:bg-nature-600 rounded px-4 py-3.5 flex text-center text-01 items-center transition-colors duration-300 ease-out">
+            <div class="flex-1 font-bold text-nature-900 group-hover:text-nature-200 transition-colors duration-300 ease-out">產業別</div>
+            <div class="flex-1 text-nature-900 group-hover:text-nature-200 transition-colors duration-300 ease-out">{{ stock.sector_name || '無' }}</div>
+          </div>
+          <div class="group w-full bg-nature-200 hover:bg-nature-600 rounded px-4 py-3.5 flex text-center text-01 items-center transition-colors duration-300 ease-out">
+            <div class="flex-1 font-bold text-nature-900 group-hover:text-nature-200 transition-colors duration-300 ease-out">上市日期</div>
+            <div class="flex-1 font-mono text-nature-900 group-hover:text-nature-200 transition-colors duration-300 ease-out">{{ formatListingDate(stock.listing_date) }}</div>
+          </div>
+          <div class="group w-full bg-nature-200 hover:bg-nature-600 rounded px-4 py-3.5 flex text-center text-01 items-center transition-colors duration-300 ease-out">
+            <div class="flex-1 font-bold text-nature-900 group-hover:text-nature-200 transition-colors duration-300 ease-out">股票面額</div>
+            <div class="flex-1 font-mono text-nature-900 group-hover:text-nature-200 transition-colors duration-300 ease-out">{{ stock.par_value || '無' }}</div>
+          </div>
+          <div class="group w-full bg-nature-200 hover:bg-nature-600 rounded px-4 py-3.5 flex text-center text-01 items-center transition-colors duration-300 ease-out">
+            <div class="flex-1 font-bold text-nature-900 group-hover:text-nature-200 transition-colors duration-300 ease-out">市場類型</div>
+            <div class="flex-1 text-nature-900 group-hover:text-nature-200 transition-colors duration-300 ease-out">{{ stock.market_type || '無' }}</div>
+          </div>
+          <div class="group w-full bg-nature-200 hover:bg-nature-600 rounded px-4 py-3.5 flex text-center text-01 items-center transition-colors duration-300 ease-out">
+            <div class="flex-1 font-bold text-nature-900 group-hover:text-nature-200 transition-colors duration-300 ease-out">聯絡電話</div>
+            <div class="flex-1 font-mono text-nature-900 group-hover:text-nature-200 transition-colors duration-300 ease-out">{{ stock.phone || '無' }}</div>
+          </div>
+          <div class="group w-full bg-nature-200 hover:bg-nature-600 rounded px-4 py-3.5 flex text-center text-01 items-center transition-colors duration-300 ease-out">
+            <div class="flex-1 font-bold text-nature-900 group-hover:text-nature-200 transition-colors duration-300 ease-out">公司地址</div>
+            <div class="flex-1 text-nature-900 group-hover:text-nature-200 transition-colors duration-300 ease-out">{{ stock.address || '無' }}</div>
+          </div>
+          <div class="group w-full bg-nature-200 hover:bg-nature-600 rounded px-4 py-3.5 flex text-center text-01 items-center transition-colors duration-300 ease-out">
+            <div class="flex-1 font-bold text-nature-900 group-hover:text-nature-200 transition-colors duration-300 ease-out">公司網址</div>
+            <div class="flex-1 text-nature-900 group-hover:text-nature-200 transition-colors duration-300 ease-out">
+              <a 
+                v-if="stock.website" 
+                :href="stock.website" 
+                target="_blank" 
+                class="text-blue-600 group-hover:text-blue-300 hover:underline font-mono break-all"
+              >
+                {{ stock.website }}
+              </a>
+              <span v-else>無</span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <!-- 空狀態 -->
-      <div v-else-if="records.length === 0" class="text-center text-nature-300 py-10">
-        目前無暫停交易紀錄
+      <!-- 分隔線 -->
+      <hr class="w-full border-t-[3px] border-nature-500 my-1" />
+
+      <!-- 2. 暫停交易表區域 -->
+      <div class="flex flex-col gap-2.5">
+        <!-- 表頭 -->
+        <div class="w-full bg-nature-200 rounded-t-lg px-4 py-3 flex text-center font-bold text-02 text-nature-900">
+          <div class="flex-1">暫停交易起日</div>
+          <div class="flex-1">暫停交易迄日</div>
+          <div class="flex-1">暫停交易原因</div>
+        </div>
+
+        <!-- 表身 (限制最多顯示 3 筆，多出時內部滾動，高度剛好 3 筆 * 52px + 2 筆 * 10px = 176px) -->
+        <div class="flex flex-col gap-2.5 max-h-[176px] overflow-y-auto pr-1 custom-scrollbar">
+          <div v-if="!suspensions || suspensions.length === 0" class="w-full bg-nature-200 rounded px-4 py-4 text-center text-01 text-nature-600 font-medium">
+            無暫停交易紀錄
+          </div>
+          <div 
+            v-else
+            v-for="(item, index) in suspensions" 
+            :key="index"
+            class="group w-full bg-nature-200 hover:bg-nature-600 rounded px-4 py-3.5 flex text-center text-01 items-center transition-colors duration-300 ease-out"
+          >
+            <div class="flex-1 font-mono text-nature-900 group-hover:text-nature-200 transition-colors duration-300 ease-out">{{ formatDate(item.suspend_start_date || item.start_date) }}</div>
+            <div class="flex-1 font-mono text-nature-900 group-hover:text-nature-200 transition-colors duration-300 ease-out">{{ formatDate(item.resume_date) }}</div>
+            <div class="flex-1 text-nature-900 group-hover:text-nature-200 transition-colors duration-300 ease-out truncate px-2" :title="item.reason">{{ item.reason }}</div>
+          </div>
+        </div>
       </div>
 
-      <!-- 表格 -->
-      <div v-else class="bg-nature-200 rounded-[10px] overflow-y-auto max-h-[400px]">
-        <table class="w-full text-center relative">
-          <thead class="sticky top-0 bg-nature-200 border-b-3 text-nature-900 font-05 text-04">
-            <tr>
-              <th class="py-3 px-2">暫停交易起日</th>
-              <th class="py-3 px-2">暫停交易迄日</th>
-              <th class="py-3 px-2">暫停交易原因</th>
-            </tr>
-          </thead>
-          <tbody class="text-03">
-            <tr
-              v-for="(record, index) in records"
-              :key="`${record.suspend_start_date}-${index}`"
-              class="border-b-[3px] border-nature-800 hover:bg-nature-600 hover:text-nature-200 transition-colors"
-            >
-              <td class="py-3 px-2 font-mono">{{ record.suspend_start_date }}</td>
-              <td class="py-3 px-2 font-mono">
-                <span v-if="record.resume_date">{{ record.resume_date }}</span>
-                <span v-else class="text-nature-500 italic">未知 / 預告中</span>
-              </td>
-              <td class="py-3 px-2">{{ record.reason }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- 返回 -->
-    <div class="w-full flex justify-center mt-2">
-      <button
-        @click="emit('close')"
-        class="bg-nature-200 hover:bg-nature-300 text-nature-900 font-bold rounded-[10px] px-16 py-3 transition-colors duration-200 cursor-pointer border-none text-02"
-      >
-        返回
-      </button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { apiFetch } from '../api/client.js'
-
 const props = defineProps({
   stock: {
     type: Object,
-    required: true,
-    default: () => ({ stock_id: '', stock_name_zh: '' })
-  },
-  saveId: {
-    type: [Number, String],
     required: true
+  },
+  suspensions: {
+    type: Array,
+    default: () => []
   }
 })
 
 const emit = defineEmits(['close'])
 
-const records = ref([])
-const isLoading = ref(true)
-const error = ref(false)
+// 格式化為 YYYY / MM / DD
+const formatDate = (dateStr) => {
+  if (!dateStr) return '無'
+  const date = new Date(dateStr)
+  if (isNaN(date.getTime())) return dateStr
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y} / ${m} / ${d}`
+}
 
-onMounted(async () => {
-  try {
-    const res = await apiFetch(
-      `/api/stocks/${props.stock.stock_id}/suspensions?save_id=${props.saveId}`
-    )
-    if (res.ok) {
-      records.value = await res.json()
-    } else {
-      error.value = true
-    }
-  } catch {
-    error.value = true
-  } finally {
-    isLoading.value = false
-  }
-})
+const formatListingDate = (dateStr) => {
+  if (!dateStr) return '無'
+  const date = new Date(dateStr)
+  if (isNaN(date.getTime())) return dateStr
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y} / ${m} / ${d}`
+}
 </script>
 
 <style scoped>
-.company-info {
-  padding: 30px;
-  width: 720px;
-  max-width: 95vw;
-  height: fit-content;
-  max-height: 90vh;
-  overflow-y: auto;
+/* 滾動條美化，與 Nature 灰黑主題一致 */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: color-mix(in srgb, var(--color-nature-900) 50%, transparent);
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--color-nature-500) 40%, transparent);
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--color-nature-500) 60%, transparent);
+}
+
+.company-info-card::-webkit-scrollbar {
+  width: 6px;
+}
+.company-info-card::-webkit-scrollbar-track {
+  background: color-mix(in srgb, var(--color-nature-900) 50%, transparent);
+  border-radius: 4px;
+}
+.company-info-card::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--color-nature-500) 40%, transparent);
+  border-radius: 4px;
+}
+.company-info-card::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--color-nature-500) 60%, transparent);
 }
 </style>

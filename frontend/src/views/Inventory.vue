@@ -26,18 +26,13 @@
       />
     </div>
 
-    <!-- 3. 公司資訊（暫停交易紀錄）彈窗 -->
-    <div
-      v-if="showCompanyInfoModal && companyInfoStock"
-      class="fixed inset-0 z-[100] flex justify-center items-center w-full h-full bg-black/60 backdrop-blur-sm"
-      @click.self="showCompanyInfoModal = false"
-    >
-      <CompanyInfo
-        :stock="companyInfoStock"
-        :save-id="saveId"
-        @close="showCompanyInfoModal = false"
-      />
-    </div>
+    <!-- 3. 公司基本面資訊彈窗 -->
+    <CompanyInfo
+      v-if="showCompanyInfoModal && companyInfoDetail"
+      :stock="companyInfoDetail"
+      :suspensions="companyInfoSuspensions"
+      @close="showCompanyInfoModal = false; showStockInfoModal = true"
+    />
   </div>
 </template>
 
@@ -77,10 +72,11 @@ const router = useRouter()
 // --- 狀態定義 ---
 const rawHoldings = ref([])
 const showStockInfoModal = ref(false)
+const showCompanyInfoModal = ref(false)
+const companyInfoDetail = ref(null)
+const companyInfoSuspensions = ref([])
 const selectedStockDetail = ref(null)
 const selectedStockHoldings = ref(0)
-const showCompanyInfoModal = ref(false)
-const companyInfoStock = ref(null)
 
 // K線圖歷史資料與當前選中週期
 const klinePrices = ref([])
@@ -238,13 +234,33 @@ const handleGoToTrade = (stockId) => {
   })
 }
 
-const handleViewCompanyInfo = (stockId) => {
-  // 沿用已開啟的股票詳情；若無則以股號最小化組出 stock 物件。
-  companyInfoStock.value =
-    selectedStockDetail.value && selectedStockDetail.value.stock_id === stockId
-      ? selectedStockDetail.value
-      : { stock_id: stockId, stock_name_zh: '' }
-  showCompanyInfoModal.value = true
+const handleViewCompanyInfo = async (stockId) => {
+  try {
+    const resProfile = await fetch(`/api/stocks/${stockId}`, {
+      headers: {
+        'x-session-id': localStorage.getItem('session_id') || ''
+      }
+    })
+    if (!resProfile.ok) throw new Error('無法取得股票基本資料')
+    companyInfoDetail.value = await resProfile.json()
+
+    const resSuspensions = await fetch(`/api/stocks/${stockId}/suspensions?save_id=${props.saveId}`, {
+      headers: {
+        'x-session-id': localStorage.getItem('session_id') || ''
+      }
+    })
+    if (resSuspensions.ok) {
+      companyInfoSuspensions.value = await resSuspensions.json()
+    } else {
+      companyInfoSuspensions.value = []
+    }
+
+    showStockInfoModal.value = false
+    showCompanyInfoModal.value = true
+  } catch (err) {
+    console.error('載入基本面資料與暫停交易紀錄失敗:', err)
+    alert('載入公司資料失敗，請稍後再試。')
+  }
 }
 
 // 監聽 saveId、階段、日期的變更以即時更新持股與資產
