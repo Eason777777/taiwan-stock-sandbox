@@ -88,9 +88,21 @@
     <!-- Divider -->
     <hr class="w-full border-t-[3px] border-nature-500 my-2" />
 
-    <!-- 下方空白區塊 -->
-    <div class="w-full min-h-[400px] rounded-[10px] bg-nature-900 border border-nature-600 flex items-center justify-center text-nature-500">
-      <span class="text-03 font-bold">（K線圖 與 委託單列表 暫存區塊）</span>
+    <!-- K線圖區塊 -->
+    <div class="w-full">
+      <div v-if="!stockId" class="w-full min-h-[400px] rounded-[10px] bg-nature-900 border border-nature-600 flex items-center justify-center text-nature-500">
+        <span class="text-03 font-bold">請輸入或選擇股票以顯示 K 線圖</span>
+      </div>
+      <div v-else class="w-full">
+        <CandlestickChart 
+          :prices="prices"
+          :timeframe="timeframe"
+          :theme="'dark'"
+          :stockId="stockId"
+          :stockName="stockName"
+          @update:timeframe="(tf) => emit('update:timeframe', tf)"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -100,7 +112,7 @@ import { computed } from 'vue'
 import StockInput from './StockInput.vue'
 import BuySellSlider from './BuySellSlider.vue'
 import OrderTypeSlider from './OrderTypeSlider.vue'
-
+import CandlestickChart from './CandlestickChart.vue'
 const props = defineProps({
   stocks: {
     type: Array,
@@ -146,6 +158,18 @@ const props = defineProps({
   quantityError: {
     type: String,
     default: ''
+  },
+  prices: {
+    type: Array,
+    default: () => []
+  },
+  timeframe: {
+    type: String,
+    default: 'daily'
+  },
+  stockName: {
+    type: String,
+    default: ''
   }
 })
 
@@ -155,6 +179,7 @@ const emit = defineEmits([
   'update:quantity',
   'update:side',
   'update:orderType',
+  'update:timeframe',
   'select-stock',
   'search-stock',
   'load-more-stocks',

@@ -11,7 +11,7 @@
           {{ stockId }} {{ stockName }}
         </h2>
         <p class="text-sm" :class="theme === 'light' ? 'text-nature-600' : 'text-nature-400'">
-          K線圖看板 | 資料由後端即時提供
+          K線圖看板
         </p>
       </div>
 
@@ -129,11 +129,6 @@
     <!-- Footer Description -->
     <div class="flex justify-between items-center text-xs" :class="theme === 'light' ? 'text-nature-500' : 'text-nature-400'">
       <div>使用滑鼠滾輪縮放，按住左鍵左右拖曳平移</div>
-      <div class="flex gap-4">
-        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-[#45B0E6]"></span>MA5</span>
-        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-[#B052CA]"></span>MA10</span>
-        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-[#FF9800]"></span>MA20</span>
-      </div>
     </div>
   </div>
 </template>
