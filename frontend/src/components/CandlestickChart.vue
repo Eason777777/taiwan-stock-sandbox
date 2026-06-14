@@ -262,10 +262,10 @@ const formattedPrices = computed(() => {
     const ts = item.timestamp || (item.trade_date ? new Date(item.trade_date).getTime() : 0)
     return {
       timestamp: ts,
-      open: Number(item.open),
-      high: Number(item.high),
-      low: Number(item.low),
-      close: Number(item.close),
+      open: Number(item.open ?? item.open_price ?? 0),
+      high: Number(item.high ?? item.high_price ?? 0),
+      low: Number(item.low ?? item.low_price ?? 0),
+      close: Number(item.close ?? item.close_price ?? 0),
       volume: Number(item.volume),
       limitUp: Number(item.limitUp ?? item.limit_up ?? 0),
       limitDown: Number(item.limitDown ?? item.limit_down ?? 0)
