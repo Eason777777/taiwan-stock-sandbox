@@ -35,6 +35,8 @@
       <StockInfo 
         :stock="selectedStockDetail"
         :holdings-count="selectedStockHoldings"
+        :prices="klinePrices"
+        v-model:timeframe="currentTimeframe"
         @close="showStockInfoModal = false"
         @go-to-trade="handleGoToTrade"
         @view-company-info="handleViewCompanyInfo"
@@ -72,6 +74,10 @@ const router = useRouter()
 const watchlistStocks = ref([])
 const showAddWatchlistModal = ref(false)
 const showStockInfoModal = ref(false)
+
+// K線圖歷史資料與當前選中週期
+const klinePrices = ref([])
+const currentTimeframe = ref('daily')
 
 // 股票詳細與持股
 const selectedStockDetail = ref(null)
@@ -304,58 +310,92 @@ const confirmAddWatchlist = async () => {
   }
 }
 
+// 載入 K 線價格資料的獨立函式
+const fetchKlinePrices = async (stockId, tf) => {
+  if (!props.saveId || !stockId) return
+  const intervalMap = { daily: 'day', weekly: 'week', monthly: 'month' }
+  const interval = intervalMap[tf] || 'day'
+  
+  try {
+    const res = await fetch(`/api/stocks/${stockId}/prices?save_id=${props.saveId}&interval=${interval}`, {
+      headers: {
+        'x-session-id': localStorage.getItem('session_id') || ''
+      }
+    })
+    if (res.ok) {
+      klinePrices.value = await res.json()
+    }
+  } catch (err) {
+    console.error('載入 K 線價格資料失敗:', err)
+  }
+}
+
+// 監聽時間週期切換
+watch(currentTimeframe, (newTf) => {
+  if (selectedStockDetail.value) {
+    fetchKlinePrices(selectedStockDetail.value.stock_id, newTf)
+  }
+})
+
 // --- 4. 點選股票顯示詳細彈窗 ---
-const handleSelectStock = (stockId) => {
+const handleSelectStock = async (stockId) => {
   const stock = watchlistStocks.value.find(s => s.id === stockId)
   if (!stock) return
 
-  // 取得最新日線資訊，以補全彈窗需要的高/開/低/量
-  fetch(`/api/stocks/${stockId}/prices?save_id=${props.saveId}&limit=5`, {
-    headers: {
-      'x-session-id': localStorage.getItem('session_id') || ''
-    }
-  })
-    .then(res => res.json())
-    .then(history => {
-      const latest = history && history.length > 0 ? history[history.length - 1] : {}
-      
-      selectedStockDetail.value = {
-        stock_id: stockId,
-        stock_name_zh: stock.name,
-        price: stock.price,
-        change: stock.change,
-        changePercent: stock.changePercent,
-        sector_name: stock.sector_name || '未知產業',
-        is_attention: stock.is_attention,
-        is_disposition: stock.is_disposition,
-        is_full_delivery: stock.is_full_delivery,
-        
-        open_price: latest.open_price || null,
-        high_price: latest.high_price || null,
-        low_price: latest.low_price || null,
-        volume: latest.volume || 0
-      }
+  // 重設週期為日 K
+  currentTimeframe.value = 'daily'
+  klinePrices.value = []
 
-      // 查詢用戶在這檔股票的真實持股庫存
-      fetch(`/api/saves/${props.saveId}/holdings`, {
-        headers: {
-          'x-session-id': localStorage.getItem('session_id') || ''
-        }
-      })
-        .then(res => res.json())
-        .then(holdings => {
-          const userHolding = holdings.find(h => h.stock_id === stockId)
-          selectedStockHoldings.value = userHolding ? userHolding.quantity : 0
-          showStockInfoModal.value = true
-        })
-        .catch(() => {
-          selectedStockHoldings.value = 0
-          showStockInfoModal.value = true
-        })
+  try {
+    // 1. 同步載入 K 線歷史資料
+    await fetchKlinePrices(stockId, 'daily')
+    
+    // 2. 取得該存檔的單檔股票即時詳細報價與警告標記
+    const detailRes = await fetch(`/api/saves/${props.saveId}/stocks/${stockId}`, {
+      headers: {
+        'x-session-id': localStorage.getItem('session_id') || ''
+      }
     })
-    .catch(err => {
-      console.error('載入股票詳細失敗:', err)
+    if (!detailRes.ok) throw new Error('無法取得股票詳細報價')
+    const detail = await detailRes.json()
+    
+    selectedStockDetail.value = {
+      stock_id: stockId,
+      stock_name_zh: detail.stock_name_zh,
+      price: detail.current_price,
+      change: detail.price_change,
+      changePercent: detail.price_change_percent,
+      sector_name: detail.sector_name || '未知產業',
+      is_attention: detail.is_attention,
+      is_disposition: detail.is_disposition,
+      is_full_delivery: detail.is_full_delivery,
+      
+      open_price: detail.open_price,
+      high_price: detail.high_price,
+      low_price: detail.low_price,
+      volume: detail.volume
+    }
+
+    // 3. 查詢用戶在這檔股票的真實持股庫存
+    const holdingsRes = await fetch(`/api/saves/${props.saveId}/holdings`, {
+      headers: {
+        'x-session-id': localStorage.getItem('session_id') || ''
+      }
     })
+    if (holdingsRes.ok) {
+      const holdings = await holdingsRes.json()
+      const userHolding = holdings.find(h => h.stock_id === stockId)
+      selectedStockHoldings.value = userHolding ? userHolding.quantity : 0
+    } else {
+      selectedStockHoldings.value = 0
+    }
+    
+    showStockInfoModal.value = true
+  } catch (err) {
+    console.error('載入股票詳細失敗:', err)
+    selectedStockHoldings.value = 0
+    showStockInfoModal.value = true
+  }
 }
 
 // 響應「前往下單」

@@ -32,6 +32,17 @@
           <button
             class="px-4 py-1.5 rounded-md text-sm font-semibold cursor-pointer transition-all duration-200"
             :class="[
+              timeframe === 'weekly'
+                ? 'bg-blue-500 text-white shadow-md'
+                : theme === 'light' ? 'text-nature-700 hover:text-nature-900 hover:bg-nature-200' : 'text-nature-400 hover:text-white hover:bg-nature-800'
+            ]"
+            @click="switchTimeframe('weekly')"
+          >
+            週K
+          </button>
+          <button
+            class="px-4 py-1.5 rounded-md text-sm font-semibold cursor-pointer transition-all duration-200"
+            :class="[
               timeframe === 'monthly'
                 ? 'bg-blue-500 text-white shadow-md'
                 : theme === 'light' ? 'text-nature-700 hover:text-nature-900 hover:bg-nature-200' : 'text-nature-400 hover:text-white hover:bg-nature-800'
@@ -129,7 +140,83 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
-import { init, dispose } from 'klinecharts'
+import { init, dispose, registerIndicator } from 'klinecharts'
+
+// 自訂註冊/覆蓋 VOL 指標，將預設的 MA 均線標題修改為 MV (Volume Moving Average)
+registerIndicator({
+  name: 'VOL',
+  shortName: 'VOL',
+  series: 'volume',
+  calcParams: [5, 20],
+  precision: 0,
+  shouldFormatBigNumber: true,
+  minValue: 0,
+  figures: [
+    { key: 'ma1', title: 'MV5: ', type: 'line' },
+    { key: 'ma2', title: 'MV20: ', type: 'line' },
+    {
+      key: 'volume',
+      title: 'VOLUME: ',
+      type: 'bar',
+      baseValue: 0,
+      styles: function (kLineData, indicator, defaultStyles) {
+        var n = kLineData.current.kLineData;
+        var color = defaultStyles.bars[0].noChangeColor;
+        if (n) {
+          if (n.close > n.open) {
+            color = defaultStyles.bars[0].upColor;
+          } else if (n.close < n.open) {
+            color = defaultStyles.bars[0].downColor;
+          }
+        }
+        return { color: color };
+      }
+    }
+  ],
+  regenerateFigures: function (params) {
+    var figures = params.map(function (p, i) {
+      return { key: 'ma' + (i + 1), title: 'MV' + p + ': ', type: 'line' };
+    });
+    figures.push({
+      key: 'volume',
+      title: 'VOLUME: ',
+      type: 'bar',
+      baseValue: 0,
+      styles: function (kLineData, indicator, defaultStyles) {
+        var n = kLineData.current.kLineData;
+        var color = defaultStyles.bars[0].noChangeColor;
+        if (n) {
+          if (n.close > n.open) {
+            color = defaultStyles.bars[0].upColor;
+          } else if (n.close < n.open) {
+            color = defaultStyles.bars[0].downColor;
+          }
+        }
+        return { color: color };
+      }
+    });
+    return figures;
+  },
+  calc: function (dataList, indicator) {
+    var params = indicator.calcParams;
+    var volumes = [];
+    return dataList.map(function (kLineData, i) {
+      var vol = kLineData.volume !== undefined && kLineData.volume !== null ? kLineData.volume : 0;
+      var result = { volume: vol };
+      volumes.push(vol);
+      params.forEach(function (p, j) {
+        if (i >= p - 1) {
+          var sum = 0;
+          for (var x = i - p + 1; x <= i; x++) {
+            sum += volumes[x];
+          }
+          result['ma' + (j + 1)] = sum / p;
+        }
+      });
+      return result;
+    });
+  }
+});
 
 const props = defineProps({
   // 價格歷史資料 (支援 snake_case 或 camelCase 屬性)
@@ -144,11 +231,11 @@ const props = defineProps({
     default: 'dark',
     validator: (val) => ['dark', 'light'].includes(val)
   },
-  // K線週期: 'daily' | 'monthly'
+  // K線週期: 'daily' | 'weekly' | 'monthly'
   timeframe: {
     type: String,
     default: 'daily',
-    validator: (val) => ['daily', 'monthly'].includes(val)
+    validator: (val) => ['daily', 'weekly', 'monthly'].includes(val)
   },
   // 股票代號
   stockId: {
@@ -320,6 +407,27 @@ function getThemeStyles(theme) {
           color: isLight ? '#333333' : '#9BA2AE',
           family: "'Noto Sans TC', 'Roboto', sans-serif"
         }
+      },
+      priceMark: {
+        show: true,
+        last: {
+          show: true,
+          upColor: isLight ? '#FF333A' : '#EF5350',          // 漲 (台股紅)
+          downColor: isLight ? '#00A600' : '#26A69A',        // 跌 (台股綠)
+          noChangeColor: isLight ? '#666666' : '#95A5A6',    // 平盤 (灰)
+          line: {
+            show: true,
+            style: 'dashed',
+            dashedValue: [2, 2],
+            size: 1
+          },
+          text: {
+            show: true,
+            color: '#FFFFFF',
+            family: "'Noto Sans TC', 'Roboto', sans-serif",
+            size: 12
+          }
+        }
       }
     },
     xAxis: {
@@ -403,13 +511,13 @@ onMounted(() => {
   // 在主圖 (candle_pane) 載入 MA 均線
   chartInstance.createIndicator('MA', true, {
     id: 'candle_pane',
-    params: [5, 10, 20, 60, 120, 240]
+    calcParams: [5, 10, 20, 60, 120, 240]
   })
 
   // 在副圖 (volume_pane) 載入成交量成交均量 VOL
   chartInstance.createIndicator('VOL', false, {
     id: 'volume_pane',
-    params: [5, 20],
+    calcParams: [5, 20],
     height: 120
   })
 

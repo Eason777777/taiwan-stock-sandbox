@@ -77,7 +77,6 @@ const fetchStocksPage = async (reset = false) => {
   if (reset) {
     searchOffset.value = 0
     searchHasMore.value = true
-    stocksDb.value = []
   }
   if (!searchHasMore.value || searchIsLoading.value) return
 
@@ -161,7 +160,8 @@ const getRefPrice = async (stockId) => {
     if (res.ok) {
       const history = await res.json()
       if (history && history.length > 0) {
-        return history[0].close_price || history[0].ref_price || 100
+        const latest = history[history.length - 1]
+        return latest.close_price || latest.ref_price || 100
       }
     }
   } catch (e) {
@@ -193,7 +193,8 @@ watch(orderStockId, async (newId) => {
 })
 
 // 點選推薦股號
-const handleOrderSelectStock = async (stockId) => {
+const handleOrderSelectStock = async (stock) => {
+  const stockId = typeof stock === 'object' && stock !== null ? stock.stock_id : stock
   orderStockId.value = stockId
   const refP = await getRefPrice(stockId)
   orderPrice.value = refP ? refP.toString() : ''

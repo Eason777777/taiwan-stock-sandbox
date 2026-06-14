@@ -6,7 +6,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from .routers import auth, saves, accounts, stocks, orders, holdings, watchlist
+from .routers import auth, saves, accounts, stocks, orders, holdings, watchlist, save_stocks
 
 app = FastAPI(title="錢錢錢市 股票模擬系統")
 
@@ -42,6 +42,7 @@ app.include_router(stocks.router)
 app.include_router(orders.router)
 app.include_router(holdings.router)
 app.include_router(watchlist.router)
+app.include_router(save_stocks.router)
 
 
 @app.get("/")

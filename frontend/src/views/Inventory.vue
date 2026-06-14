@@ -18,6 +18,8 @@
       <StockInfo 
         :stock="selectedStockDetail"
         :holdings-count="selectedStockHoldings"
+        :prices="klinePrices"
+        v-model:timeframe="currentTimeframe"
         @close="showStockInfoModal = false"
         @go-to-trade="handleGoToTrade"
         @view-company-info="handleViewCompanyInfo"
@@ -63,6 +65,10 @@ const rawHoldings = ref([])
 const showStockInfoModal = ref(false)
 const selectedStockDetail = ref(null)
 const selectedStockHoldings = ref(0)
+
+// K線圖歷史資料與當前選中週期
+const klinePrices = ref([])
+const currentTimeframe = ref('daily')
 
 // --- 1. 資料轉換 (將後端欄位映射為前端 HoldingInfo 期待的欄位) ---
 const mappedHoldings = computed(() => {
@@ -129,51 +135,79 @@ const handleUpdateBalances = async (newDelivery, newSavings) => {
   }
 }
 
+// 載入 K 線價格資料的獨立函式
+const fetchKlinePrices = async (stockId, tf) => {
+  if (!props.saveId || !stockId) return
+  const intervalMap = { daily: 'day', weekly: 'week', monthly: 'month' }
+  const interval = intervalMap[tf] || 'day'
+  
+  try {
+    const res = await fetch(`/api/stocks/${stockId}/prices?save_id=${props.saveId}&interval=${interval}`, {
+      headers: {
+        'x-session-id': localStorage.getItem('session_id') || ''
+      }
+    })
+    if (res.ok) {
+      klinePrices.value = await res.json()
+    }
+  } catch (err) {
+    console.error('載入 K 線價格資料失敗:', err)
+  }
+}
+
+// 監聽時間週期切換
+watch(currentTimeframe, (newTf) => {
+  if (selectedStockDetail.value) {
+    fetchKlinePrices(selectedStockDetail.value.stock_id, newTf)
+  }
+})
+
 // --- 4. 點選庫存持股列，打開詳細彈窗 ---
-const handleSelectStock = (stockId) => {
+const handleSelectStock = async (stockId) => {
   const holding = mappedHoldings.value.find(h => h.stock_id === stockId)
   if (!holding) return
 
-  // 取得最新日線資訊，以補全彈窗需要的高/開/低/量
-  fetch(`/api/stocks/${stockId}/prices?save_id=${props.saveId}&limit=5`, {
-    headers: {
-      'x-session-id': localStorage.getItem('session_id') || ''
-    }
-  })
-    .then(res => res.json())
-    .then(history => {
-      const latest = history && history.length > 0 ? history[history.length - 1] : {}
+  // 重設週期為日 K
+  currentTimeframe.value = 'daily'
+  klinePrices.value = []
+
+  try {
+    // 1. 同步載入 K 線歷史資料
+    await fetchKlinePrices(stockId, 'daily')
+
+    // 2. 取得該存檔的單檔股票即時詳細報價與警告標記
+    const detailRes = await fetch(`/api/saves/${props.saveId}/stocks/${stockId}`, {
+      headers: {
+        'x-session-id': localStorage.getItem('session_id') || ''
+      }
+    })
+    if (!detailRes.ok) throw new Error('無法取得股票詳細報價')
+    const detail = await detailRes.json()
+
+    selectedStockDetail.value = {
+      stock_id: stockId,
+      stock_name_zh: detail.stock_name_zh,
+      price: detail.current_price,
+      change: detail.price_change,
+      changePercent: detail.price_change_percent,
+      sector_name: detail.sector_name || '未知產業',
+      is_attention: detail.is_attention,
+      is_disposition: detail.is_disposition,
+      is_full_delivery: detail.is_full_delivery,
       
-      let change = 0
-      let changePercent = 0
-      if (props.currentPhase !== 'PRE_MARKET' && latest && latest.close_price) {
-        change = holding.current_price - latest.close_price
-        changePercent = (change / latest.close_price) * 100
-      }
+      open_price: detail.open_price,
+      high_price: detail.high_price,
+      low_price: detail.low_price,
+      volume: detail.volume
+    }
 
-      selectedStockDetail.value = {
-        stock_id: stockId,
-        stock_name_zh: holding.stock_name,
-        price: holding.current_price,
-        change: parseFloat(change.toFixed(2)),
-        changePercent: parseFloat(changePercent.toFixed(2)),
-        sector_name: latest.sector_name || '未知產業',
-        is_attention: latest.is_attention || false,
-        is_disposition: latest.is_disposition || false,
-        is_full_delivery: latest.is_full_delivery || false,
-        
-        open_price: latest.open_price || null,
-        high_price: latest.high_price || null,
-        low_price: latest.low_price || null,
-        volume: latest.volume || 0
-      }
-
-      selectedStockHoldings.value = holding.quantity
-      showStockInfoModal.value = true
-    })
-    .catch(err => {
-      console.error('載入股票詳細失敗:', err)
-    })
+    selectedStockHoldings.value = holding.quantity
+    showStockInfoModal.value = true
+  } catch (err) {
+    console.error('載入股票詳細失敗:', err)
+    selectedStockHoldings.value = holding.quantity
+    showStockInfoModal.value = true
+  }
 }
 
 // 響應前往下單
