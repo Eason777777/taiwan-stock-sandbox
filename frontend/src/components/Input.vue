@@ -44,7 +44,7 @@ const inputClass = computed(() => {
     const variantClass = props.variant === 'soft' ? 'rounded-[30px]' : 'rounded-[10px]'
 
     return [
-        'w-[320px] bg-nature-900 border border-nature-200 text-nature-100 px-5 py-3 focus:outline-none focus:border-yellow-400 transition-colors',
+        'w-fill bg-nature-900 border border-nature-200 text-nature-100 px-5 py-3 focus:outline-none focus:border-yellow-400 transition-colors',
         variantClass,
     ]
 })
