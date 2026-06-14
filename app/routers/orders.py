@@ -191,6 +191,42 @@ async def _resolve_sell_oversell(db: SqlApiClient, save_id: int, stock_id: str, 
             break
 
 
+def _settled_order_fields(row: dict) -> dict:
+    """依 stock_transactions 的成交結果補上已實現損益／報酬率／投資成本／出帳入帳金額。"""
+    quantity = int(row["quantity"])
+    side = row["side"]
+    exec_price = row.pop("exec_price")
+    fee = row.pop("fee")
+    tax = row.pop("tax")
+    avg_cost_at_transact = row.pop("avg_cost_at_transact")
+
+    if row["status"] != "FILLED" or exec_price is None:
+        row["realized_pnl"] = None
+        row["return_rate"] = None
+        row["avg_cost"] = None
+        row["net_amount"] = None
+        return row
+
+    exec_price = float(exec_price)
+    avg_cost = float(avg_cost_at_transact)
+    fee = int(float(fee))
+    tax = int(float(tax))
+    principal = round(exec_price * quantity * 1000)
+
+    row["avg_cost"] = avg_cost
+    if side == "BUY":
+        row["net_amount"] = principal + fee
+        row["realized_pnl"] = None
+        row["return_rate"] = None
+    else:
+        row["net_amount"] = principal - fee - tax
+        cost_basis = avg_cost * quantity * 1000
+        row["realized_pnl"] = round(row["net_amount"] - cost_basis, 2)
+        row["return_rate"] = round(row["realized_pnl"] / cost_basis * 100, 2) if cost_basis else None
+
+    return row
+
+
 @router.get("")
 async def list_orders(
     save_id: int,
@@ -201,10 +237,13 @@ async def list_orders(
 ):
     await fetch_save_owned(save_id, current_user, db)
     result = await db.query(
-        "SELECT * FROM stock_orders WHERE save_id = ? ORDER BY order_id DESC LIMIT ? OFFSET ?",
+        "SELECT o.*, t.exec_price, t.fee, t.tax, t.avg_cost_at_transact"
+        " FROM stock_orders o"
+        " LEFT JOIN stock_transactions t ON t.order_id = o.order_id"
+        " WHERE o.save_id = ? ORDER BY o.order_id DESC LIMIT ? OFFSET ?",
         [int(save_id), limit, offset],
     )
-    return result["rows"]
+    return [_settled_order_fields(row) for row in result["rows"]]
 
 
 @router.post("", status_code=201)

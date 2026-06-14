@@ -143,6 +143,8 @@ def flow(client):
                 "SELECT quantity FROM holdings WHERE save_id=? AND stock_id=?", [save_id, STOCK_ID],
             )
 
+    ctx["list_orders_after_intraday"] = client.get(f"/saves/{save_id}/orders", headers=headers)
+
     # ── 8f-8i. 單檔股票詳細資訊（INTRADAY）───────────────────────────
     ctx["intraday_stock_detail"] = client.get(f"/saves/{save_id}/stocks/{STOCK_ID}", headers=headers)
 
@@ -173,6 +175,8 @@ def flow(client):
             ctx["sell_tx_row"] = db_query(
                 "SELECT exec_price FROM stock_transactions WHERE order_id=?", [sell_order_id],
             )
+
+    ctx["list_orders_after_post_market"] = client.get(f"/saves/{save_id}/orders", headers=headers)
 
     # ── 10e-10h. 單檔股票詳細資訊（POST_MARKET）──────────────────────
     ctx["post_market_stock_detail"] = client.get(f"/saves/{save_id}/stocks/{STOCK_ID}", headers=headers)
@@ -344,6 +348,67 @@ def test_pre_market_limit_buy_order(flow):
 
 def test_list_orders(flow):
     assert flow["list_orders"].status_code == 200, flow["list_orders"].text
+
+
+def test_list_orders_pending_fields_null(flow):
+    if not flow["order_id"]:
+        pytest.skip("沒有成功下單，跳過")
+    rows = flow["list_orders"].json()
+    order = next((o for o in rows if o["order_id"] == flow["order_id"]), None)
+    assert order is not None, rows
+    assert order["status"] == "PENDING", order
+    for key in ("realized_pnl", "return_rate", "avg_cost", "net_amount"):
+        assert order[key] is None, order
+
+
+def test_list_orders_buy_settlement_fields(flow):
+    rows = flow.get("pre_market_order_row")
+    if not rows or rows[0]["status"] != "FILLED":
+        pytest.skip("委託單未成交，跳過")
+
+    orders = flow["list_orders_after_intraday"].json()
+    order = next((o for o in orders if o["order_id"] == flow["order_id"]), None)
+    assert order is not None, orders
+    assert order["status"] == "FILLED", order
+
+    exec_price = float(flow["pre_market_tx_row"][0]["exec_price"])
+    quantity = order["quantity"]
+    principal = round(exec_price * quantity * 1000)
+    fee = max(20, principal * 1425 // 1000000)
+
+    assert order["avg_cost"] == exec_price, order
+    assert order["net_amount"] == principal + fee, order
+    assert order["realized_pnl"] is None, order
+    assert order["return_rate"] is None, order
+
+
+def test_list_orders_sell_settlement_fields(flow):
+    if not flow["sell_order_id"]:
+        pytest.skip("沒有盤中賣單，跳過")
+    if flow["sell_order_row"][0]["status"] != "FILLED":
+        pytest.skip("委託單未成交，跳過")
+
+    orders = flow["list_orders_after_post_market"].json()
+    order = next((o for o in orders if o["order_id"] == flow["sell_order_id"]), None)
+    assert order is not None, orders
+    assert order["status"] == "FILLED", order
+
+    exec_price = float(flow["sell_tx_row"][0]["exec_price"])
+    avg_cost = float(flow["pre_market_tx_row"][0]["exec_price"])
+    quantity = order["quantity"]
+    principal = round(exec_price * quantity * 1000)
+    fee = max(20, principal * 1425 // 1000000)
+    tax = principal * 3 // 1000
+
+    expected_net = principal - fee - tax
+    cost_basis = avg_cost * quantity * 1000
+    expected_pnl = round(expected_net - cost_basis, 2)
+    expected_rate = round(expected_pnl / cost_basis * 100, 2) if cost_basis else None
+
+    assert order["avg_cost"] == avg_cost, order
+    assert order["net_amount"] == expected_net, order
+    assert order["realized_pnl"] == expected_pnl, order
+    assert order["return_rate"] == expected_rate, order
 
 
 def test_invalid_tick_size_rejected(flow):
