@@ -11,7 +11,7 @@
     />
 
     <!-- 2. 主內容渲染區 (透過 router-view 傳遞狀態至各分頁，使用 keep-alive 快取狀態) -->
-    <div class="flex-1 flex flex-col items-center justify-center p-6 w-full">
+    <div class="flex-1 flex flex-col items-center p-6 w-full">
       <div v-if="saveLoaded" class="w-full h-full flex flex-col items-center justify-center">
         <router-view v-slot="{ Component }">
           <keep-alive>
