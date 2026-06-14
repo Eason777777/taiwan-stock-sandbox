@@ -224,12 +224,17 @@ import os
 import random
 import string
 import sys
+import traceback
 from concurrent.futures import ThreadPoolExecutor
 
 import httpx
 
 BASE_URL = "http://localhost:8000"
 SQL_API_URL = "http://sql-api.shiragaserver.lan/query"
+# 本機備案 sql-api（docker compose，見 ../sql-api）：與 app/database.py 的 FALLBACK_SQL_API_URL 一致，
+# 確保 db_query 與 app 連的是同一份 DB
+FALLBACK_SQL_API_URL = "http://localhost:3000/query"
+_resolved_sql_api_url = None
 
 STOCK_ID = "2330"
 START_DATE = "2023-01-04"
@@ -271,7 +276,15 @@ def get_order_price(stock_id, trade_date):
 
 
 def db_query(sql, params=None):
-    r = httpx.post(SQL_API_URL, json={"sql": sql, "params": params or []}, timeout=10)
+    global _resolved_sql_api_url
+    if _resolved_sql_api_url is None:
+        try:
+            httpx.post(SQL_API_URL, json={"sql": "SELECT 1"}, timeout=3)
+            _resolved_sql_api_url = SQL_API_URL
+        except (httpx.ConnectError, httpx.ConnectTimeout):
+            _resolved_sql_api_url = FALLBACK_SQL_API_URL
+
+    r = httpx.post(_resolved_sql_api_url, json={"sql": sql, "params": params or []}, timeout=10)
     r.raise_for_status()
     body = r.json()
     if not body.get("ok"):
@@ -314,17 +327,22 @@ def main():
         run(client, account_a, account_b, password, state)
     except Exception as e:
         record("UNEXPECTED EXCEPTION", False, repr(e))
+        traceback.print_exc()
     finally:
-        cleanup(account_a, account_b, state)
+        cleanup(account_a, account_b)
         print_summary()
 
 
-def cleanup(account_a, account_b, state):
+def cleanup(account_a, account_b):
     try:
-        if state.get("save_id_a"):
-            db_query("DELETE FROM save_files WHERE save_id=?", [state["save_id_a"]])
+        # 刪掉這兩個帳號名下所有存檔（不只 save_id_a），避免中途失敗時殘留的
+        # save_files 因 fk_save_files_user 的 ON DELETE RESTRICT 擋住下面刪 users
+        db_query(
+            "DELETE FROM save_files WHERE user_id IN (SELECT user_id FROM users WHERE account IN (?, ?))",
+            [account_a, account_b],
+        )
         db_query("DELETE FROM users WHERE account IN (?, ?)", [account_a, account_b])
-        print(f"\n(已清理測試資料: save_id={state.get('save_id_a')}, accounts={account_a},{account_b})")
+        print(f"\n(已清理測試資料: accounts={account_a},{account_b})")
     except Exception as e:
         print(f"\n清理測試資料失敗（請手動檢查）: {e}")
 

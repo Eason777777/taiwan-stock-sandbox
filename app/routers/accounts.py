@@ -15,6 +15,41 @@ class TransferRequest(BaseModel):
     amount: float = Field(allow_inf_nan=False)
 
 
+MAX_SEQ_RETRIES = 5
+
+
+async def _insert_account_transaction(
+    db: SqlApiClient,
+    save_id: int,
+    account_type: str,
+    sim_date: str,
+    change_type: str,
+    amount: float,
+    balance_after: float,
+    note: str,
+) -> None:
+    """以 CAS（compare-and-swap）方式寫入 account_transactions：
+    """
+    for attempt in range(MAX_SEQ_RETRIES):
+        seq_result = await db.query(
+            "SELECT COALESCE(MAX(seq), 0) AS max_seq FROM account_transactions WHERE save_id = ?",
+            [save_id],
+        )
+        next_seq = int(seq_result["rows"][0]["max_seq"]) + 1
+        try:
+            await db.query(
+                "INSERT INTO account_transactions"
+                " (save_id, seq, account_type, sim_date, change_type, amount, balance_after, note)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                [save_id, next_seq, account_type, sim_date, change_type, amount, balance_after, note],
+            )
+            return
+        except RuntimeError as e:
+            if "account_transactions.PRIMARY" in str(e) and attempt < MAX_SEQ_RETRIES - 1:
+                continue
+            raise
+
+
 async def _fetch_save(save_id: int, current_user: dict, db: SqlApiClient) -> dict:
     result = await db.query(
         "SELECT save_id, user_id, current_trade_date, savings_balance, trading_balance"
@@ -76,31 +111,19 @@ async def transfer(
         new_trading = trading - amount
         debit_acct, credit_acct = "TRADING", "SAVINGS"
 
-    seq_result = await db.query(
-        "SELECT COALESCE(MAX(seq), 0) AS max_seq FROM account_transactions WHERE save_id = ?",
-        [save_id],
-    )
-    next_seq = int(seq_result["rows"][0]["max_seq"]) + 1
-
     await db.query(
         "UPDATE save_files SET savings_balance = ?, trading_balance = ? WHERE save_id = ?",
         [round(new_savings, 2), round(new_trading, 2), save_id],
     )
 
     debit_balance_after = new_savings if debit_acct == "SAVINGS" else new_trading
-    await db.query(
-        "INSERT INTO account_transactions"
-        " (save_id, seq, account_type, sim_date, change_type, amount, balance_after, note)"
-        " VALUES (?, ?, ?, ?, 'TRANSFER_OUT', ?, ?, '帳戶轉帳')",
-        [save_id, next_seq, debit_acct, sim_date, round(amount, 2), round(debit_balance_after, 2)],
+    await _insert_account_transaction(
+        db, save_id, debit_acct, sim_date, "TRANSFER_OUT", round(amount, 2), round(debit_balance_after, 2), "帳戶轉帳",
     )
 
     credit_balance_after = new_trading if credit_acct == "TRADING" else new_savings
-    await db.query(
-        "INSERT INTO account_transactions"
-        " (save_id, seq, account_type, sim_date, change_type, amount, balance_after, note)"
-        " VALUES (?, ?, ?, ?, 'TRANSFER_IN', ?, ?, '帳戶轉帳')",
-        [save_id, next_seq + 1, credit_acct, sim_date, round(amount, 2), round(credit_balance_after, 2)],
+    await _insert_account_transaction(
+        db, save_id, credit_acct, sim_date, "TRANSFER_IN", round(amount, 2), round(credit_balance_after, 2), "帳戶轉帳",
     )
 
     return {"savings_balance": round(new_savings, 2), "trading_balance": round(new_trading, 2)}
