@@ -25,6 +25,14 @@
         @view-company-info="handleViewCompanyInfo"
       />
     </div>
+
+    <!-- 3. 公司基本面資訊彈窗 -->
+    <CompanyInfo 
+      v-if="showCompanyInfoModal && companyInfoDetail"
+      :stock="companyInfoDetail"
+      :suspensions="companyInfoSuspensions"
+      @close="showCompanyInfoModal = false; showStockInfoModal = true"
+    />
   </div>
 </template>
 
@@ -33,6 +41,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import InventoryCard from '../components/InventoryCard.vue'
 import StockInfo from '../components/StockInfo.vue'
+import CompanyInfo from '../components/CompanyInfo.vue'
 
 const props = defineProps({
   saveId: {
@@ -63,6 +72,9 @@ const router = useRouter()
 // --- 狀態定義 ---
 const rawHoldings = ref([])
 const showStockInfoModal = ref(false)
+const showCompanyInfoModal = ref(false)
+const companyInfoDetail = ref(null)
+const companyInfoSuspensions = ref([])
 const selectedStockDetail = ref(null)
 const selectedStockHoldings = ref(0)
 
@@ -222,8 +234,33 @@ const handleGoToTrade = (stockId) => {
   })
 }
 
-const handleViewCompanyInfo = (stockId) => {
-  alert(`股票代碼 ${stockId}：此為模擬看盤系統，詳細基本面資訊請參考公開資訊觀測站。`)
+const handleViewCompanyInfo = async (stockId) => {
+  try {
+    const resProfile = await fetch(`/api/stocks/${stockId}`, {
+      headers: {
+        'x-session-id': localStorage.getItem('session_id') || ''
+      }
+    })
+    if (!resProfile.ok) throw new Error('無法取得股票基本資料')
+    companyInfoDetail.value = await resProfile.json()
+
+    const resSuspensions = await fetch(`/api/stocks/${stockId}/suspensions?save_id=${props.saveId}`, {
+      headers: {
+        'x-session-id': localStorage.getItem('session_id') || ''
+      }
+    })
+    if (resSuspensions.ok) {
+      companyInfoSuspensions.value = await resSuspensions.json()
+    } else {
+      companyInfoSuspensions.value = []
+    }
+
+    showStockInfoModal.value = false
+    showCompanyInfoModal.value = true
+  } catch (err) {
+    console.error('載入基本面資料與暫停交易紀錄失敗:', err)
+    alert('載入公司資料失敗，請稍後再試。')
+  }
 }
 
 // 監聽 saveId、階段、日期的變更以即時更新持股與資產
