@@ -82,10 +82,15 @@
     <div class="w-full flex flex-col gap-3">
       <hr class="w-full border-t-[3px] border-nature-500 my-2" />
       
-      <!-- K線圖暫存區塊 -->
-      <div class="w-full h-[250px] rounded-[10px] bg-nature-900 border border-nature-600 flex items-center justify-center text-nature-500 font-bold">
-        📈（K線圖暫存區塊）
-      </div>
+      <!-- K線圖區塊 -->
+      <CandlestickChart 
+        :prices="prices"
+        :timeframe="timeframe"
+        :theme="'dark'"
+        :stockId="stock.stock_id"
+        :stockName="stock.stock_name_zh"
+        @update:timeframe="(tf) => emit('update:timeframe', tf)"
+      />
     </div>
 
     <!-- 5. 底部返回按鈕 -->
@@ -102,6 +107,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import CandlestickChart from './CandlestickChart.vue'
 
 const props = defineProps({
   stock: {
@@ -125,10 +131,18 @@ const props = defineProps({
   holdingsCount: {
     type: Number,
     default: 0
+  },
+  prices: {
+    type: Array,
+    default: () => []
+  },
+  timeframe: {
+    type: String,
+    default: 'daily'
   }
 })
 
-const emit = defineEmits(['close', 'view-company-info', 'go-to-trade'])
+const emit = defineEmits(['close', 'view-company-info', 'go-to-trade', 'update:timeframe'])
 
 // Warning flag computed property
 const hasWarning = computed(() => {
@@ -181,8 +195,10 @@ const formatChangeText = (change, percent) => {
 <style scoped>
 .stock-info {
   padding: 30px;
-  min-width: 700px;
-  width: 750px;
+  width: 900px;
+  max-width: 95vw;
   height: fit-content;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 </style>
