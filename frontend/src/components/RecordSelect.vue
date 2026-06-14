@@ -27,15 +27,16 @@
             </svg>
         </button>
         <div class="absolute z-10 right-0">
-            <RecordSelectBox :titleType="1" @select="selectedType = $event" />
-            <RecordSelectBox :titleType="2" @select="selectedType = $event" />
-            <RecordSelectBox :titleType="3" :hasBottomBorder="true" @select="selectedType = $event" />
+            <RecordSelectBox :titleType="1" @select="handleSelect" />
+            <RecordSelectBox :titleType="2" @select="handleSelect" />
+            <RecordSelectBox :titleType="3" :hasBottomBorder="true" @select="handleSelect" />
         </div>
     </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import RecordSelectBox from './RecordSelectBox.vue'
 
 const props = defineProps({
@@ -44,8 +45,44 @@ const props = defineProps({
         default: 1,
     },
 })
+
+const emit = defineEmits(['select'])
+const route = useRoute()
+const router = useRouter()
+
+const parseRecordType = (value, fallback = 1) => {
+    const type = Number(value)
+
+    if ([1, 2, 3].includes(type)) {
+        return type
+    }
+
+    return fallback
+}
+
 const isPressed = ref(false)
-const selectedType = ref(props.titleType)
+const selectedType = ref(parseRecordType(route.query.recordType, props.titleType))
+
+const handleSelect = async (type) => {
+    const nextType = parseRecordType(type, props.titleType)
+    selectedType.value = nextType
+    isPressed.value = false
+    emit('select', nextType)
+
+    await router.replace({
+        query: {
+            ...route.query,
+            recordType: String(nextType),
+        },
+    })
+}
+
+watch(
+    () => route.query.recordType,
+    (value) => {
+        selectedType.value = parseRecordType(value, props.titleType)
+    }
+)
 
 const titleName = computed(() => {
     if (selectedType.value === 1) {
