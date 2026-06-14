@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from ..database import SqlApiClient
 from ..dependencies import get_db, get_current_user
+from ..save_access import fetch_save_owned
 
 router = APIRouter(
     prefix="/saves/{save_id}/watchlist",
@@ -16,26 +17,13 @@ class AddWatchlistRequest(BaseModel):
     stock_id: str
 
 
-async def _fetch_save_owned(save_id: int, current_user: dict, db: SqlApiClient) -> dict:
-    result = await db.query(
-        "SELECT save_id, user_id FROM save_files WHERE save_id = ?",
-        [int(save_id)],
-    )
-    if not result["rows"]:
-        raise HTTPException(status_code=404, detail="存檔不存在")
-    save = result["rows"][0]
-    if int(save["user_id"]) != int(current_user["user_id"]):
-        raise HTTPException(status_code=403, detail="無權存取此存檔")
-    return save
-
-
 @router.get("")
 async def get_watchlist(
     save_id: int,
     db: SqlApiClient = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    await _fetch_save_owned(save_id, current_user, db)
+    await fetch_save_owned(save_id, current_user, db, columns="save_id, user_id")
     result = await db.query(
         "SELECT w.stock_id, s.stock_name_zh, s.market_type, s.sector_name"
         " FROM watchlists w"
@@ -54,7 +42,7 @@ async def add_to_watchlist(
     db: SqlApiClient = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    await _fetch_save_owned(save_id, current_user, db)
+    await fetch_save_owned(save_id, current_user, db, columns="save_id, user_id")
 
     stock_result = await db.query(
         "SELECT stock_id FROM stocks WHERE stock_id = ?",
@@ -84,7 +72,7 @@ async def remove_from_watchlist(
     db: SqlApiClient = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    await _fetch_save_owned(save_id, current_user, db)
+    await fetch_save_owned(save_id, current_user, db, columns="save_id, user_id")
     await db.query(
         "DELETE FROM watchlists WHERE save_id = ? AND stock_id = ?",
         [int(save_id), str(stock_id)],
