@@ -1,3 +1,4 @@
+import math
 import random
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -187,9 +188,11 @@ async def _settle_phase(db: SqlApiClient, save: dict, phase_to_settle: str) -> t
             await db.query("UPDATE stock_orders SET status = 'EXPIRED' WHERE order_id = ?", [order_id])
             continue
 
-        principal = exec_price * quantity * 1000
-        fee = max(20.0, principal * 0.001425)
-        tax = principal * 0.003 if side == "SELL" else 0.0
+        # 成交本金（元）：tick size 最多 2 位小數 * 1000 股，理論上必為整數，先 round 消除浮點誤差
+        principal = round(exec_price * quantity * 1000)
+        # 手續費／證交稅：元以下無條件捨去
+        fee = max(20, math.floor(principal * 0.001425))
+        tax = math.floor(principal * 0.003) if side == "SELL" else 0
 
         holding_rows = (await db.query(
             "SELECT quantity, avg_cost FROM holdings WHERE save_id = ? AND stock_id = ?",
@@ -229,7 +232,7 @@ async def _settle_phase(db: SqlApiClient, save: dict, phase_to_settle: str) -> t
                 "INSERT INTO account_transactions"
                 " (save_id, seq, account_type, sim_date, change_type, amount, balance_after, note)"
                 " VALUES (?, ?, 'TRADING', ?, 'BUY', ?, ?, ?)",
-                [save_id, next_seq, sim_date, round(total_cost, 2), round(trading_balance, 2),
+                [save_id, next_seq, sim_date, int(total_cost), int(trading_balance),
                  f"買入 {stock_id} {quantity}張"],
             )
             next_seq += 1
@@ -252,7 +255,7 @@ async def _settle_phase(db: SqlApiClient, save: dict, phase_to_settle: str) -> t
                 "INSERT INTO account_transactions"
                 " (save_id, seq, account_type, sim_date, change_type, amount, balance_after, note)"
                 " VALUES (?, ?, 'TRADING', ?, 'SELL', ?, ?, ?)",
-                [save_id, next_seq, sim_date, round(proceeds, 2), round(trading_balance, 2),
+                [save_id, next_seq, sim_date, int(proceeds), int(trading_balance),
                  f"賣出 {stock_id} {quantity}張"],
             )
             next_seq += 1
@@ -261,7 +264,7 @@ async def _settle_phase(db: SqlApiClient, save: dict, phase_to_settle: str) -> t
         await db.query(
             "INSERT INTO stock_transactions (order_id, exec_price, quantity, fee, tax, avg_cost_at_transact)"
             " VALUES (?, ?, ?, ?, ?, ?)",
-            [order_id, round(exec_price, 2), quantity, round(fee, 2), round(tax, 2), round(avg_cost_snap, 4)],
+            [order_id, round(exec_price, 2), quantity, fee, tax, round(avg_cost_snap, 4)],
         )
 
     return trading_balance, bankrupt
@@ -479,7 +482,7 @@ async def advance_phase(
         await db.query(
             "UPDATE save_files SET current_phase = ?, trading_balance = ?, status = ?, advancing = 0"
             " WHERE save_id = ?",
-            [next_phase, round(new_balance, 2), new_status, save_id],
+            [next_phase, int(new_balance), new_status, save_id],
         )
         return {"current_phase": next_phase, "current_trade_date": current_date, "status": new_status}
 
@@ -489,7 +492,7 @@ async def advance_phase(
     if bankrupt:
         await db.query(
             "UPDATE save_files SET trading_balance = ?, status = 'BANKRUPT', advancing = 0 WHERE save_id = ?",
-            [round(new_balance, 2), save_id],
+            [int(new_balance), save_id],
         )
         return {"current_phase": "CLOSED", "current_trade_date": current_date, "status": "BANKRUPT"}
 
@@ -501,7 +504,7 @@ async def advance_phase(
     if next_date is None:
         await db.query(
             "UPDATE save_files SET trading_balance = ?, status = 'FINISHED', advancing = 0 WHERE save_id = ?",
-            [round(new_balance, 2), save_id],
+            [int(new_balance), save_id],
         )
         return {"current_phase": "CLOSED", "current_trade_date": current_date, "status": "FINISHED"}
 
@@ -509,6 +512,6 @@ async def advance_phase(
     await db.query(
         "UPDATE save_files SET current_trade_date = ?, current_phase = 'PRE_MARKET', trading_balance = ?,"
         " advancing = 0 WHERE save_id = ?",
-        [next_date, round(new_balance, 2), save_id],
+        [next_date, int(new_balance), save_id],
     )
     return {"current_phase": "PRE_MARKET", "current_trade_date": next_date, "status": "ACTIVE"}

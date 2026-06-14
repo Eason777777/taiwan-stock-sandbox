@@ -1,6 +1,8 @@
+import asyncio
 import secrets
 import time
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 from fastapi import APIRouter, Depends, HTTPException, Request
 from passlib.context import CryptContext
 from pydantic import BaseModel
@@ -8,7 +10,18 @@ from ..database import SqlApiClient
 from ..dependencies import get_db, get_current_user, get_client_ip
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# bcrypt__rounds 由預設 12 提高到 14：單次 hash 耗時隨之倍增（約 4 倍），
+# 提高腳本大量註冊帳號的成本，且不需要前端配合（CAPTCHA/email 驗證）。
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__rounds=14)
+
+# 註冊時的 bcrypt hash 屬於 CPU-bound 同步運算，丟到獨立 thread pool 執行，
+# 避免卡住主 event loop（影響其他使用者的請求）。
+# max_workers 限制同時計算 hash 的數量；HASH_QUEUE_MAX 限制「正在等待或計算中」
+# 的總數，超過就直接回 429，避免請求無限堆積。
+_hash_executor = ThreadPoolExecutor(max_workers=2)
+HASH_QUEUE_MAX = 10
+_hash_pending = 0
+_hash_pending_lock = asyncio.Lock()
 
 # 登入暴力破解防護：每個帳號在 LOGIN_WINDOW_SECONDS 內失敗次數達上限即鎖定
 LOGIN_MAX_ATTEMPTS = 5
@@ -44,8 +57,19 @@ async def register(body: RegisterRequest, db: SqlApiClient = Depends(get_db)):
     if rows['ok'] and rows['rows']:
         raise HTTPException(status_code=409, detail="帳號已存在")
 
-    # 2. Hash 密碼，INSERT
-    hashed = pwd_context.hash(body.password)
+    # 2. Hash 密碼（丟到 thread pool，避免卡住 event loop），INSERT
+    global _hash_pending
+    async with _hash_pending_lock:
+        if _hash_pending >= HASH_QUEUE_MAX:
+            raise HTTPException(status_code=429, detail="目前註冊請求過多，請稍後再試")
+        _hash_pending += 1
+    try:
+        loop = asyncio.get_running_loop()
+        hashed = await loop.run_in_executor(_hash_executor, pwd_context.hash, body.password)
+    finally:
+        async with _hash_pending_lock:
+            _hash_pending -= 1
+
     try:
         await db.query(
             "INSERT INTO users (account, password_hash) VALUES (?, ?)",
