@@ -46,6 +46,7 @@ AE1     並發建立存檔，繞過 MAX_ACTIVE_SAVES 上限
 AD1-AD10 隨機並發 race condition 模糊測試
 AF1-AF10 advance 推進鎖固定情境重複測試
 AG1     /auth/register 的 hash thread pool + queue 上限
+AI1-AI4 /auth/register 的 honeypot 欄位／IP 黑名單／User-Agent 防護
 AH1-AH11 手續費／證交稅／帳戶餘額之台幣整數規則
 ────────────────────────────────────────────────────────────────────────
 """
@@ -1003,6 +1004,54 @@ def _run_checks(client, account_a, account_b, password, save_id_a, headers_a, he
     for acc in accounts_ag:
         db_query("DELETE FROM users WHERE account=?", [acc])
 
+    # ── AI. /auth/register honeypot + 黑名單 + User-Agent 防護 ────────
+    ip_ai = "203.0.113.50"
+    rand_ai = random_suffix()
+    account_ai1 = f"sectest_ai1_{rand_ai}"
+    account_ai2 = f"sectest_ai2_{rand_ai}"
+    account_ai3 = f"sectest_ai3_{rand_ai}"
+    account_ai4 = f"sectest_ai4_{rand_ai}"
+
+    r = client.post(
+        "/auth/register",
+        json={"account": account_ai1, "password": "test1234", "website": "http://spam.example"},
+        headers={"X-Forwarded-For": ip_ai},
+    )
+    check(
+        "AI1. register with filled honeypot field -> decoy HTML page (not real registration)",
+        r.status_code == 200 and "text/html" in r.headers.get("content-type", "") and "FLAG{" in r.text,
+        f"{r.status_code}: content-type={r.headers.get('content-type')}, body[:200]={r.text[:200]!r}",
+    )
+
+    r = client.post(
+        "/auth/register",
+        json={"account": account_ai2, "password": "test1234"},
+        headers={"X-Forwarded-For": ip_ai},
+    )
+    check(
+        "AI2. subsequent normal register from blacklisted IP -> decoy HTML page",
+        r.status_code == 200 and "text/html" in r.headers.get("content-type", "") and "FLAG{" in r.text,
+        f"{r.status_code}: content-type={r.headers.get('content-type')}, body[:200]={r.text[:200]!r}",
+    )
+
+    r = client.post(
+        "/auth/register",
+        json={"account": account_ai3, "password": "test1234"},
+        headers={"User-Agent": "curl/8.0.1", "X-Forwarded-For": "203.0.113.51"},
+    )
+    check("AI3. register with curl User-Agent -> 400", r.status_code == 400, f"{r.status_code}: {r.text}")
+
+    r = client.post(
+        "/auth/register",
+        json={"account": account_ai4, "password": "test1234"},
+        headers={"User-Agent": "", "X-Forwarded-For": "203.0.113.52"},
+    )
+    check("AI4. register with empty User-Agent -> 400", r.status_code == 400, f"{r.status_code}: {r.text}")
+
+    db_query("DELETE FROM blacklisted_ips WHERE ip IN (?, ?, ?)", [ip_ai, "203.0.113.51", "203.0.113.52"])
+    for acc in (account_ai1, account_ai2, account_ai3, account_ai4):
+        db_query("DELETE FROM users WHERE account=?", [acc])
+
     # ── AH. 手續費／證交稅／帳戶餘額之台幣整數規則 ────────────────────
     ah_names = [
         "AH1. BUY stock_transactions.fee 為整數（無小數部分）",
@@ -1256,6 +1305,10 @@ _CHECK_NAMES = [
     f"AF{i + 1}. concurrent finish vs advance (advancing lock) do not break invariants" for i in range(10)
 ] + [
     AG1_NAME,
+    "AI1. register with filled honeypot field -> decoy HTML page (not real registration)",
+    "AI2. subsequent normal register from blacklisted IP -> decoy HTML page",
+    "AI3. register with curl User-Agent -> 400",
+    "AI4. register with empty User-Agent -> 400",
 ] + _AH_NAMES
 
 

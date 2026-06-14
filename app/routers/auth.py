@@ -4,6 +4,7 @@ import time
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import HTMLResponse
 from passlib.context import CryptContext
 from pydantic import BaseModel
 from ..database import SqlApiClient
@@ -31,10 +32,24 @@ _failed_logins: dict[str, list[float]] = defaultdict(list)
 # session 有效期限：每次登入後 SESSION_TTL_HOURS 小時內有效，過期需重新登入
 SESSION_TTL_HOURS = 2
 
+# 註冊防護：honeypot 欄位若被填值，將該 IP 寫入 blacklisted_ips 黑名單；常見腳本工具的 User-Agent 直接拒絕
+_BLOCKED_USER_AGENT_PREFIXES = ("curl", "python-requests", "go-http-client", "postmanruntime", "wget")
+
+_DECOY_HTML = """<!DOCTYPE html>
+<html lang="zh-Hant">
+<head><meta charset="utf-8"><title>Admin Panel</title></head>
+<body>
+<h1>Internal Admin Panel</h1>
+<p>Debug mode is enabled.</p>
+<!-- FLAG{nice_try_but_this_is_a_decoy} -->
+</body>
+</html>"""
+
 
 class RegisterRequest(BaseModel):
     account: str
     password: str
+    website: str | None = None  # honeypot：正常前端不會送這個欄位
 
 class LoginRequest(BaseModel):
     account: str
@@ -42,7 +57,25 @@ class LoginRequest(BaseModel):
 
 
 @router.post("/register", status_code=201)
-async def register(body: RegisterRequest, db: SqlApiClient = Depends(get_db)):
+async def register(body: RegisterRequest, request: Request, db: SqlApiClient = Depends(get_db)):
+    ip = get_client_ip(request)
+    blacklisted = await db.query("SELECT 1 FROM blacklisted_ips WHERE ip = ?", [ip])
+    if blacklisted["rows"]:
+        return HTMLResponse(_DECOY_HTML)
+
+    # honeypot：正常前端不會送 website 欄位，有值代表是自動填表的 bot
+    if body.website:
+        await db.query(
+            "INSERT INTO blacklisted_ips (ip, reason) VALUES (?, 'honeypot')"
+            " ON DUPLICATE KEY UPDATE reason = reason",
+            [ip],
+        )
+        return HTMLResponse(_DECOY_HTML)
+
+    user_agent = request.headers.get("user-agent", "").strip().lower()
+    if not user_agent or user_agent.startswith(_BLOCKED_USER_AGENT_PREFIXES):
+        raise HTTPException(status_code=400, detail="請求格式錯誤")
+
     # 0. 帳號/密碼基本格式檢查
     if not body.account.strip() or not body.password:
         raise HTTPException(status_code=400, detail="帳號與密碼不可為空")
