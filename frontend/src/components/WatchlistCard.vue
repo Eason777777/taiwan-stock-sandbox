@@ -1,6 +1,6 @@
 <!-- 自選卡片 -->
 <template>
-  <div class="watchlist-card w-full max-w-275 min-h-150 flex flex-col items-stretch gap-6 border-10 border-solid border-nature-500 bg-nature-800 rounded-xl shadow-2xl">
+  <div class="watchlist-card w-full max-w-275 min-h-150 flex flex-col items-stretch p-12.5! gap-6 border-10 border-solid border-nature-500 bg-nature-800 rounded-xl shadow-2xl">
     
     <!-- 1. 上半部：兩個相連按鈕 (新增自選股 & 進入下一階段) -->
     <div class="flex gap-0 w-full">
@@ -124,8 +124,3 @@ const formatPercent = (percent) => {
 }
 </script>
 
-<style scoped>
-.watchlist-card {
-  padding: 50px;
-}
-</style>

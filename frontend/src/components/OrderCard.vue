@@ -1,12 +1,6 @@
 <!-- 下單卡片(尚須調整) -->
 <template>
-  <div 
-    class="order-card bg-nature-800 border-[10px] border-nature-500 rounded-xl shadow-2xl text-white font-sans"
-    style="display: flex; max-width: 1100px; width: 100%; padding: 50px; flex-direction: column; align-items: flex-start; gap: 30px;"
-  >
-    <!-- Title Area -->
-    <div class="text-06 text-nature-100 font-bold">下單交易</div>
-
+  <div class="order-card bg-nature-800 border-[10px] border-nature-500 rounded-xl shadow-2xl text-white font-sans">
     <!-- Main Form Area (2-Column Grid Layout) -->
     <div class="grid grid-cols-2 gap-x-24 gap-y-6 w-full items-start">
       <!-- Row 1 Left: Stock Code Input -->
@@ -169,5 +163,31 @@ const isPriceDisabled = computed(() => {
 </script>
 
 <style scoped>
-/* Additional component-scoped styles if needed */
+.order-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 30px;
+  max-width: 1100px;
+  width: 100%;
+  padding: 50px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+/* Scrollbar customization for clean styling */
+.order-card::-webkit-scrollbar {
+  width: 6px;
+}
+.order-card::-webkit-scrollbar-track {
+  background: color-mix(in srgb, var(--color-nature-900) 50%, transparent);
+  border-radius: 4px;
+}
+.order-card::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--color-nature-500) 40%, transparent);
+  border-radius: 4px;
+}
+.order-card::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--color-nature-500) 60%, transparent);
+}
 </style>
