@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <title>SQL 查詢說明</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f2f5;
+      padding: 32px;
+      color: #1a1a2e;
+    }
+    h1 {
+      font-size: 1.4rem;
+      margin-bottom: 28px;
+      color: #2d3561;
+    }
+
+    /* ── JOIN 圖示區 ── */
+    .join-diagram {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin-bottom: 36px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .table-box {
+      background: white;
+      border-radius: 10px;
+      padding: 14px 18px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+      min-width: 160px;
+    }
+    .table-box .table-name {
+      font-weight: 700;
+      font-size: 0.95rem;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .table-box .alias {
+      font-size: 0.75rem;
+      color: #888;
+      font-weight: 400;
+    }
+    .table-box ul {
+      list-style: none;
+      font-size: 0.82rem;
+      color: #444;
+      line-height: 1.8;
+    }
+    .table-box ul li.highlight {
+      color: #e05c00;
+      font-weight: 600;
+    }
+    .table-box ul li.dimmed {
+      color: #aaa;
+    }
+
+    /* 顏色標記 */
+    .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+    .c-blue   { background: #3b82f6; }
+    .c-green  { background: #22c55e; }
+    .c-orange { background: #f97316; }
+    .c-purple { background: #a855f7; }
+
+    .join-arrow {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-size: 0.72rem;
+      color: #555;
+      gap: 2px;
+      padding: 0 4px;
+    }
+    .join-arrow .arrow-line {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+    .join-arrow .type-badge {
+      background: #e0e7ff;
+      color: #3730a3;
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-weight: 700;
+      font-size: 0.68rem;
+    }
+    .join-arrow .type-badge.left {
+      background: #fef3c7;
+      color: #92400e;
+    }
+    .arrow-svg { width: 36px; height: 16px; }
+
+    /* ── 資料流說明 ── */
+    .section-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #2d3561;
+      margin-bottom: 14px;
+      padding-left: 4px;
+      border-left: 4px solid #3b82f6;
+      padding-left: 10px;
+    }
+
+    .flow-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .flow-card {
+      background: white;
+      border-radius: 10px;
+      padding: 16px 18px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      border-top: 4px solid #3b82f6;
+    }
+    .flow-card.orange { border-top-color: #f97316; }
+    .flow-card.purple { border-top-color: #a855f7; }
+    .flow-card.green  { border-top-color: #22c55e; }
+
+    .flow-card .card-title {
+      font-weight: 700;
+      font-size: 0.9rem;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .flow-card p {
+      font-size: 0.83rem;
+      color: #555;
+      line-height: 1.65;
+    }
+    .flow-card code {
+      background: #f3f4f6;
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-family: monospace;
+      font-size: 0.82rem;
+      color: #b45309;
+    }
+
+    /* ── 階段說明 ── */
+    .phase-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      margin-bottom: 32px;
+      font-size: 0.85rem;
+    }
+    .phase-table th {
+      background: #2d3561;
+      color: white;
+      padding: 10px 14px;
+      text-align: left;
+    }
+    .phase-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid #f0f0f0;
+      vertical-align: top;
+    }
+    .phase-table tr:last-child td { border-bottom: none; }
+    .phase-table tr:hover td { background: #f8faff; }
+    .badge {
+      display: inline-block;
+      border-radius: 5px;
+      padding: 2px 8px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+    .badge-pre    { background: #dbeafe; color: #1d4ed8; }
+    .badge-intra  { background: #dcfce7; color: #166534; }
+    .badge-post   { background: #fef9c3; color: #854d0e; }
+
+    /* ── 最終輸出 ── */
+    .output-box {
+      background: #1e1e2e;
+      color: #cdd6f4;
+      border-radius: 10px;
+      padding: 20px 24px;
+      font-family: monospace;
+      font-size: 0.83rem;
+      line-height: 1.9;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      margin-bottom: 8px;
+    }
+    .output-box .key   { color: #89b4fa; }
+    .output-box .val   { color: #a6e3a1; }
+    .output-box .num   { color: #fab387; }
+    .output-box .bool  { color: #cba6f7; }
+    .output-box .punc  { color: #6c7086; }
+  </style>
+</head>
+<body>
+
+<h1>SQL 查詢解析：自選股估價一次 JOIN</h1>
+
+<!-- ── JOIN 圖 ── -->
+<p class="section-title">資料表關聯圖</p>
+
+<div class="join-diagram">
+
+  <!-- watchlists -->
+  <div class="table-box">
+    <div class="table-name"><span class="dot c-blue"></span> watchlists <span class="alias">w</span></div>
+    <ul>
+      <li class="highlight">save_id &nbsp;← WHERE 篩選</li>
+      <li class="highlight">stock_id → 驅動 JOIN</li>
+    </ul>
+  </div>
+
+  <!-- → stocks INNER JOIN -->
+  <div class="join-arrow">
+    <span class="type-badge">INNER JOIN</span>
+    <div class="arrow-line">
+      <svg class="arrow-svg" viewBox="0 0 36 16"><line x1="0" y1="8" x2="28" y2="8" stroke="#3b82f6" stroke-width="2"/><polygon points="28,4 36,8 28,12" fill="#3b82f6"/></svg>
+    </div>
+    <span>stock_id</span>
+  </div>
+
+  <!-- stocks -->
+  <div class="table-box">
+    <div class="table-name"><span class="dot c-green"></span> stocks <span class="alias">s</span></div>
+    <ul>
+      <li class="highlight">stock_name_zh</li>
+      <li class="highlight">market_type</li>
+      <li class="highlight">sector_name</li>
+    </ul>
+  </div>
+
+  <!-- → dp_current LEFT JOIN -->
+  <div class="join-arrow">
+    <span class="type-badge left">LEFT JOIN</span>
+    <div class="arrow-line">
+      <svg class="arrow-svg" viewBox="0 0 36 16"><line x1="0" y1="8" x2="28" y2="8" stroke="#f97316" stroke-width="2" stroke-dasharray="4,2"/><polygon points="28,4 36,8 28,12" fill="#f97316"/></svg>
+    </div>
+    <span>stock_id + price_date</span>
+  </div>
+
+  <!-- dp_current -->
+  <div class="table-box">
+    <div class="table-name"><span class="dot c-orange"></span> daily_prices <span class="alias">dp_current</span></div>
+    <ul>
+      <li class="dimmed">trade_date = <strong>:price_date</strong></li>
+      <li class="highlight">open/close → current_price</li>
+      <li class="highlight">is_attention</li>
+      <li class="highlight">is_disposition</li>
+      <li class="highlight">is_full_delivery</li>
+    </ul>
+  </div>
+
+  <!-- → dp_today LEFT JOIN -->
+  <div class="join-arrow">
+    <span class="type-badge left">LEFT JOIN</span>
+    <div class="arrow-line">
+      <svg class="arrow-svg" viewBox="0 0 36 16"><line x1="0" y1="8" x2="28" y2="8" stroke="#a855f7" stroke-width="2" stroke-dasharray="4,2"/><polygon points="28,4 36,8 28,12" fill="#a855f7"/></svg>
+    </div>
+    <span>stock_id + today</span>
+  </div>
+
+  <!-- dp_today -->
+  <div class="table-box">
+    <div class="table-name"><span class="dot c-purple"></span> daily_prices <span class="alias">dp_today</span></div>
+    <ul>
+      <li class="dimmed">trade_date = <strong>:current_trade_date</strong></li>
+      <li class="highlight">ref_price → 漲跌基準</li>
+    </ul>
+  </div>
+
+</div>
+
+<!-- ── 各 JOIN 說明 ── -->
+<p class="section-title">為什麼這樣 JOIN？</p>
+
+<div class="flow-grid">
+
+  <div class="flow-card">
+    <div class="card-title"><span class="dot c-blue"></span> watchlists（驅動表）</div>
+    <p>
+      用 <code>WHERE w.save_id = ?</code> 篩出這個存檔的所有自選股。
+      每一列代表「這個玩家關注了哪支股票」。
+    </p>
+  </div>
+
+  <div class="flow-card green">
+    <div class="card-title"><span class="dot c-green"></span> INNER JOIN stocks</div>
+    <p>
+      取得股票的靜態資料：中文名稱、市場別、產業別。
+      用 INNER JOIN 是因為每支自選股一定存在於 stocks 表，否則資料本身就壞了。
+    </p>
+  </div>
+
+  <div class="flow-card orange">
+    <div class="card-title"><span class="dot c-orange"></span> LEFT JOIN dp_current（估價基準日）</div>
+    <p>
+      取得「估價基準日」當天的價格與警告旗標。<br/>
+      <code>trade_date = :price_date</code>
+      — 這個日期因交易階段而異（見下表）。<br/>
+      用 LEFT JOIN 是因為若該股當天停牌，允許回傳 <code>null</code> 而非整列消失。
+    </p>
+  </div>
+
+  <div class="flow-card purple">
+    <div class="card-title"><span class="dot c-purple"></span> LEFT JOIN dp_today（今日）</div>
+    <p>
+      單獨取今日的 <code>ref_price</code>（開盤參考價）。<br/>
+      即使在盤前（估價基準日 = 昨天），計算漲跌幅時仍需今日的參考價。
+      這就是為什麼要 JOIN 兩次 daily_prices。
+    </p>
+  </div>
+
+</div>
+
+<!-- ── 階段說明 ── -->
+<p class="section-title">交易階段與 :price_date 的對應</p>
+
+<table class="phase-table">
+  <thead>
+    <tr>
+      <th>current_phase</th>
+      <th>:price_date（估價基準日）</th>
+      <th>price_col（取哪個價格）</th>
+      <th>price_change 計算</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><span class="badge badge-pre">PRE_MARKET 盤前</span></td>
+      <td>前一有效交易日<br/><small>MAX(trade_date &lt; today)</small></td>
+      <td><code>close_price</code> 昨日收盤</td>
+      <td>固定 <code>0</code>（尚未開盤）</td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-intra">INTRADAY 盤中</span></td>
+      <td>今日（= current_trade_date）</td>
+      <td><code>open_price</code> 今日開盤</td>
+      <td><code>open_price − ref_price</code></td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-post">POST_MARKET / CLOSED 盤後</span></td>
+      <td>今日（= current_trade_date）</td>
+      <td><code>close_price</code> 今日收盤</td>
+      <td><code>close_price − ref_price</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ── 回傳範例 ── -->
+<p class="section-title">最終回傳的每一筆格式</p>
+
+<div class="output-box">
+  <span class="punc">{</span><br/>
+  &nbsp;&nbsp;<span class="key">"stock_id"</span><span class="punc">:</span> <span class="val">"2330"</span><span class="punc">,</span><br/>
+  &nbsp;&nbsp;<span class="key">"stock_name_zh"</span><span class="punc">:</span> <span class="val">"台積電"</span><span class="punc">,</span><br/>
+  &nbsp;&nbsp;<span class="key">"market_type"</span><span class="punc">:</span> <span class="val">"上市"</span><span class="punc">,</span><br/>
+  &nbsp;&nbsp;<span class="key">"sector_name"</span><span class="punc">:</span> <span class="val">"半導體業"</span><span class="punc">,</span><br/>
+  &nbsp;&nbsp;<span class="key">"current_price"</span><span class="punc">:</span> <span class="num">2450.0</span> <span style="color:#6c7086">&nbsp;← dp_current.{price_col}</span><span class="punc">,</span><br/>
+  &nbsp;&nbsp;<span class="key">"ref_price"</span><span class="punc">:</span> <span class="num">2440.0</span> <span style="color:#6c7086">&nbsp;← dp_today.ref_price（今日開盤參考價）</span><span class="punc">,</span><br/>
+  &nbsp;&nbsp;<span class="key">"price_change"</span><span class="punc">:</span> <span class="num">10.0</span> <span style="color:#6c7086">&nbsp;← Python 層計算</span><span class="punc">,</span><br/>
+  &nbsp;&nbsp;<span class="key">"price_change_percent"</span><span class="punc">:</span> <span class="num">0.41</span><span class="punc">,</span><br/>
+  &nbsp;&nbsp;<span class="key">"is_attention"</span><span class="punc">:</span> <span class="bool">true</span><span class="punc">,</span><br/>
+  &nbsp;&nbsp;<span class="key">"is_disposition"</span><span class="punc">:</span> <span class="bool">false</span><span class="punc">,</span><br/>
+  &nbsp;&nbsp;<span class="key">"is_full_delivery"</span><span class="punc">:</span> <span class="bool">false</span><br/>
+  <span class="punc">}</span>
+</div>
+
+</body>
+</html>

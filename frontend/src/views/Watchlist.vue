@@ -42,6 +42,19 @@
         @view-company-info="handleViewCompanyInfo"
       />
     </div>
+
+    <!-- 公司資訊（暫停交易紀錄）彈窗 -->
+    <div
+      v-if="showCompanyInfoModal && companyInfoStock"
+      class="fixed inset-0 z-[100] flex justify-center items-center w-full h-full bg-black/60 backdrop-blur-sm"
+      @click.self="showCompanyInfoModal = false"
+    >
+      <CompanyInfo
+        :stock="companyInfoStock"
+        :save-id="saveId"
+        @close="showCompanyInfoModal = false"
+      />
+    </div>
   </div>
 </template>
 
@@ -51,6 +64,7 @@ import { useRouter } from 'vue-router'
 import WatchlistCard from '../components/WatchlistCard.vue'
 import AddWatchlist from '../components/AddWatchlist.vue'
 import StockInfo from '../components/StockInfo.vue'
+import CompanyInfo from '../components/CompanyInfo.vue'
 
 const props = defineProps({
   saveId: {
@@ -73,6 +87,8 @@ const router = useRouter()
 // --- 狀態定義 ---
 const watchlistStocks = ref([])
 const showAddWatchlistModal = ref(false)
+const showCompanyInfoModal = ref(false)
+const companyInfoStock = ref(null)
 const showStockInfoModal = ref(false)
 
 // K線圖歷史資料與當前選中週期
@@ -403,8 +419,8 @@ const handleGoToTrade = (stockId) => {
   showStockInfoModal.value = false
   // 導向交易分頁，並攜帶參數
   router.push({
-    path: '/transact',
-    query: { 
+    path: '/game/transact',
+    query: {
       saveId: props.saveId,
       stockId: stockId
     }
@@ -412,7 +428,12 @@ const handleGoToTrade = (stockId) => {
 }
 
 const handleViewCompanyInfo = (stockId) => {
-  alert(`股票代碼 ${stockId}：此為模擬看盤系統，詳細基本面資訊請參考公開資訊觀測站。`)
+  // 沿用已開啟的股票詳情；若無則以股號最小化組出 stock 物件。
+  companyInfoStock.value =
+    selectedStockDetail.value && selectedStockDetail.value.stock_id === stockId
+      ? selectedStockDetail.value
+      : { stock_id: stockId, stock_name_zh: '' }
+  showCompanyInfoModal.value = true
 }
 
 // 監聽 saveId、階段、日期的變更以即時刷新資料

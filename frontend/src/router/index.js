@@ -16,7 +16,7 @@ const router = createRouter({
       component: SignUp
     },
     {
-      path: '/',
+      path: '/game',
       component: () => import('../views/Game.vue'),
       children: [
         {

@@ -149,7 +149,7 @@ const highlightText = (text, query) => {
   const trimmedQuery = query.trim()
   if (!trimmedQuery) return escapedText
 
-  const escapedQuery = trimmedQuery.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')
+  const escapedQuery = trimmedQuery.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')
   const regex = new RegExp(`(${escapedQuery})`, 'gi')
   return escapedText.replace(regex, '<span class="text-blue-500 font-bold">$1</span>')
 }

@@ -1,4 +1,7 @@
 <template>
+  <!-- session 因長時間未操作而過期時，在遊戲頁面直接彈出提示 -->
+  <SessionExpiredModal v-if="showExpiredModal" @close="handleExpiredClose" />
+
   <div class="min-h-screen flex flex-col bg-nature-900 text-white">
     <!-- 1. 置頂狀態與導覽列 -->
     <TopBar 
@@ -37,9 +40,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import TopBar from '../components/TopBar.vue'
+import SessionExpiredModal from '../components/SessionExpiredModal.vue'
+import { apiFetch } from '../api/client.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -83,10 +88,10 @@ const currentTab = computed(() => {
 
 // 5. 點選導覽列分頁時，執行路由跳轉（並維持 query 中的 saveId）
 const handleTabChange = (tabName) => {
-  let targetPath = '/custom'
-  if (tabName === '交易') targetPath = '/transact'
-  if (tabName === '資產') targetPath = '/inventory'
-  if (tabName === '紀錄') targetPath = '/record'
+  let targetPath = '/game/custom'
+  if (tabName === '交易') targetPath = '/game/transact'
+  if (tabName === '資產') targetPath = '/game/inventory'
+  if (tabName === '紀錄') targetPath = '/game/record'
 
   router.push({
     path: targetPath,
@@ -144,6 +149,49 @@ watch(saveId, () => {
     fetchSaveDetail()
   }
 }, { immediate: true })
+
+// Session 過期 Modal
+const showExpiredModal = ref(false)
+
+const handleExpiredClose = () => {
+  showExpiredModal.value = false
+  router.push('/')
+}
+
+// 定期 ping /auth/me 偵測 session 是否仍有效；apiFetch 收到 session_expired 時
+// 發射 'session-expired' 事件，此處監聽並彈出 Modal。
+// ping 同時會觸發後端的滑動 TTL 延長，確保使用中不會被誤判為閒置。
+const PING_INTERVAL_MS = 2000
+
+let _pingTimer = null
+
+const startSessionPing = () => {
+  _pingTimer = setInterval(async () => {
+    await apiFetch('/api/auth/me')
+  }, PING_INTERVAL_MS)
+}
+
+const stopSessionPing = () => {
+  if (_pingTimer !== null) {
+    clearInterval(_pingTimer)
+    _pingTimer = null
+  }
+}
+
+const onSessionExpired = () => {
+  stopSessionPing()
+  showExpiredModal.value = true
+}
+
+onMounted(() => {
+  window.addEventListener('session-expired', onSessionExpired)
+  startSessionPing()
+})
+
+onUnmounted(() => {
+  window.removeEventListener('session-expired', onSessionExpired)
+  stopSessionPing()
+})
 </script>
 
 <style scoped>

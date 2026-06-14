@@ -93,7 +93,8 @@
   import { ref, onMounted } from 'vue'
   import AddSave from './AddSave.vue'
   import RemoveSave from './RemoveSave.vue'
-  import { useRouter } from 'vue-router' 
+  import { useRouter } from 'vue-router'
+  import { apiFetch } from '../api/client.js'
 
   const router = useRouter()
 
@@ -105,13 +106,9 @@
   // 呼叫 API 的函式
   const fetchSaves = async () => {
     try {
-      const response = await fetch('/api/saves', {
+      // x-session-id 與 401 過期處理統一交給 apiFetch
+      const response = await apiFetch('/api/saves', {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          // 🚀 關鍵修正：必須用後端規定的 x-session-id
-          'x-session-id': localStorage.getItem('session_id')
-        }
       })
 
       if (response.ok) {
@@ -143,8 +140,8 @@
   const loadGame = (recordId) => {
     console.log('準備讀取存檔 ID:', recordId)
     router.push({
-      path: '/custom', 
-      query: { saveId: recordId } 
+      path: '/game/custom',
+      query: { saveId: recordId }
     })
   }
 </script>

@@ -121,6 +121,49 @@ async def get_price_history(
     return rows
 
 
+@router.get("/{stock_id}/suspensions")
+async def get_suspensions(
+    stock_id: str,
+    save_id: int = Query(..., description="必填；依該存檔目前交易日套用 7 天滾動視窗遮蔽"),
+    db: SqlApiClient = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """回傳該股票的暫停交易（停牌）紀錄，套用「7 天滾動預告」時空隔離：
+
+    - 過濾：只有停牌起日 <= 當前遊戲日 + 7 天（或已發生）的紀錄才回傳。
+    - 遮蔽：復牌日 > 當前遊戲日 + 7 天時，resume_date 回傳 null（尚未解鎖）。
+    """
+    # 先確認股票存在，以區分「無此股票」與「無停牌紀錄」。
+    stock = await db.query(
+        "SELECT stock_id FROM stocks WHERE stock_id = ?",
+        [str(stock_id)],
+    )
+    if not stock["rows"]:
+        raise HTTPException(status_code=404, detail="股票不存在")
+
+    save = await fetch_save_owned(save_id, current_user, db, columns="user_id, current_trade_date")
+    current_trade_date = str(save["current_trade_date"])[:10]
+
+    result = await db.query(
+        "SELECT suspend_start_date,"
+        " CASE WHEN resume_date <= DATE_ADD(?, INTERVAL 7 DAY) THEN resume_date ELSE NULL END AS resume_date,"
+        " reason"
+        " FROM suspension_dates"
+        " WHERE stock_id = ? AND suspend_start_date <= DATE_ADD(?, INTERVAL 7 DAY)"
+        " ORDER BY suspend_start_date DESC",
+        [current_trade_date, str(stock_id), current_trade_date],
+    )
+
+    return [
+        {
+            "suspend_start_date": str(row["suspend_start_date"])[:10],
+            "resume_date": str(row["resume_date"])[:10] if row["resume_date"] is not None else None,
+            "reason": row["reason"],
+        }
+        for row in result["rows"]
+    ]
+
+
 def _normalize_price_rows(rows: list[dict]) -> list[dict]:
     """將 sql-api 回傳的字串型數值欄位轉為 float/int，並裁切日期格式。"""
     float_fields = ("open_price", "high_price", "low_price", "close_price", "ref_price", "limit_up", "limit_down")

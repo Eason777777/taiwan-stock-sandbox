@@ -25,6 +25,19 @@
         @view-company-info="handleViewCompanyInfo"
       />
     </div>
+
+    <!-- 3. 公司資訊（暫停交易紀錄）彈窗 -->
+    <div
+      v-if="showCompanyInfoModal && companyInfoStock"
+      class="fixed inset-0 z-[100] flex justify-center items-center w-full h-full bg-black/60 backdrop-blur-sm"
+      @click.self="showCompanyInfoModal = false"
+    >
+      <CompanyInfo
+        :stock="companyInfoStock"
+        :save-id="saveId"
+        @close="showCompanyInfoModal = false"
+      />
+    </div>
   </div>
 </template>
 
@@ -33,6 +46,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import InventoryCard from '../components/InventoryCard.vue'
 import StockInfo from '../components/StockInfo.vue'
+import CompanyInfo from '../components/CompanyInfo.vue'
 
 const props = defineProps({
   saveId: {
@@ -65,6 +79,8 @@ const rawHoldings = ref([])
 const showStockInfoModal = ref(false)
 const selectedStockDetail = ref(null)
 const selectedStockHoldings = ref(0)
+const showCompanyInfoModal = ref(false)
+const companyInfoStock = ref(null)
 
 // K線圖歷史資料與當前選中週期
 const klinePrices = ref([])
@@ -214,8 +230,8 @@ const handleSelectStock = async (stockId) => {
 const handleGoToTrade = (stockId) => {
   showStockInfoModal.value = false
   router.push({
-    path: '/transact',
-    query: { 
+    path: '/game/transact',
+    query: {
       saveId: props.saveId,
       stockId: stockId
     }
@@ -223,7 +239,12 @@ const handleGoToTrade = (stockId) => {
 }
 
 const handleViewCompanyInfo = (stockId) => {
-  alert(`股票代碼 ${stockId}：此為模擬看盤系統，詳細基本面資訊請參考公開資訊觀測站。`)
+  // 沿用已開啟的股票詳情；若無則以股號最小化組出 stock 物件。
+  companyInfoStock.value =
+    selectedStockDetail.value && selectedStockDetail.value.stock_id === stockId
+      ? selectedStockDetail.value
+      : { stock_id: stockId, stock_name_zh: '' }
+  showCompanyInfoModal.value = true
 }
 
 // 監聽 saveId、階段、日期的變更以即時更新持股與資產

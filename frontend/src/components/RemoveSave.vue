@@ -55,7 +55,7 @@
 </template>
 
 <script setup>  
-import { ref } from 'vue'
+import { apiFetch } from '../api/client.js'
 
 // 🚀 1. 宣告接收從父元件傳來的 saveRecords
 defineProps({
@@ -77,13 +77,9 @@ const removeSave = async (recordId) => {
   if (!isConfirm) return
 
   try {
-    // 2. 發送 DELETE 請求
-    const response = await fetch(`/api/saves/${recordId}`, {
+    // 2. 發送 DELETE 請求（x-session-id 與 401 過期處理統一交給 apiFetch）
+    const response = await apiFetch(`/api/saves/${recordId}`, {
       method: 'DELETE',
-      headers: {
-        // 記得帶上通行證，後端的 Depends(get_current_user) 才認得你
-        'x-session-id': localStorage.getItem('session_id')
-      }
     })
 
     // 3. 處理回應 (小心 204 陷阱)
