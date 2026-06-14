@@ -1,7 +1,7 @@
 <template>
     <button
         type="button"
-        class="cursor-pointer hover:bg-nature-600 transition duration-300 w-full h-fit max-w-[500px] bg-nature-700 border-nature-500 border-[5px]"
+        class="z-10 cursor-pointer hover:bg-nature-600 transition duration-300 w-full h-fit max-w-[500px] bg-nature-700 border-nature-500 border-[5px]"
         :class="{ 'border-b-0': !hasBottomBorder }"
         @click="$emit('select', titleType)"
     >
