@@ -5,7 +5,7 @@
     <SaveRecords />
   </div>
   
-  <div class="min-h-screen w-full flex items-center justify-center bg-[#212529] font-sans">
+  <div class="min-h-screen w-full flex items-center justify-center bg-nature-900 font-sans">
     <div class="w-full max-w-md flex flex-col items-center px-6">
 
       <h1 class="text-7xl font-bold text-white mb-5">
@@ -36,12 +36,12 @@
           <button 
             type="submit"
             :disabled="isLoading"
-            class="w-full bg-[#FFC107] hover:bg-[#B79300] hover:cursor-pointer text-[#212529] font-bold text-xl py-3 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            class="w-full bg-yellow-500 hover:bg-yellow-700 hover:cursor-pointer text-nature-900 font-bold text-xl py-3 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {{ isLoading ? '登入中...' : 'Login' }}
           </button>
           
-          <p class="text-gray-300 text-sm mt-2">
+          <p class="text-nature-300 text-sm mt-2">
             Don't have account? 
             <router-link to="/signup" class="text-white hover:underline hover:cursor-pointer">
               sign up

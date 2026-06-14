@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen w-full flex items-center justify-center bg-[#212529] font-sans">
+  <div class="min-h-screen w-full flex items-center justify-center bg-nature-900 font-sans">
     <div class="w-full max-w-md flex flex-col items-center px-6">
       
       <h1 class="text-7xl font-bold text-white mb-5">
@@ -14,7 +14,7 @@
             v-model="username"
             type="text" 
             placeholder="請輸入帳號" 
-            class="w-full bg-transparent border border-gray-400 text-white rounded-full px-5 py-3 focus:outline-none focus:border-yellow-400 transition-colors"
+            class="w-full bg-transparent border border-nature-400 text-white rounded-full px-5 py-3 focus:outline-none focus:border-yellow-500 transition-colors"
           />
         </div>
 
@@ -24,7 +24,7 @@
             v-model="password"
             type="password" 
             placeholder="請輸入密碼" 
-            class="w-full bg-transparent border border-gray-400 text-white rounded-full px-5 py-3 focus:outline-none focus:border-yellow-400 transition-colors"
+            class="w-full bg-transparent border border-nature-400 text-white rounded-full px-5 py-3 focus:outline-none focus:border-yellow-500 transition-colors"
           />
         </div>
 
@@ -36,12 +36,12 @@
           <button 
             type="submit"
             :disabled="isLoading"
-            class="w-full bg-[#FFC107] hover:bg-[#B79300] hover:cursor-pointer text-[#212529] font-bold text-xl py-3 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            class="w-full bg-yellow-500 hover:bg-yellow-700 hover:cursor-pointer text-nature-900 font-bold text-xl py-3 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {{ isLoading ? '註冊中...' : 'Sign Up' }}
           </button>
           
-          <p class="text-gray-300 text-sm mt-2">
+          <p class="text-nature-300 text-sm mt-2">
             Already have an account? 
             <router-link to="/" class="text-white hover:underline hover:cursor-pointer">
               login
