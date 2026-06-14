@@ -1,1 +1,81 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&family=Noto+Serif+TC:wght@400;500;600;700&display=swap');
+
 @import "tailwindcss";
+
+@theme {
+  /* Nature */
+  --color-nature-100: #F8F9FA;
+  --color-nature-200: #E9ECEF;
+  --color-nature-300: #DEE2E6;
+  --color-nature-400: #CED4DA;
+  --color-nature-500: #ADB5BD;
+  --color-nature-600: #6C757D;
+  --color-nature-700: #495057;
+  --color-nature-800: #343A40;
+  --color-nature-900: #212529;
+  --color-nature-1000: #000000;
+
+  /* Yellow */
+  --color-yellow-500: #FFCC00;
+  --color-yellow-600: #E2B900;
+  --color-yellow-700: #B89300;
+  --color-yellow-900: #4E3F00;
+
+  /* Green */
+  --color-green-100: #E8FCCF;
+  --color-green-200: #B6FF8F;
+  --color-green-300: #96E072;
+  --color-green-500: #3DA35D;
+  --color-green-700: #3E8914;
+  --color-green-900: #134611;
+
+  /* Red */
+  --color-red-100: #FFF0F3;
+  --color-red-200: #FFCCD5;
+  --color-red-300: #FFB3C1;
+  --color-red-400: #FF8FA3;
+  --color-red-500: #FF758F;
+  --color-red-600: #FF4D6D;
+  --color-red-700: #A4133C;
+  --color-red-800: #800F2F;
+  --color-red-900: #590D22;
+
+  /* Blue */
+  --color-blue-100: #E3F2FD;
+  --color-blue-200: #BBDEFB;
+  --color-blue-300: #90CAF9;
+  --color-blue-400: #64B5F6;
+  --color-blue-500: #42A5F5;
+  --color-blue-600: #2196F3;
+  --color-blue-700: #1976D2;
+  --color-blue-800: #1565C0;
+  --color-blue-900: #0D47A1;
+
+  /* =========================================
+     Typography - Font Family (字體家族)
+  ========================================= */
+  --font-sans: "Noto Sans TC", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Noto Serif TC", ui-serif, Georgia, serif;
+
+  /* =========================================
+     Typography - Font Size (字體大小)
+  ========================================= */
+  --text-01: 16px;
+  --text-02: 20px;
+  --text-03: 24px;
+  --text-04: 32px;
+  --text-05: 40px;
+  --text-06: 48px;
+  --text-07: 64px;
+  --text-08: 72px;
+  --text-09: 96px;
+  --text-10: 120px;
+
+  /* =========================================
+     Typography - Font Weight (字體粗細)
+  ========================================= */
+  --font-weight-04: 400; /* Regular */
+  --font-weight-05: 500; /* Medium */
+  --font-weight-06: 600; /* Semi Bold */
+  --font-weight-07: 700; /* Bold */
+}
