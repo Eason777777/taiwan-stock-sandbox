@@ -1,8 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Login from '../views/Login.vue'
 import SignUp from '../views/SignUp.vue'
-import Custom from '../views/Custom.vue'
-import WatchlistDemo from '../views/WatchlistDemo.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -18,14 +16,35 @@ const router = createRouter({
       component: SignUp
     },
     {
-      path: '/custom',
-      name: 'custom',
-      component: Custom
+      path: '/',
+      component: () => import('../views/Game.vue'),
+      children: [
+        {
+          path: 'custom',
+          name: 'custom',
+          component: () => import('../views/Watchlist.vue')
+        },
+        {
+          path: 'transact',
+          name: 'transact',
+          component: () => import('../views/Transact.vue')
+        },
+        {
+          path: 'inventory',
+          name: 'inventory',
+          component: () => import('../views/Inventory.vue')
+        },
+        {
+          path: 'record',
+          name: 'record',
+          component: () => import('../views/Record.vue')
+        }
+      ]
     },
     {
       path: '/demo',
       name: 'demo',
-      component: WatchlistDemo
+      component: () => import('../views/WatchlistDemo.vue')
     }
   ],
 })

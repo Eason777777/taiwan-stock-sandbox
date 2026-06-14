@@ -2,7 +2,7 @@
 <template>
   <div class="w-full flex flex-col">
     <!-- 1. 頂部狀態列 TopState -->
-    <div class="w-full bg-topbar-blue text-white text-01 px-8.5 py-3.5 flex justify-between items-center font-sans font-medium shadow-sm">
+    <div class="w-full bg-topbar-blue text-white text-01 px-8.5 py-0.25 flex justify-between items-center font-sans font-medium shadow-sm">
       <!-- 左側：日期與狀態 -->
       <div class="flex items-center gap-4 flex-1">
         <div>日期：<span class="text-white font-semibold">{{ date }}</span></div>

@@ -1,1 +1,292 @@
-<!-- 交易頁面（待完成） -->
+<template>
+  <div class="w-full flex flex-col items-center justify-center">
+    <!-- 1. 下單交易面版 -->
+    <OrderCard 
+      :stocks="stocksDb"
+      v-model:stock-id="orderStockId"
+      v-model:price="orderPrice"
+      v-model:quantity="orderQuantity"
+      v-model:side="orderSide"
+      v-model:order-type="orderOrderType"
+      :is-after-hours="orderIsAfterHours"
+      :disabled-market="orderDisabledMarket"
+      :stock-error="orderStockError"
+      :price-error="orderPriceError"
+      :quantity-error="orderQuantityError"
+      @select-stock="handleOrderSelectStock"
+      @search-stock="handleSearchStock"
+      @load-more-stocks="handleLoadMoreStocks"
+      @submit="handleOrderSubmit"
+    />
+  </div>
+</template>
+
+<script setup>
+import { ref, watch, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
+import OrderCard from '../components/OrderCard.vue'
+
+const props = defineProps({
+  saveId: {
+    type: Number,
+    required: true
+  },
+  savingsBalance: {
+    type: Number,
+    required: true
+  },
+  deliveryBalance: {
+    type: Number,
+    required: true
+  },
+  currentPhase: {
+    type: String,
+    required: true
+  },
+  currentDate: {
+    type: String,
+    required: true
+  }
+})
+
+const emit = defineEmits(['refresh-save'])
+const route = useRoute()
+
+// --- 狀態與分頁定義 ---
+const stocksDb = ref([]) // 所有候選股票列表
+const searchLimit = 50
+const searchOffset = ref(0)
+const searchHasMore = ref(true)
+const searchIsLoading = ref(false)
+const searchQuery = ref('')
+
+const orderStockId = ref('')
+const orderPrice = ref('')
+const orderQuantity = ref(1)
+const orderSide = ref('default')
+const orderOrderType = ref('default')
+const orderIsAfterHours = ref(false)
+const orderDisabledMarket = ref(false)
+
+const orderStockError = ref('')
+const orderPriceError = ref('')
+const orderQuantityError = ref('')
+
+// --- 1. 載入可用股票資料庫 (分頁加載) ---
+const fetchStocksPage = async (reset = false) => {
+  if (reset) {
+    searchOffset.value = 0
+    searchHasMore.value = true
+    stocksDb.value = []
+  }
+  if (!searchHasMore.value || searchIsLoading.value) return
+
+  searchIsLoading.value = true
+  try {
+    const q = searchQuery.value.trim()
+    let url = `/api/stocks?limit=${searchLimit}&offset=${searchOffset.value}`
+    if (q) {
+      url += `&q=${encodeURIComponent(q)}`
+    }
+    const response = await fetch(url, {
+      headers: {
+        'x-session-id': localStorage.getItem('session_id') || ''
+      }
+    })
+    if (response.ok) {
+      const rows = await response.json()
+      if (rows.length < searchLimit) {
+        searchHasMore.value = false
+      }
+      stocksDb.value = reset ? rows : [...stocksDb.value, ...rows]
+      searchOffset.value += rows.length
+    }
+  } catch (error) {
+    console.error('載入股票分頁失敗:', error)
+  } finally {
+    searchIsLoading.value = false
+  }
+}
+
+let searchDebounceTimer = null
+const handleSearchStock = (query) => {
+  searchQuery.value = query
+  if (searchDebounceTimer) clearTimeout(searchDebounceTimer)
+  searchDebounceTimer = setTimeout(() => {
+    fetchStocksPage(true)
+  }, 300)
+}
+
+const handleLoadMoreStocks = () => {
+  fetchStocksPage(false)
+}
+
+// 根據目前遊戲階段，設定交易面板的預設可用性
+const applyPhaseRestrictions = () => {
+  // 盤前：僅限限價單
+  if (props.currentPhase === 'PRE_MARKET') {
+    orderDisabledMarket.value = true
+    orderIsAfterHours.value = false
+    if (orderOrderType.value === 'market') {
+      orderOrderType.value = 'limit'
+    }
+  } 
+  // 盤後：僅限定價單 (在前端映射為 after_hours 頁，送出時會轉為 MARKET 給後端)
+  else if (props.currentPhase === 'POST_MARKET') {
+    orderDisabledMarket.value = false
+    orderIsAfterHours.value = true
+    orderOrderType.value = 'after_hours'
+    orderPrice.value = '定價'
+  } 
+  // 盤中：不限制
+  else {
+    orderDisabledMarket.value = false
+    orderIsAfterHours.value = false
+    if (orderOrderType.value === 'after_hours') {
+      orderOrderType.value = 'default'
+      orderPrice.value = ''
+    }
+  }
+}
+
+// 取得股票參考價
+const getRefPrice = async (stockId) => {
+  if (!stockId) return 0
+  try {
+    const res = await fetch(`/api/stocks/${stockId}/prices?save_id=${props.saveId}&limit=1`, {
+      headers: {
+        'x-session-id': localStorage.getItem('session_id') || ''
+      }
+    })
+    if (res.ok) {
+      const history = await res.json()
+      if (history && history.length > 0) {
+        return history[0].close_price || history[0].ref_price || 100
+      }
+    }
+  } catch (e) {
+    console.error('獲取參考價失敗', e)
+  }
+  return 100
+}
+
+// --- 2. 監聽委託類型切換，自動填入價格 ---
+watch(orderOrderType, async (newVal) => {
+  orderPriceError.value = ''
+  if (newVal === 'market') {
+    orderPrice.value = '市價'
+  } else if (newVal === 'after_hours') {
+    orderPrice.value = '定價'
+  } else {
+    const refP = await getRefPrice(orderStockId.value)
+    orderPrice.value = refP ? refP.toString() : ''
+  }
+})
+
+// --- 3. 監聽股號更換，自動更新為參考價 ---
+watch(orderStockId, async (newId) => {
+  orderStockError.value = ''
+  if (orderOrderType.value === 'limit' || orderOrderType.value === 'default') {
+    const refP = await getRefPrice(newId)
+    orderPrice.value = refP ? refP.toString() : ''
+  }
+})
+
+// 點選推薦股號
+const handleOrderSelectStock = async (stockId) => {
+  orderStockId.value = stockId
+  const refP = await getRefPrice(stockId)
+  orderPrice.value = refP ? refP.toString() : ''
+}
+
+// --- 4. 送出下單委託 API ---
+const handleOrderSubmit = async () => {
+  orderStockError.value = ''
+  orderPriceError.value = ''
+  orderQuantityError.value = ''
+
+  // 基礎驗證
+  if (!orderStockId.value) {
+    orderStockError.value = '請輸入股號'
+    return
+  }
+  if (orderSide.value === 'default') {
+    alert('請選擇買入或賣出！')
+    return
+  }
+  if (orderOrderType.value === 'default') {
+    alert('請選擇委託類型！')
+    return
+  }
+  if (!orderQuantity.value || orderQuantity.value < 1) {
+    orderQuantityError.value = '張數必須大於等於 1'
+    return
+  }
+
+  // 轉換為後端規格
+  const uppercaseSide = orderSide.value === 'buy' ? 'BUY' : 'SELL'
+  
+  // 盤後定價單(after_hours)與市價單(market)在後端皆為 MARKET 類型，且皆不需傳 price 欄位
+  const isMarket = orderOrderType.value === 'market' || orderOrderType.value === 'after_hours'
+  const backendOrderType = isMarket ? 'MARKET' : 'LIMIT'
+  const backendPrice = isMarket ? null : parseFloat(orderPrice.value)
+
+  if (backendOrderType === 'LIMIT' && (isNaN(backendPrice) || backendPrice <= 0)) {
+    orderPriceError.value = '請輸入有效的限價金額'
+    return
+  }
+
+  const payload = {
+    stock_id: orderStockId.value,
+    order_type: backendOrderType,
+    side: uppercaseSide,
+    price: backendPrice,
+    quantity: parseInt(orderQuantity.value)
+  }
+
+  try {
+    const response = await fetch(`/api/saves/${props.saveId}/orders`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-session-id': localStorage.getItem('session_id') || ''
+      },
+      body: JSON.stringify(payload)
+    })
+
+    if (response.ok) {
+      alert('委託下單成功！')
+      emit('refresh-save') // 刷新 Game.vue 之帳戶資金
+      
+      // 清空表單
+      orderStockId.value = ''
+      orderPrice.value = ''
+      orderQuantity.value = 1
+      orderSide.value = 'default'
+      orderOrderType.value = 'default'
+    } else {
+      const errorData = await response.json()
+      alert(`下單失敗：${errorData.detail || '餘額不足或非交易時段'}`)
+    }
+  } catch (error) {
+    console.error('呼叫下單 API 連線異常:', error)
+    alert('伺服器連線異常，請稍後再試。')
+  }
+}
+
+// 監聽來自自選股點選「前往下單」的路由參數，相容 keep-alive 快取
+watch(() => route.query.stockId, (newStockId) => {
+  if (newStockId) {
+    orderStockId.value = newStockId.toString()
+  }
+}, { immediate: true })
+
+onMounted(() => {
+  fetchStocksPage(true)
+  applyPhaseRestrictions()
+})
+
+watch(() => props.currentPhase, () => {
+  applyPhaseRestrictions()
+})
+</script>

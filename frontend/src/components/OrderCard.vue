@@ -13,6 +13,8 @@
           placeholder="請輸入代碼或名稱 (如 2330)"
           :error-message="stockError"
           @select="emit('select-stock', $event)"
+          @search="emit('search-stock', $event)"
+          @load-more="emit('load-more-stocks')"
         />
       </div>
       <!-- Row 1 Right: Buy/Sell Slider -->
@@ -154,6 +156,8 @@ const emit = defineEmits([
   'update:side',
   'update:orderType',
   'select-stock',
+  'search-stock',
+  'load-more-stocks',
   'submit'
 ])
 

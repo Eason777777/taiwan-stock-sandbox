@@ -35,7 +35,10 @@
 
     <!-- Stock Table List -->
     <div class="w-full bg-nature-900 border border-nature-600 rounded-lg overflow-hidden flex flex-col">
-      <div class="max-h-[300px] overflow-y-auto pr-1">
+      <div 
+        class="max-h-[300px] overflow-y-auto pr-1"
+        @scroll="handleScroll"
+      >
         <table class="w-full text-center border-collapse">
           <thead class="sticky top-0 z-10 bg-nature-200 text-nature-900 font-bold text-base">
             <tr>
@@ -139,8 +142,16 @@ const emit = defineEmits([
   'update:selectedSector',
   'update:selectedStockIds',
   'close',
-  'confirm'
+  'confirm',
+  'load-more'
 ])
+
+const handleScroll = (e) => {
+  const { scrollTop, scrollHeight, clientHeight } = e.target
+  if (scrollHeight - scrollTop - clientHeight < 50) {
+    emit('load-more')
+  }
+}
 
 const toggleSelect = (stockId) => {
   const selected = [...props.selectedStockIds]

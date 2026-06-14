@@ -22,6 +22,7 @@
         <div 
           v-if="isDropdownOpen && stocks.length > 0"
           class="absolute left-0 right-0 mt-1 bg-nature-900 border border-nature-200 rounded-[10px] shadow-2xl z-50 overflow-hidden max-h-[200px] overflow-y-auto"
+          @scroll="handleScroll"
         >
           <div 
             v-for="stock in stocks"
@@ -85,7 +86,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:modelValue', 'select'])
+const emit = defineEmits(['update:modelValue', 'select', 'search', 'load-more'])
 
 const isDropdownOpen = ref(false)
 const containerRef = ref(null)
@@ -94,6 +95,15 @@ const containerRef = ref(null)
 const handleInput = (e) => {
   isDropdownOpen.value = true
   emit('update:modelValue', e.target.value)
+  emit('search', e.target.value)
+}
+
+// Handle scroll inside dropdown for infinite scroll
+const handleScroll = (e) => {
+  const { scrollTop, scrollHeight, clientHeight } = e.target
+  if (scrollHeight - scrollTop - clientHeight < 50) {
+    emit('load-more')
+  }
 }
 
 // Select a stock candidate
