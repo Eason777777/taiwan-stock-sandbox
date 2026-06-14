@@ -1,3 +1,5 @@
+import math
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from ..database import SqlApiClient
@@ -149,8 +151,8 @@ async def place_order(
     if body.side == "BUY":
         # Worst-case cost: LIMIT 用限價，MARKET 用今日最高價估算
         est_price = price if price is not None else float(dp["high_price"])
-        principal = est_price * quantity * 1000
-        fee = max(20.0, principal * 0.001425)
+        principal = round(est_price * quantity * 1000)
+        fee = max(20, math.floor(principal * 0.001425))
         est_cost = principal + fee
         if float(save["trading_balance"]) < est_cost:
             raise HTTPException(status_code=400, detail="交割戶餘額不足以支應此買單")

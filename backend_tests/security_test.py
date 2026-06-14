@@ -216,6 +216,19 @@
           （bcrypt hash 改丟 ThreadPoolExecutor 執行，避免卡住 event loop，
           並用 _hash_pending 計數做佇列上限）
 
+【AH. 手續費／證交稅／帳戶餘額之台幣整數規則（元以下無條件捨去）】
+  AH1. BUY 成交後 stock_transactions.fee 為整數（無小數部分）        -> 預期 PASS
+  AH2. BUY 手續費 = max(20, floor(成交本金 * 0.1425%))               -> 預期 PASS
+  AH3. BUY 不收證交稅，stock_transactions.tax = 0                    -> 預期 PASS
+  AH4. BUY account_transactions.amount 為整數，且 = 本金 + 手續費     -> 預期 PASS
+  AH5. BUY account_transactions.balance_after 為整數，且 = 扣款後餘額 -> 預期 PASS
+  AH6. SELL 成交後 stock_transactions.fee / tax 皆為整數              -> 預期 PASS
+  AH7. SELL 手續費 = max(20, floor(成交本金 * 0.1425%))               -> 預期 PASS
+  AH8. SELL 證交稅 = floor(成交本金 * 0.3%)                           -> 預期 PASS
+  AH9. SELL account_transactions.amount 為整數，且 = 本金 - 手續費 - 證交稅 -> 預期 PASS
+  AH10. GET /saves/{id} savings_balance/trading_balance 為整數值（無小數餘數） -> 預期 PASS
+  AH11. 轉帳 amount 帶小數（100.5）-> 422（amount 已改為整數型別）     -> 預期 PASS
+
 ────────────────────────────────────────────────────────────────────────
 """
 
@@ -833,7 +846,7 @@ def run(client, account_a, account_b, password, state):
 
         # 確保交割戶餘額足夠下單（先前測試已用掉部分資金），不足則從存款戶補足
         needed = est_price * 1 * 1000
-        needed_with_fee = needed + max(20.0, needed * 0.001425)
+        needed_with_fee = needed + max(20, math.floor(needed * 0.001425))
         fresh = db_query(
             "SELECT savings_balance, trading_balance FROM save_files WHERE save_id = ?",
             [save_id_a],
@@ -844,7 +857,7 @@ def run(client, account_a, account_b, password, state):
             top_up = min(savings_bal, needed_with_fee - trading_bal + 1000)
             client.post(
                 f"/saves/{save_id_a}/accounts/transfer",
-                json={"direction": "savings_to_trading", "amount": round(top_up, 2)},
+                json={"direction": "savings_to_trading", "amount": math.floor(top_up)},
                 headers=headers_a,
             )
 
@@ -1013,10 +1026,10 @@ def run(client, account_a, account_b, password, state):
         # W7: 重複撤銷同一張已撤銷的委託單
         # 新存檔的資金預設全在存款戶，下單前先把足夠的金額轉入交割戶
         needed_w7 = price_w * 1 * 1000
-        needed_w7_with_fee = needed_w7 + max(20.0, needed_w7 * 0.001425)
+        needed_w7_with_fee = needed_w7 + max(20, math.floor(needed_w7 * 0.001425))
         client.post(
             f"/saves/{save_id_w}/accounts/transfer",
-            json={"direction": "savings_to_trading", "amount": round(needed_w7_with_fee + 1000, 2)},
+            json={"direction": "savings_to_trading", "amount": math.ceil(needed_w7_with_fee + 1000)},
             headers=headers_a,
         )
         r = client.post(
@@ -1776,6 +1789,167 @@ def run(client, account_a, account_b, password, state):
 
     for acc in accounts_ag:
         db_query("DELETE FROM users WHERE account=?", [acc])
+
+    # ── AH. 手續費／證交稅／帳戶餘額之台幣整數規則（元以下無條件捨去）──
+    ah_names = [
+        "AH1. BUY stock_transactions.fee 為整數（無小數部分）",
+        "AH2. BUY 手續費計算正確（floor(本金*0.1425%)，最低 20 元）",
+        "AH3. BUY 不收證交稅，stock_transactions.tax = 0",
+        "AH4. BUY account_transactions.amount 為整數，且 = 本金 + 手續費",
+        "AH5. BUY account_transactions.balance_after 為整數，且 = 扣款後餘額",
+        "AH6. SELL stock_transactions.fee / tax 皆為整數",
+        "AH7. SELL 手續費計算正確（floor(本金*0.1425%)，最低 20 元）",
+        "AH8. SELL 證交稅計算正確（floor(本金*0.3%)）",
+        "AH9. SELL account_transactions.amount 為整數，且 = 本金 - 手續費 - 證交稅",
+        "AH10. GET /saves/{id} savings_balance/trading_balance 為整數值（無小數餘數）",
+        "AH11. 轉帳 amount 帶小數（100.5）-> 422",
+    ]
+
+    rand_ah = "".join(random.choices(string.ascii_lowercase + string.digits, k=8))
+    rah = client.post(
+        "/saves",
+        json={"save_name": f"ah_{rand_ah}", "start_date": START_DATE, "initial_funds": 1000000},
+        headers=headers_a,
+    )
+    if rah.status_code != 201:
+        for name in ah_names:
+            record(name, False, f"setup: create save failed {rah.status_code}: {rah.text}")
+        return
+
+    save_id_ah = rah.json()["save_id"]
+
+    client.post(
+        f"/saves/{save_id_ah}/accounts/transfer",
+        json={"direction": "savings_to_trading", "amount": 1000000},
+        headers=headers_a,
+    )
+
+    dp_rows = db_query(
+        "SELECT low_price, high_price, limit_up FROM daily_prices WHERE stock_id=? AND trade_date=?",
+        [STOCK_ID, START_DATE],
+    )
+    limit_up_ah = _round_to_tick(float(dp_rows[0]["limit_up"])) if dp_rows else 100.0
+    low_price_ah = _round_to_tick(float(dp_rows[0]["low_price"])) if dp_rows else 100.0
+
+    # AH1~AH5: PRE_MARKET 以漲停價下 BUY 限價單，保證下一次 advance 結算時以開盤價成交
+    phase_after_buy = None
+    r = client.post(
+        f"/saves/{save_id_ah}/orders",
+        json={"stock_id": STOCK_ID, "order_type": "LIMIT", "side": "BUY", "price": limit_up_ah, "quantity": 1},
+        headers=headers_a,
+    )
+    if r.status_code == 201:
+        order_id_buy = r.json()["order_id"]
+        r_adv = client.post(f"/saves/{save_id_ah}/advance", headers=headers_a)
+        phase_after_buy = r_adv.json().get("current_phase") if r_adv.status_code == 200 else None
+
+        txn_rows = db_query("SELECT exec_price, fee, tax FROM stock_transactions WHERE order_id=?", [order_id_buy])
+        atxn_rows = db_query(
+            "SELECT amount, balance_after FROM account_transactions"
+            " WHERE save_id=? AND change_type='BUY' ORDER BY seq DESC LIMIT 1",
+            [save_id_ah],
+        )
+
+        if txn_rows and atxn_rows:
+            exec_price = float(txn_rows[0]["exec_price"])
+            fee = float(txn_rows[0]["fee"])
+            tax = float(txn_rows[0]["tax"])
+            amount = float(atxn_rows[0]["amount"])
+            balance_after = float(atxn_rows[0]["balance_after"])
+
+            principal = round(exec_price * 1 * 1000)
+            expected_fee = max(20, math.floor(principal * 0.001425))
+
+            check(ah_names[0], fee == int(fee), f"fee={fee}")
+            check(ah_names[1], fee == expected_fee, f"fee={fee} expected={expected_fee} principal={principal}")
+            check(ah_names[2], tax == 0, f"tax={tax}")
+            check(
+                ah_names[3],
+                amount == int(amount) and amount == principal + fee,
+                f"amount={amount} expected={principal + fee}",
+            )
+            check(
+                ah_names[4],
+                balance_after == int(balance_after) and balance_after == 1000000 - amount,
+                f"balance_after={balance_after} expected={1000000 - amount}",
+            )
+        else:
+            for name in ah_names[:5]:
+                record(name, False, f"未找到成交紀錄: stock_transactions={txn_rows} account_transactions={atxn_rows}")
+    else:
+        for name in ah_names[:5]:
+            record(name, False, f"下單失敗: {r.status_code}: {r.text}")
+
+    # AH6~AH9: INTRADAY 以最低價下 SELL 限價單，保證以該限價成交（price <= high_price）
+    if phase_after_buy == "INTRADAY":
+        r = client.post(
+            f"/saves/{save_id_ah}/orders",
+            json={"stock_id": STOCK_ID, "order_type": "LIMIT", "side": "SELL", "price": low_price_ah, "quantity": 1},
+            headers=headers_a,
+        )
+        if r.status_code == 201:
+            order_id_sell = r.json()["order_id"]
+            client.post(f"/saves/{save_id_ah}/advance", headers=headers_a)
+
+            txn_rows = db_query("SELECT exec_price, fee, tax FROM stock_transactions WHERE order_id=?", [order_id_sell])
+            atxn_rows = db_query(
+                "SELECT amount, balance_after FROM account_transactions"
+                " WHERE save_id=? AND change_type='SELL' ORDER BY seq DESC LIMIT 1",
+                [save_id_ah],
+            )
+
+            if txn_rows and atxn_rows:
+                exec_price = float(txn_rows[0]["exec_price"])
+                fee = float(txn_rows[0]["fee"])
+                tax = float(txn_rows[0]["tax"])
+                amount = float(atxn_rows[0]["amount"])
+
+                principal = round(exec_price * 1 * 1000)
+                expected_fee = max(20, math.floor(principal * 0.001425))
+                expected_tax = math.floor(principal * 0.003)
+                proceeds = principal - fee - tax
+
+                check(ah_names[5], fee == int(fee) and tax == int(tax), f"fee={fee} tax={tax}")
+                check(ah_names[6], fee == expected_fee, f"fee={fee} expected={expected_fee} principal={principal}")
+                check(ah_names[7], tax == expected_tax, f"tax={tax} expected={expected_tax} principal={principal}")
+                check(
+                    ah_names[8],
+                    amount == int(amount) and amount == proceeds,
+                    f"amount={amount} expected={proceeds}",
+                )
+            else:
+                for name in ah_names[5:9]:
+                    record(name, False, f"未找到成交紀錄: stock_transactions={txn_rows} account_transactions={atxn_rows}")
+        else:
+            for name in ah_names[5:9]:
+                record(name, False, f"下單失敗: {r.status_code}: {r.text}")
+    else:
+        for name in ah_names[5:9]:
+            record(name, False, f"AH1~AH5 setup 未能讓 BUY 成交並推進至 INTRADAY（phase_after_buy={phase_after_buy}）")
+
+    # AH10: GET /saves/{id} 餘額為整數值（無小數餘數）
+    r = client.get(f"/saves/{save_id_ah}", headers=headers_a)
+    if r.status_code == 200:
+        body = r.json()
+        sb = body.get("savings_balance")
+        tb = body.get("trading_balance")
+        check(
+            ah_names[9],
+            isinstance(sb, (int, float)) and isinstance(tb, (int, float)) and sb == int(sb) and tb == int(tb),
+            f"savings_balance={sb} trading_balance={tb}",
+        )
+    else:
+        record(ah_names[9], False, f"{r.status_code}: {r.text}")
+
+    # AH11: 轉帳 amount 帶小數 -> 422（TransferRequest.amount 已改為 int 型別）
+    r = client.post(
+        f"/saves/{save_id_ah}/accounts/transfer",
+        content='{"direction": "savings_to_trading", "amount": 100.5}',
+        headers={**headers_a, "Content-Type": "application/json"},
+    )
+    check(ah_names[10], r.status_code == 422, f"{r.status_code}: {r.text}")
+
+    client.delete(f"/saves/{save_id_ah}", headers=headers_a)
 
 
 def print_summary():

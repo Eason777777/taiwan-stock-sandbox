@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from ..database import SqlApiClient
 from ..dependencies import get_db, get_current_user
 
@@ -12,7 +12,7 @@ router = APIRouter(
 
 class TransferRequest(BaseModel):
     direction: str   # "savings_to_trading" | "trading_to_savings"
-    amount: float = Field(allow_inf_nan=False)
+    amount: int
 
 
 MAX_SEQ_RETRIES = 5
@@ -89,13 +89,13 @@ async def transfer(
 ):
     if body.direction not in ("savings_to_trading", "trading_to_savings"):
         raise HTTPException(status_code=400, detail="direction 必須為 'savings_to_trading' 或 'trading_to_savings'")
-    amount = float(body.amount)
+    amount = body.amount
     if amount <= 0:
         raise HTTPException(status_code=400, detail="amount 必須為正數")
 
     save = await _fetch_save(save_id, current_user, db)
-    savings = float(save["savings_balance"])
-    trading = float(save["trading_balance"])
+    savings = int(float(save["savings_balance"]))
+    trading = int(float(save["trading_balance"]))
     sim_date = str(save["current_trade_date"])[:10]
 
     if body.direction == "savings_to_trading":
@@ -113,17 +113,17 @@ async def transfer(
 
     await db.query(
         "UPDATE save_files SET savings_balance = ?, trading_balance = ? WHERE save_id = ?",
-        [round(new_savings, 2), round(new_trading, 2), save_id],
+        [int(new_savings), int(new_trading), save_id],
     )
 
     debit_balance_after = new_savings if debit_acct == "SAVINGS" else new_trading
     await _insert_account_transaction(
-        db, save_id, debit_acct, sim_date, "TRANSFER_OUT", round(amount, 2), round(debit_balance_after, 2), "帳戶轉帳",
+        db, save_id, debit_acct, sim_date, "TRANSFER_OUT", int(amount), int(debit_balance_after), "帳戶轉帳",
     )
 
     credit_balance_after = new_trading if credit_acct == "TRADING" else new_savings
     await _insert_account_transaction(
-        db, save_id, credit_acct, sim_date, "TRANSFER_IN", round(amount, 2), round(credit_balance_after, 2), "帳戶轉帳",
+        db, save_id, credit_acct, sim_date, "TRANSFER_IN", int(amount), int(credit_balance_after), "帳戶轉帳",
     )
 
-    return {"savings_balance": round(new_savings, 2), "trading_balance": round(new_trading, 2)}
+    return {"savings_balance": int(new_savings), "trading_balance": int(new_trading)}
