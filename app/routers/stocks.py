@@ -16,6 +16,7 @@ async def search_stocks(
     q: str | None = Query(None, description="Search by stock_id or stock_name_zh"),
     sector: str | None = Query(None, description="Filter by sector_name"),
     limit: int = Query(50, ge=1, le=500),
+    offset: int = Query(0, ge=0),
     db: SqlApiClient = Depends(get_db),
 ):
     sql = (
@@ -42,11 +43,19 @@ async def search_stocks(
 
     if clauses:
         sql += " WHERE " + " AND ".join(clauses)
-    sql += " ORDER BY stock_id LIMIT ?"
-    params.append(int(limit))
+    sql += " ORDER BY stock_id LIMIT ? OFFSET ?"
+    params.extend([int(limit), int(offset)])
 
     result = await db.query(sql, params)
     return result["rows"]
+
+
+@router.get("/sectors")
+async def get_sectors(db: SqlApiClient = Depends(get_db)):
+    result = await db.query(
+        "SELECT DISTINCT sector_name FROM stocks WHERE sector_name IS NOT NULL AND sector_name != '' ORDER BY sector_name"
+    )
+    return [row["sector_name"] for row in result["rows"]]
 
 
 @router.get("/{stock_id}")
