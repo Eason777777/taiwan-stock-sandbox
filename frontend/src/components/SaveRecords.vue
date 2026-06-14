@@ -5,7 +5,16 @@
     <AddSave @close="currentView = 'list'" />
   </div>
 
-  <div class="min-w-[1000px] gap-[10px] z-50 p-[30px] bg-nature-800 border-nature-500 border-[10px] w-[80%] h-fit flex flex-col">
+  <div class="min-w-[1000px] gap-[10px] z-50 p-[30px] bg-nature-800 border-nature-500 border-[10px] w-[80%] h-fit flex flex-col"
+      v-if="currentView === 'remove'" 
+      @click.self="currentView = 'list'"
+  >
+    <RemoveSave :saveRecords="saveRecords" @close="currentView = 'list'" @refresh="onRefresh" />
+  </div>
+
+  <div class="min-w-[1000px] gap-[10px] z-50 p-[30px] bg-nature-800 border-nature-500 border-[10px] w-[80%] h-fit flex flex-col"
+      v-if="currentView === 'add' || currentView === 'list'" 
+  >
     
     <div class="flex w-full h-full">
       <div class="text-06 text-nature-100 "> 存檔紀錄 </div>
@@ -26,7 +35,7 @@
         </div>
       </button>
       <!-- 移除存檔按鈕 -->
-      <button @click="currentView = 'delete'" class="group w-full h-[64px] bg-red-300 flex justify-center items-center transition-colors cursor-pointer rounded-r-[10px] hover:bg-red-700 transition-colors duration-300 ease-in-out">
+      <button @click="currentView = 'remove'" class="group w-full h-[64px] bg-red-300 flex justify-center items-center transition-colors cursor-pointer rounded-r-[10px] hover:bg-red-700 transition-colors duration-300 ease-in-out">
         <div class="absolute opacity-100 group-hover:opacity-0 transition-opacity duration-300 ease-in-out">
           <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
             <circle cx="32" cy="32" r="24" stroke="#A4133C" stroke-width="4.83333"/>
@@ -83,6 +92,10 @@
 <script setup>
   import { ref, onMounted } from 'vue'
   import AddSave from './AddSave.vue'
+  import RemoveSave from './RemoveSave.vue'
+  import { useRouter } from 'vue-router' 
+
+  const router = useRouter()
 
   // 準備一個空的陣列，用來裝後端傳回來的真實存檔資料
   const saveRecords = ref([])
@@ -119,11 +132,19 @@
     fetchSaves()
   })
 
+  const onRefresh = () => {
+    fetchSaves()
+    currentView.value = 'list'
+  }
+
   // 🗑️ 注意：請把原本底下的 mockSaveRecords 跟 saveRecords.value = ... 整段刪除！
   // 讓表格保持乾淨，才能確認真資料有沒有進來。
 
   const loadGame = (recordId) => {
     console.log('準備讀取存檔 ID:', recordId)
-    alert(`讀取存檔 ${recordId}，準備進入遊戲！`)
+    router.push({
+      path: '/custom', 
+      query: { saveId: recordId } 
+    })
   }
 </script>
