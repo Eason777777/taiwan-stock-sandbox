@@ -5,14 +5,14 @@
         <AddSave @close="currentView = 'list'" />
   </div>
 
-  <div class="min-w-[1080px] gap-[10px] p-[30px] bg-nature-800 border-nature-500 border-[10px] w-[90%] h-fit flex flex-col"
+  <div class="min-w-[1280px] gap-[10px] p-[30px] bg-nature-800 border-nature-500 border-[10px] w-[90%] h-fit flex flex-col"
       v-if="currentView === 'remove'" 
       @click.self="currentView = 'list'"
   >
     <RemoveSave :saveRecords="saveRecords" @close="currentView = 'list'" @refresh="onRefresh" />
   </div>
 
-  <div class="min-w-[1080px] gap-[10px] p-[30px] bg-nature-800 border-nature-500 border-[10px] w-[90%] h-fit flex flex-col"
+  <div class="min-w-[1280px] gap-[10px] p-[30px] bg-nature-800 border-nature-500 border-[10px] w-[90%] h-fit flex flex-col"
       v-if="currentView === 'add' || currentView === 'list'"
     >
     
@@ -66,7 +66,7 @@
           </tr>
         </thead>
 
-        <tbody class="text-03">
+        <tbody class="text-04 text-nature-800">
           <tr 
             v-for="record in saveRecords" 
             :key="record.save_id" 
@@ -93,45 +93,36 @@
 
 <script setup>
   import { ref, onMounted } from 'vue'
-  import { useRoute } from 'vue-router'
   import RecordSelect from './RecordSelect.vue'
   import AddSave from './AddSave.vue'
   import RemoveSave from './RemoveSave.vue'
+  import { useRouter } from 'vue-router' 
 
+  const router = useRouter()
+
+  // 準備一個空的陣列，用來裝後端傳回來的真實存檔資料
   const saveRecords = ref([])
   const isLoading = ref(true)
   const currentView = ref('list')
 
-  // 🚀 2. 啟動 route 物件，用來讀取當前網址的資訊
-  const route = useRoute()
-
+  // 呼叫 API 的函式
   const fetchSaves = async () => {
-    // 🚀 3. 從網址列提取 saveId (例如網址是 /custom?saveId=5，這裡就會拿到 '5')
-    const saveId = route.query.saveId
-
-    // 🚀 4. 防呆機制：如果網址沒有 saveId，就阻擋後續的 API 請求
-    if (!saveId) {
-      console.error('缺少存檔 ID，無法載入資料')
-      isLoading.value = false
-      return
-    }
-
     try {
-      // 將拿到的 saveId 動態帶入 API 網址中
-      const response = await fetch(`/api/holding/transactions?save_id=${saveId}`, {
+      const response = await fetch('/api/saves', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
+          // 🚀 關鍵修正：必須用後端規定的 x-session-id
           'x-session-id': localStorage.getItem('session_id')
         }
       })
 
       if (response.ok) {
         const data = await response.json()
-        console.log('成功拿到後端資料:', data)
+        console.log('✅ 成功拿到後端資料:', data) // 👉 打開 F12 看這裡！確認後端的欄位名稱
         saveRecords.value = data
       } else {
-        console.error('無法取得交易紀錄，可能是尚未登入、Session 過期，或無權限存取此存檔')
+        console.error('無法取得存檔，可能是尚未登入或 Session 過期')
       }
     } catch (error) {
       console.error('API 連線失敗:', error)
@@ -143,4 +134,20 @@
   onMounted(() => {
     fetchSaves()
   })
+
+  const onRefresh = () => {
+    fetchSaves()
+    currentView.value = 'list'
+  }
+
+  // 🗑️ 注意：請把原本底下的 mockSaveRecords 跟 saveRecords.value = ... 整段刪除！
+  // 讓表格保持乾淨，才能確認真資料有沒有進來。
+
+  const loadGame = (recordId) => {
+    console.log('準備讀取存檔 ID:', recordId)
+    router.push({
+      path: '/custom', 
+      query: { saveId: recordId } 
+    })
+  }
 </script>
