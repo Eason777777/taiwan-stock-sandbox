@@ -70,12 +70,28 @@
   7d.      GET /saves/{id}/orders -> 200（委託單列表）
   7e.      送出「限價買、價格不符升降單位」-> 400（升降單位檢查）
 
+【7f-7m. 單檔股票詳細資訊（GET /saves/{id}/stocks/{stock_id}，PRE_MARKET）】
+  7f.      GET /saves/{id}/stocks/{STOCK_ID} -> 200
+  7g.      回應含 stock_id/stock_name_zh/market_type/sector_name
+  7h.      current_price == 前一交易日 close_price
+  7i.      price_change / price_change_percent == 0
+  7j.      open/high/low/close == null，volume == 0（盤前未知今日資料）
+  7k.      回應含 is_attention/is_disposition/is_full_delivery
+  7l.      不存在的 stock_id -> 404
+  7m.      不存在的 save_id -> 404
+
 【8. 推進：盤前 -> 盤中（結算盤前限價單）】
   8a.      POST /saves/{id}/advance -> 200
   8b.      推進後 current_phase == INTRADAY
   8c.      盤前委託單已結算為 FILLED（成交）或 EXPIRED（當日無報價時失效）
   8d.      若 FILLED，成交價 exec_price == 當日開盤價
   8e.      若 FILLED，holdings 表中該股數量 == 1（張）
+
+【8f-8i. 單檔股票詳細資訊（INTRADAY）】
+  8f.      GET /saves/{id}/stocks/{STOCK_ID} -> 200
+  8g.      current_price == 今日 open_price
+  8h.      price_change / price_change_percent == open_price - ref_price
+  8i.      open_price 顯示今日開盤價，high/low/close == null，volume == 0
 
 【9. 盤中下市價賣單（INTRADAY，僅在 8 已成交持股時執行）】
   9a.      POST /saves/{id}/orders 下「市價賣出 1 張」-> 201
@@ -87,6 +103,12 @@
   10c.     盤中市價賣單已結算為 FILLED 或 EXPIRED
   10d.     若 FILLED，成交價 exec_price == 當日收盤價
 
+【10e-10h. 單檔股票詳細資訊（POST_MARKET）】
+  10e.     GET /saves/{id}/stocks/{STOCK_ID} -> 200
+  10f.     current_price == 今日 close_price
+  10g.     open/high/low/close/volume 反映今日實際資料
+  10h.     price_change / price_change_percent == close_price - ref_price
+
 【11. 盤後僅限定價交易（POST_MARKET）】
   11a.     盤後送出「限價買單」-> 4xx（盤後不可下限價/市價單，僅能定價）
   11b.     盤後送出「定價買單」（MARKET, side=BUY）-> 201
@@ -95,6 +117,11 @@
   12a.     POST /saves/{id}/advance -> 200
   12b.     推進後 current_phase == CLOSED
   12c.     收市階段送出任何委託單 -> 4xx（收市鎖定交易）
+
+【12d-12f. 單檔股票詳細資訊（CLOSED）】
+  12d.     GET /saves/{id}/stocks/{STOCK_ID} -> 200
+  12e.     current_price == 今日 close_price
+  12f.     open/high/low/close/volume 仍反映今日實際資料（收市後不再隱藏）
 
 【13. 持股 / 成交紀錄查詢】
   13a.     GET /saves/{id}/holdings -> 200（目前持股列表，含市值估算）
@@ -310,7 +337,8 @@ def run(client, account, password, state):
         [STOCK_ID, START_DATE],
     )
     today_prices = db_query(
-        "SELECT open_price, high_price, low_price, close_price FROM daily_prices WHERE stock_id=? AND trade_date=?",
+        "SELECT open_price, high_price, low_price, close_price, volume, ref_price"
+        " FROM daily_prices WHERE stock_id=? AND trade_date=?",
         [STOCK_ID, START_DATE],
     )
     check("7-pre. today has price data", bool(today_prices), today_prices)
@@ -318,6 +346,11 @@ def run(client, account, password, state):
         return
     today = today_prices[0]
     open_price = float(today["open_price"])
+    high_price_today = float(today["high_price"])
+    low_price_today = float(today["low_price"])
+    close_price_today = float(today["close_price"])
+    volume_today = int(today["volume"])
+    ref_price_today = float(today["ref_price"]) if today.get("ref_price") is not None else None
 
     # 限價買單：限價 >= 開盤價 才會成交
     buy_price = open_price + 5
@@ -345,6 +378,48 @@ def run(client, account, password, state):
     )
     check("7e. LIMIT order with invalid tick size -> 400", r.status_code == 400, f"{r.status_code}: {r.text}")
 
+    # ── 7f-7l. 單檔股票詳細資訊（PRE_MARKET）─────────────────────────
+    r = client.get(f"/saves/{save_id}/stocks/{STOCK_ID}", headers=headers)
+    check("7f. get save-scoped stock detail (PRE_MARKET) 200", r.status_code == 200, f"{r.status_code}: {r.text}")
+    if r.status_code == 200:
+        detail = r.json()
+        check(
+            "7g. PRE_MARKET stock detail has basic fields",
+            all(k in detail for k in ("stock_id", "stock_name_zh", "market_type", "sector_name")),
+            detail,
+        )
+        if prev_close:
+            check(
+                "7h. PRE_MARKET current_price == previous day's close_price",
+                detail.get("current_price") == float(prev_close[0]["close_price"]),
+                f"detail={detail} prev_close={prev_close}",
+            )
+        check(
+            "7i. PRE_MARKET price_change / price_change_percent == 0",
+            detail.get("price_change") == 0.0 and detail.get("price_change_percent") == 0.0,
+            detail,
+        )
+        check(
+            "7j. PRE_MARKET open/high/low/close == null, volume == 0",
+            detail.get("open_price") is None
+            and detail.get("high_price") is None
+            and detail.get("low_price") is None
+            and detail.get("close_price") is None
+            and detail.get("volume") == 0,
+            detail,
+        )
+        check(
+            "7k. PRE_MARKET response has alert flags",
+            all(k in detail for k in ("is_attention", "is_disposition", "is_full_delivery")),
+            detail,
+        )
+
+    r = client.get(f"/saves/{save_id}/stocks/0000ZZ", headers=headers)
+    check("7l. get stock detail for unknown stock_id -> 404", r.status_code == 404, f"{r.status_code}: {r.text}")
+
+    r = client.get(f"/saves/999999999/stocks/{STOCK_ID}", headers=headers)
+    check("7m. get stock detail for nonexistent save_id -> 404", r.status_code == 404, f"{r.status_code}: {r.text}")
+
     # ── 8. 推進: 盤前 -> 盤中（結算盤前限價單，成交價=開盤價）──────────
     r = client.post(f"/saves/{save_id}/advance", headers=headers)
     check("8a. advance PRE_MARKET->INTRADAY 200", r.status_code == 200, f"{r.status_code}: {r.text}")
@@ -367,6 +442,34 @@ def run(client, account, password, state):
             )
             holding = db_query("SELECT quantity FROM holdings WHERE save_id=? AND stock_id=?", [save_id, STOCK_ID])
             check("8e. holding quantity == 1", holding and int(holding[0]["quantity"]) == 1, holding)
+
+    # ── 8f-8i. 單檔股票詳細資訊（INTRADAY）───────────────────────────
+    r = client.get(f"/saves/{save_id}/stocks/{STOCK_ID}", headers=headers)
+    check("8f. get save-scoped stock detail (INTRADAY) 200", r.status_code == 200, f"{r.status_code}: {r.text}")
+    if r.status_code == 200:
+        detail = r.json()
+        check(
+            "8g. INTRADAY current_price == today's open_price",
+            detail.get("current_price") == open_price,
+            detail,
+        )
+        if ref_price_today is not None:
+            expected_change = round(open_price - ref_price_today, 2)
+            expected_pct = round(expected_change / ref_price_today * 100, 2) if ref_price_today else 0.0
+            check(
+                "8h. INTRADAY price_change/price_change_percent vs ref_price",
+                detail.get("price_change") == expected_change and detail.get("price_change_percent") == expected_pct,
+                f"detail={detail} ref_price={ref_price_today}",
+            )
+        check(
+            "8i. INTRADAY open_price shown, high/low/close == null, volume == 0",
+            detail.get("open_price") == open_price
+            and detail.get("high_price") is None
+            and detail.get("low_price") is None
+            and detail.get("close_price") is None
+            and detail.get("volume") == 0,
+            detail,
+        )
 
     # ── 9. 盤中下市價賣單（若有持股）─────────────────────────────────
     holding = db_query("SELECT quantity FROM holdings WHERE save_id=? AND stock_id=?", [save_id, STOCK_ID])
@@ -406,6 +509,34 @@ def run(client, account, password, state):
                 f"tx={tx} close_price={close_price}",
             )
 
+    # ── 10e-10g. 單檔股票詳細資訊（POST_MARKET）──────────────────────
+    r = client.get(f"/saves/{save_id}/stocks/{STOCK_ID}", headers=headers)
+    check("10e. get save-scoped stock detail (POST_MARKET) 200", r.status_code == 200, f"{r.status_code}: {r.text}")
+    if r.status_code == 200:
+        detail = r.json()
+        check(
+            "10f. POST_MARKET current_price == today's close_price",
+            detail.get("current_price") == close_price_today,
+            detail,
+        )
+        check(
+            "10g. POST_MARKET open/high/low/close/volume reflect today's data",
+            detail.get("open_price") == open_price
+            and detail.get("high_price") == high_price_today
+            and detail.get("low_price") == low_price_today
+            and detail.get("close_price") == close_price_today
+            and detail.get("volume") == volume_today,
+            detail,
+        )
+        if ref_price_today is not None:
+            expected_change = round(close_price_today - ref_price_today, 2)
+            expected_pct = round(expected_change / ref_price_today * 100, 2) if ref_price_today else 0.0
+            check(
+                "10h. POST_MARKET price_change/price_change_percent vs ref_price",
+                detail.get("price_change") == expected_change and detail.get("price_change_percent") == expected_pct,
+                f"detail={detail} ref_price={ref_price_today}",
+            )
+
     # ── 11. 盤後不可下限價/市價單，只能定價交易 ─────────────────────
     r = client.post(
         f"/saves/{save_id}/orders",
@@ -435,6 +566,26 @@ def run(client, account, password, state):
         headers=headers,
     )
     check("12c. CLOSED phase rejects orders -> 4xx", r.status_code >= 400, f"{r.status_code}: {r.text}")
+
+    # ── 12d-12e. 單檔股票詳細資訊（CLOSED）───────────────────────────
+    r = client.get(f"/saves/{save_id}/stocks/{STOCK_ID}", headers=headers)
+    check("12d. get save-scoped stock detail (CLOSED) 200", r.status_code == 200, f"{r.status_code}: {r.text}")
+    if r.status_code == 200:
+        detail = r.json()
+        check(
+            "12e. CLOSED current_price == today's close_price",
+            detail.get("current_price") == close_price_today,
+            detail,
+        )
+        check(
+            "12f. CLOSED open/high/low/close/volume still reflect today's data",
+            detail.get("open_price") == open_price
+            and detail.get("high_price") == high_price_today
+            and detail.get("low_price") == low_price_today
+            and detail.get("close_price") == close_price_today
+            and detail.get("volume") == volume_today,
+            detail,
+        )
 
     # ── 13. 持股 / 成交紀錄 ───────────────────────────────────────────
     r = client.get(f"/saves/{save_id}/holdings", headers=headers)
