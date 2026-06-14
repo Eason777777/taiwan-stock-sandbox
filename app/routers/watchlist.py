@@ -36,15 +36,60 @@ async def get_watchlist(
     current_user: dict = Depends(get_current_user),
 ):
     await _fetch_save_owned(save_id, current_user, db)
-    result = await db.query(
-        "SELECT w.stock_id, s.stock_name_zh, s.market_type, s.sector_name"
-        " FROM watchlists w"
-        " JOIN stocks s ON s.stock_id = w.stock_id"
-        " WHERE w.save_id = ?"
-        " ORDER BY w.stock_id",
+
+    save_result = await db.query(
+        "SELECT current_trade_date, current_phase FROM save_files WHERE save_id = ?",
         [int(save_id)],
     )
-    return result["rows"]
+    current_trade_date = str(save_result["rows"][0]["current_trade_date"])[:10]
+    current_phase = save_result["rows"][0]["current_phase"]
+
+    if current_phase == "PRE_MARKET":
+        prev_result = await db.query(
+            "SELECT MAX(trade_date) AS prev_date FROM daily_prices WHERE trade_date < ?",
+            [current_trade_date],
+        )
+        price_date = str(prev_result["rows"][0]["prev_date"])[:10] if prev_result["rows"][0]["prev_date"] else current_trade_date
+        price_col = "close_price"
+    elif current_phase == "INTRADAY":
+        price_date = current_trade_date
+        price_col = "open_price"
+    else:  # POST_MARKET / CLOSED
+        price_date = current_trade_date
+        price_col = "close_price"
+
+    result = await db.query(
+        f"SELECT w.stock_id, s.stock_name_zh, s.market_type, s.sector_name,"
+        f" dp_current.{price_col} AS current_price, dp_today.ref_price,"
+        f" dp_current.is_attention, dp_current.is_disposition, dp_current.is_full_delivery"
+        f" FROM watchlists w"
+        f" JOIN stocks s ON s.stock_id = w.stock_id"
+        f" LEFT JOIN daily_prices dp_current"
+        f"   ON dp_current.stock_id = w.stock_id AND dp_current.trade_date = ?"
+        f" LEFT JOIN daily_prices dp_today"
+        f"   ON dp_today.stock_id = w.stock_id AND dp_today.trade_date = ?"
+        f" WHERE w.save_id = ?"
+        f" ORDER BY w.stock_id",
+        [price_date, current_trade_date, int(save_id)],
+    )
+
+    rows = []
+    for row in result["rows"]:
+        row = dict(row)
+        cp = float(row["current_price"]) if row.get("current_price") is not None else None
+        rp = float(row["ref_price"]) if row.get("ref_price") is not None else None
+        row["current_price"] = cp
+        row["ref_price"] = rp
+        if current_phase == "PRE_MARKET" or cp is None or rp is None:
+            row["price_change"] = 0.0
+            row["price_change_percent"] = 0.0
+        else:
+            change = cp - rp
+            row["price_change"] = round(change, 2)
+            row["price_change_percent"] = round(change / rp * 100, 2) if rp != 0 else 0.0
+        rows.append(row)
+
+    return rows
 
 
 @router.post("", status_code=201)
