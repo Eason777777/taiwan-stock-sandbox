@@ -2,7 +2,7 @@
   <div class="fixed inset-0 z-[100] flex justify-center items-center w-full h-full bg-black/60 backdrop-blur-sm"
        v-if="currentView === 'add'" 
        @click.self="currentView = 'list'">
-    <AddSave @close="currentView = 'list'" />
+    <AddSave @close="currentView = 'list'" @refresh="onRefresh" />
   </div>
 
   <div class="min-w-[1000px] gap-[10px] z-50 p-[30px] bg-nature-800 border-nature-500 border-[10px] w-[80%] h-fit flex flex-col"
