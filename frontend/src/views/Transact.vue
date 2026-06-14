@@ -13,6 +13,9 @@
       :stock-error="orderStockError"
       :price-error="orderPriceError"
       :quantity-error="orderQuantityError"
+      :prices="klinePrices"
+      v-model:timeframe="currentTimeframe"
+      :stock-name="orderStockName"
       @select-stock="handleOrderSelectStock"
       @search-stock="handleSearchStock"
       @load-more-stocks="handleLoadMoreStocks"
@@ -61,6 +64,9 @@ const searchIsLoading = ref(false)
 const searchQuery = ref('')
 
 const orderStockId = ref('')
+const orderStockName = ref('')
+const klinePrices = ref([])
+const currentTimeframe = ref('daily')
 const orderPrice = ref('')
 const orderQuantity = ref(1)
 const orderSide = ref('default')
@@ -183,12 +189,68 @@ watch(orderOrderType, async (newVal) => {
   }
 })
 
-// --- 3. 監聽股號更換，自動更新為參考價 ---
+// 載入 K 線價格資料的獨立函式
+const fetchKlinePrices = async (stockId, tf) => {
+  if (!props.saveId || !stockId) return
+  const intervalMap = { daily: 'day', weekly: 'week', monthly: 'month' }
+  const interval = intervalMap[tf] || 'day'
+  
+  try {
+    const res = await fetch(`/api/stocks/${stockId}/prices?save_id=${props.saveId}&interval=${interval}`, {
+      headers: {
+        'x-session-id': localStorage.getItem('session_id') || ''
+      }
+    })
+    if (res.ok) {
+      klinePrices.value = await res.json()
+    }
+  } catch (err) {
+    console.error('載入 K 線價格資料失敗:', err)
+  }
+}
+
+// 監聽時間週期切換
+watch(currentTimeframe, (newTf) => {
+  if (orderStockId.value) {
+    fetchKlinePrices(orderStockId.value, newTf)
+  }
+})
+
+// --- 3. 監聽股號更換，自動更新為參考價與 K 線資料 ---
 watch(orderStockId, async (newId) => {
   orderStockError.value = ''
+  
+  klinePrices.value = []
+  orderStockName.value = ''
+  
+  if (!newId) return
+
+  // 取得參考價
   if (orderOrderType.value === 'limit' || orderOrderType.value === 'default') {
     const refP = await getRefPrice(newId)
     orderPrice.value = refP ? refP.toString() : ''
+  }
+
+  // 載入 K 線歷史價格
+  if (currentTimeframe.value === 'daily') {
+    await fetchKlinePrices(newId, 'daily')
+  } else {
+    currentTimeframe.value = 'daily'
+  }
+
+  // 載入股票名稱
+  try {
+    const res = await fetch(`/api/saves/${props.saveId}/stocks/${newId}`, {
+      headers: {
+        'x-session-id': localStorage.getItem('session_id') || ''
+      }
+    })
+    if (res.ok) {
+      const detail = await res.json()
+      orderStockName.value = detail.stock_name_zh || ''
+    }
+  } catch (err) {
+    console.error('取得股票名稱失敗:', err)
   }
 })
 
@@ -196,8 +258,6 @@ watch(orderStockId, async (newId) => {
 const handleOrderSelectStock = async (stock) => {
   const stockId = typeof stock === 'object' && stock !== null ? stock.stock_id : stock
   orderStockId.value = stockId
-  const refP = await getRefPrice(stockId)
-  orderPrice.value = refP ? refP.toString() : ''
 }
 
 // --- 4. 送出下單委託 API ---
