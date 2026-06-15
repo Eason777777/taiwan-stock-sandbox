@@ -116,7 +116,6 @@ const handleLogin = async () => {
 
     if (response.ok) {
       // 成功：接收 session_id
-      console.log('登入成功，取得 Session ID:', data.session_id)
       localStorage.setItem('session_id', data.session_id)
       isShowSaveModal.value = true
     } else {
@@ -124,8 +123,7 @@ const handleLogin = async () => {
       errorMessage.value = data.detail || '登入失敗，請檢查帳號密碼'
     }
 
-  } catch (error) {
-    console.error('API 請求發生錯誤:', error)
+  } catch {
     errorMessage.value = '無法連線到伺服器，請確保後端已啟動。'
   } finally {
     isLoading.value = false

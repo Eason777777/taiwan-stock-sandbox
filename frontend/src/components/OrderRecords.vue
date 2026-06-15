@@ -235,7 +235,6 @@
     const saveId = route.query.saveId
 
     if (!saveId) {
-      console.error('缺少存檔 ID，無法載入資料')
       isLoading.value = false
       return
     }
@@ -249,16 +248,12 @@
 
       if (response.ok) {
         const data = await response.json()
-        console.log('成功拿到股票交易資料:', data)
         saveRecords.value = data
-        
+
         calculateSummary(data)
-        
-      } else {
-        console.error('無法取得交易紀錄...')
+
       }
-    } catch (error) {
-      console.error('API 連線失敗:', error)
+    } catch {
     } finally {
       isLoading.value = false
     }

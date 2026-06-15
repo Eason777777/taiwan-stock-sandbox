@@ -86,15 +86,13 @@ const submitSave = async () => {
             }).join('\n');
             
             showToast(`資料格式錯誤：${errorMessages}`, { type: 'error' });
-            console.error("詳細驗證錯誤:", errorData.detail); // 偷偷印在 F12 方便工程師除錯
 
         } else {
             // 普通字串錯誤 (例如你寫的「已存在同名存檔」)
             showToast(`建立失敗：${errorData.detail}`, { type: 'error' })
         }
 }
-    } catch (error) {
-        console.error('API 連線失敗:', error)
+    } catch {
         showToast('伺服器連線異常，請稍後再試。', { type: 'error' })
     } finally {
         isSubmitting.value = false

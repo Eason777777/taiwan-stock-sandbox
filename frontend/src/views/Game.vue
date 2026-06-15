@@ -119,7 +119,6 @@ const syncBalances = (newDelivery, newSavings) => {
 // 7. 撈取後端存檔 API 的詳細狀態
 const fetchSaveDetail = async () => {
   if (!saveId.value) {
-    console.error('未指定存檔 ID！')
     // 降級處理：若無存檔 ID，先顯示預設值避免阻礙前端開發
     saveLoaded.value = true
     return
@@ -144,12 +143,10 @@ const fetchSaveDetail = async () => {
       deliveryAmount.value = data.trading_balance
       saveLoaded.value = true
     } else {
-      console.error('取得存檔資料失敗，可能登入已逾期。')
       // 降級退回登入頁
       router.push('/')
     }
   } catch (error) {
-    console.error('連線後端 API 異常:', error)
     // 降級以 Mock 運作，利於本機前端展示
     saveLoaded.value = true
   }

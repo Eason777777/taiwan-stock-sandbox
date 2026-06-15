@@ -141,8 +141,7 @@ const confirmRemove = async () => {
       const errorData = await response.json()
       showToast(`刪除失敗：${errorData.detail || '未知錯誤'}`, { type: 'error' })
     }
-  } catch (error) {
-    console.error('刪除 API 連線失敗:', error)
+  } catch {
     showToast('伺服器連線異常，請稍後再試。', { type: 'error' })
   }
 }

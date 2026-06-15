@@ -111,8 +111,7 @@ const fetchHoldings = async () => {
     if (response.ok) {
       rawHoldings.value = await response.json()
     }
-  } catch (error) {
-    console.error('撈取持股庫存異常:', error)
+  } catch {
   }
 }
 
@@ -143,8 +142,7 @@ const handleUpdateBalances = async (newDelivery, newSavings) => {
       const errorData = await response.json()
       showToast(`轉帳失敗：${errorData.detail || '帳戶餘額不足'}`, { type: 'error' })
     }
-  } catch (error) {
-    console.error('呼叫轉帳 API 連線異常:', error)
+  } catch {
     showToast('伺服器連線異常，請稍後再試。', { type: 'error' })
   }
 }
@@ -164,8 +162,7 @@ const fetchKlinePrices = async (stockId, tf) => {
     if (res.ok) {
       klinePrices.value = await res.json()
     }
-  } catch (err) {
-    console.error('載入 K 線價格資料失敗:', err)
+  } catch {
   }
 }
 
@@ -218,8 +215,7 @@ const handleSelectStock = async (stockId) => {
 
     selectedStockHoldings.value = holding.quantity
     showStockInfoModal.value = true
-  } catch (err) {
-    console.error('載入股票詳細失敗:', err)
+  } catch {
     selectedStockHoldings.value = holding.quantity
     showStockInfoModal.value = true
   }
@@ -280,8 +276,7 @@ const handleViewCompanyInfo = async (stockId) => {
 
     showStockInfoModal.value = false
     showCompanyInfoModal.value = true
-  } catch (err) {
-    console.error('載入基本面資料與暫停交易紀錄失敗:', err)
+  } catch {
     showToast('載入公司資料失敗，請稍後再試。', { type: 'error' })
   }
 }

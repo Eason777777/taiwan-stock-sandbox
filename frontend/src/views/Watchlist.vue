@@ -157,8 +157,7 @@ const loadWatchlist = async () => {
         sector_name: item.sector_name
       }
     })
-  } catch (error) {
-    console.error('取得自選清單異常:', error)
+  } catch {
   }
 }
 
@@ -190,8 +189,7 @@ const handleNextPhase = async () => {
       const errorData = await response.json()
       showToast(`推進失敗：${errorData.detail || '未知錯誤'}`, { type: 'error' })
     }
-  } catch (error) {
-    console.error('推進階段連線異常:', error)
+  } catch {
   }
 }
 
@@ -206,8 +204,7 @@ const fetchSectors = async () => {
     if (res.ok) {
       sectorsList.value = await res.json()
     }
-  } catch (e) {
-    console.error('載載產業別失敗:', e)
+  } catch {
   }
 }
 
@@ -240,8 +237,7 @@ const fetchStocksPage = async (reset = false) => {
       stocksDb.value = reset ? rows : [...stocksDb.value, ...rows]
       addOffset.value += rows.length
     }
-  } catch (error) {
-    console.error('載入股票分頁失敗:', error)
+  } catch {
   } finally {
     addIsLoading.value = false
   }
@@ -305,8 +301,7 @@ const confirmAddWatchlist = async () => {
 
     closeAddWatchlist()
     loadWatchlist()
-  } catch (error) {
-    console.error('同步自選股清單失敗:', error)
+  } catch {
     showToast('自選股更新失敗，請重試。', { type: 'error' })
   }
 }
@@ -326,8 +321,7 @@ const fetchKlinePrices = async (stockId, tf) => {
     if (res.ok) {
       klinePrices.value = await res.json()
     }
-  } catch (err) {
-    console.error('載入 K 線價格資料失敗:', err)
+  } catch {
   }
 }
 
@@ -392,8 +386,7 @@ const handleSelectStock = async (stockId) => {
     }
     
     showStockInfoModal.value = true
-  } catch (err) {
-    console.error('載入股票詳細失敗:', err)
+  } catch {
     selectedStockHoldings.value = 0
     showStockInfoModal.value = true
   }
@@ -455,8 +448,7 @@ const handleViewCompanyInfo = async (stockId) => {
 
     showStockInfoModal.value = false
     showCompanyInfoModal.value = true
-  } catch (err) {
-    console.error('載入基本面資料與暫停交易紀錄失敗:', err)
+  } catch {
     showToast('載入公司資料失敗，請稍後再試。', { type: 'error' })
   }
 }

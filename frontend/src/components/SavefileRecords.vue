@@ -218,13 +218,9 @@
 
       if (response.ok) {
         const data = await response.json()
-        console.log('✅ 成功拿到後端資料:', data) 
         saveRecords.value = data
-      } else {
-        console.error('無法取得存檔，可能是尚未登入或 Session 過期')
       }
-    } catch (error) {
-      console.error('API 連線失敗:', error)
+    } catch {
     } finally {
       isLoading.value = false
     }
@@ -240,7 +236,6 @@
   }
 
   const loadGame = (recordId) => {
-    console.log('準備讀取存檔 ID:', recordId)
     router.push({
       path: '/game/custom',
       query: { saveId: recordId }

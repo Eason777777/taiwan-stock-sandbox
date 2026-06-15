@@ -57,9 +57,6 @@
 <script setup>
 import { ref } from 'vue'
 import { showToast } from '../components/Toast.vue'
-// 如果你有設定 Vue Router，通常登入成功後會用它來跳轉頁面
-// import { useRouter } from 'vue-router'
-// const router = useRouter()
 
 // --- 變數狀態管理 ---
 const username = ref('')
@@ -95,15 +92,13 @@ const handleSignUp = async () => {
 
     if (response.ok) {
       // 成功：接收 session_id
-      console.log('註冊成功', data.message)
       showToast('註冊成功！', { type: 'success' })
     } else {
       // 失敗：接住 FastAPI 的 detail 錯誤訊息
       errorMessage.value = data.detail || '註冊失敗，請檢查輸入資訊'
     }
 
-  } catch (error) {
-    console.error('API 請求發生錯誤:', error)
+  } catch {
     errorMessage.value = '無法連線到伺服器，請確保後端已啟動。'
   } finally {
     isLoading.value = false

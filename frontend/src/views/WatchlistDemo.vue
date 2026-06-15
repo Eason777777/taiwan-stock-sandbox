@@ -290,8 +290,6 @@ watch(orderStockId, (newId) => {
 
 // 點選股票，跳出詳細資訊彈窗 (自選股清單或持股清單點擊觸發)
 const handleSelectStock = (stockId) => {
-  console.log('點選股票代碼:', stockId)
-  
   const watchlistStock = mockStocks.value.find(s => s.id === stockId)
   const dbStock = demoStocksDb.find(s => s.stock_id === stockId)
   const holdingStock = demoHoldings.value.find(h => h.stock_id === stockId)

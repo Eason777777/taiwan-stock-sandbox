@@ -129,8 +129,7 @@ const fetchStocksPage = async (reset = false) => {
       stocksDb.value = reset ? rows : [...stocksDb.value, ...rows]
       searchOffset.value += rows.length
     }
-  } catch (error) {
-    console.error('載入股票分頁失敗:', error)
+  } catch {
   } finally {
     searchIsLoading.value = false
   }
@@ -193,8 +192,7 @@ const getRefPrice = async (stockId) => {
         return latest.close_price || latest.ref_price || 100
       }
     }
-  } catch (e) {
-    console.error('獲取參考價失敗', e)
+  } catch {
   }
   return 100
 }
@@ -227,8 +225,7 @@ const fetchKlinePrices = async (stockId, tf) => {
     if (res.ok) {
       klinePrices.value = await res.json()
     }
-  } catch (err) {
-    console.error('載入 K 線價格資料失敗:', err)
+  } catch {
   }
 }
 
@@ -272,8 +269,7 @@ watch(orderStockId, async (newId) => {
       const detail = await res.json()
       orderStockName.value = detail.stock_name_zh || ''
     }
-  } catch (err) {
-    console.error('取得股票名稱失敗:', err)
+  } catch {
   }
 })
 
@@ -353,8 +349,7 @@ const handleOrderSubmit = async () => {
       const errorData = await response.json()
       showToast(`下單失敗：${errorData.detail || '餘額不足或非交易時段'}`, { type: 'error' })
     }
-  } catch (error) {
-    console.error('呼叫下單 API 連線異常:', error)
+  } catch {
     showToast('伺服器連線異常，請稍後再試。', { type: 'error' })
   }
 }
@@ -382,8 +377,7 @@ const fetchOrders = async () => {
     if (response.ok) {
       ordersList.value = await response.json()
     }
-  } catch (error) {
-    console.error('載入委託紀錄失敗:', error)
+  } catch {
   }
 }
 
@@ -418,8 +412,7 @@ const confirmCancelOrder = async () => {
       const errorData = await response.json()
       showToast(`撤單失敗：${errorData.detail || '已成交或已過期'}`, { type: 'error' })
     }
-  } catch (error) {
-    console.error('撤單 API 連線異常:', error)
+  } catch {
     showToast('伺服器連線異常，請稍後再試。', { type: 'error' })
   }
 }

@@ -97,8 +97,7 @@ const selectTab = (tab) => {
 const handleLogout = async () => {
   try {
     await apiFetch('/api/auth/logout', { method: 'POST' })
-  } catch (error) {
-    console.error('登出 API 連線異常:', error)
+  } catch {
   } finally {
     localStorage.removeItem('session_id')
     localStorage.setItem('logout_message', '已登出')

@@ -200,7 +200,6 @@
     const saveId = route.query.saveId
 
     if (!saveId) {
-      console.error('缺少存檔 ID，無法載入資料')
       isLoading.value = false
       return
     }
@@ -215,13 +214,9 @@
 
       if (response.ok) {
         const data = await response.json()
-        console.log('成功拿到後端資料:', data)
         saveRecords.value = data
-      } else {
-        console.error('無法取得交易紀錄，可能是尚未登入、Session 過期，或無權限存取此存檔')
       }
-    } catch (error) {
-      console.error('API 連線失敗:', error)
+    } catch {
     } finally {
       isLoading.value = false
     }
