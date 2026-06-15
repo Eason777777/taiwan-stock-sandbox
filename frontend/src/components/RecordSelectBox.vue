@@ -35,6 +35,8 @@ const title = computed(() => {
         return '轉帳紀錄'
     } else if (props.titleType === 3) {
         return '存檔記錄'
+    } else if (props.titleType === 4) {
+        return '委託紀錄'
     }
 
     return 'NaN'

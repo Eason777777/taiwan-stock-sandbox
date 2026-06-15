@@ -28,7 +28,8 @@
         <div class="absolute z-100 right-0">
             <RecordSelectBox :titleType="1" @select="handleSelect" />
             <RecordSelectBox :titleType="2" @select="handleSelect" />
-            <RecordSelectBox :titleType="3" :hasBottomBorder="true" @select="handleSelect" />
+            <RecordSelectBox :titleType="3" @select="handleSelect" />
+            <RecordSelectBox :titleType="4" :hasBottomBorder="true" @select="handleSelect" />
         </div>
     </div>
 </template>
@@ -52,7 +53,7 @@ const router = useRouter()
 const parseRecordType = (value, fallback = 1) => {
     const type = Number(value)
 
-    if ([1, 2, 3].includes(type)) {
+    if ([1, 2, 3, 4].includes(type)) {
         return type
     }
 
@@ -90,6 +91,8 @@ const titleName = computed(() => {
         return '轉帳紀錄'
     } else if (selectedType.value === 3) {
         return '存檔記錄'
+    } else if (selectedType.value === 4) {
+        return '委託紀錄'
     }
 
     return 'NaN'
