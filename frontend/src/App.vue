@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
-import { RouterView, useRouter } from 'vue-router'
+import { RouterView } from 'vue-router'
 import SessionExpiredModal from './components/SessionExpiredModal.vue'
 import { apiFetch } from './api/client.js'
 
@@ -10,7 +10,6 @@ import { apiFetch } from './api/client.js'
 // apiFetch 隨即發射 'session-expired' 事件，這裡監聽並彈出 Modal。
 // 放在 App.vue（最頂層、永遠掛載）而非 Game.vue，讓偵測在任何頁面都生效。
 
-const router = useRouter()
 const showExpiredModal = ref(false)
 
 const PING_INTERVAL_MS = 2000
@@ -38,8 +37,11 @@ const onSessionExpired = () => {
 
 const handleExpiredClose = () => {
   showExpiredModal.value = false
-  // apiFetch 收到 session_expired 時已清掉 session_id，這裡導回登入頁
-  router.push('/')
+  // apiFetch 收到 session_expired 時已清掉 session_id。
+  // 用整頁導向（而非 router.push）回登入頁：使用者可能已經在 '/' 路由
+  // （例如停在登入頁彈出的存檔列表子彈窗上），此時 router.push('/') 不會有作用；
+  // 整頁重載可一併清掉所有殘留的 in-memory 狀態，確保回到乾淨的登入畫面。
+  window.location.assign('/')
 }
 
 onMounted(() => {
