@@ -9,6 +9,7 @@
       :savings="savingsAmount.toLocaleString()"
       :delivery="deliveryAmount.toLocaleString()"
       :username="username"
+      :save-name="saveName"
     />
 
     <!-- 2. 主內容渲染區 (透過 router-view 傳遞狀態至各分頁，使用 keep-alive 快取狀態) -->
@@ -70,6 +71,7 @@ const saveStatus = ref('ACTIVE')
 const savingsAmount = ref(1000)
 const deliveryAmount = ref(2000)
 const username = ref('')
+const saveName = ref('')
 
 // 3. 格式化顯示欄位
 const formattedDate = computed(() => {
@@ -137,6 +139,7 @@ const fetchSaveDetail = async () => {
       gameDate.value = data.current_trade_date
       gamePhase.value = data.current_phase
       saveStatus.value = data.status
+      saveName.value = data.save_name
       savingsAmount.value = data.savings_balance
       deliveryAmount.value = data.trading_balance
       saveLoaded.value = true
