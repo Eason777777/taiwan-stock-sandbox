@@ -56,6 +56,7 @@
 
 <script setup>  
 import { apiFetch } from '../api/client.js'
+import { showToast } from './Toast.vue'
 
 // 🚀 1. 宣告接收從父元件傳來的 saveRecords
 const props = defineProps({
@@ -102,24 +103,24 @@ const removeSave = async (recordId) => {
       // 🚀 注意：因為後端是 204 No Content，這裡不需要也「不能」寫 response.json()
       if (recordId === props.currentSaveId) {
         // 刪除的是玩家目前正在遊玩的存檔，狀態已不存在，強制登出回登入頁
-        alert('你已刪除目前所在的存檔，將強制登出。')
+        showToast('你已刪除目前所在的存檔，將強制登出。', { type: 'error', duration: 1500 })
         localStorage.removeItem('session_id')
-        window.location.assign('/')
+        setTimeout(() => window.location.assign('/'), 1500)
         return
       }
 
-      alert('存檔已徹底刪除！')
+      showToast('存檔已徹底刪除！', { type: 'success' })
 
       // 告訴父元件 (SaveRecords.vue) 去重新要一次最新的列表
       emit('refresh')
     } else {
       // 只有失敗時 (例如 403, 404)，後端才會傳回含有 detail 的 JSON 錯誤訊息
       const errorData = await response.json()
-      alert(`刪除失敗：${errorData.detail || '未知錯誤'}`)
+      showToast(`刪除失敗：${errorData.detail || '未知錯誤'}`, { type: 'error' })
     }
   } catch (error) {
     console.error('刪除 API 連線失敗:', error)
-    alert('伺服器連線異常，請稍後再試。')
+    showToast('伺服器連線異常，請稍後再試。', { type: 'error' })
   }
 }
 </script>

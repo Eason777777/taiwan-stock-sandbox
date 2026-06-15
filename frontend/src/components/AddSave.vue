@@ -22,6 +22,7 @@
 import { ref } from 'vue'
 import Input from './Input.vue'
 import { apiFetch } from '../api/client.js'
+import { showToast } from './Toast.vue'
 
 const emit = defineEmits(['close', 'refresh'])
 
@@ -34,7 +35,7 @@ const isSubmitting = ref(false) // 防止重複點擊
 const submitSave = async () => {
     // 簡單的前端防呆：存檔名稱必填
     if (!saveName.value.trim()) {
-        alert('請輸入存檔名稱！')
+        showToast('請輸入存檔名稱！', { type: 'warning' })
         return
     }
 
@@ -56,7 +57,7 @@ const submitSave = async () => {
         })
 
         if (response.ok) {
-        alert('存檔建立成功！')
+        showToast('存檔建立成功！', { type: 'success' })
         emit('refresh')
         emit('close')
     } else {
@@ -72,17 +73,17 @@ const submitSave = async () => {
                 return `- 欄位 [${field}]: ${err.msg}`;
             }).join('\n');
             
-            alert(`資料格式錯誤：\n${errorMessages}`);
+            showToast(`資料格式錯誤：${errorMessages}`, { type: 'error' });
             console.error("詳細驗證錯誤:", errorData.detail); // 偷偷印在 F12 方便工程師除錯
-            
+
         } else {
             // 普通字串錯誤 (例如你寫的「已存在同名存檔」)
-            alert(`建立失敗：${errorData.detail}`)
+            showToast(`建立失敗：${errorData.detail}`, { type: 'error' })
         }
 }
     } catch (error) {
         console.error('API 連線失敗:', error)
-        alert('伺服器連線異常，請稍後再試。')
+        showToast('伺服器連線異常，請稍後再試。', { type: 'error' })
     } finally {
         isSubmitting.value = false
     }

@@ -33,6 +33,7 @@
 import { ref, watch, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import OrderCard from '../components/OrderCard.vue'
+import { showToast } from '../components/Toast.vue'
 
 const props = defineProps({
   saveId: {
@@ -281,11 +282,11 @@ const handleOrderSubmit = async () => {
     return
   }
   if (orderSide.value === 'default') {
-    alert('請選擇買入或賣出！')
+    showToast('請選擇買入或賣出！', { type: 'warning' })
     return
   }
   if (orderOrderType.value === 'default') {
-    alert('請選擇委託類型！')
+    showToast('請選擇委託類型！', { type: 'warning' })
     return
   }
   if (!orderQuantity.value || orderQuantity.value < 1) {
@@ -325,7 +326,7 @@ const handleOrderSubmit = async () => {
     })
 
     if (response.ok) {
-      alert('委託下單成功！')
+      showToast('委託下單成功！', { type: 'success' })
       emit('refresh-save') // 刷新 Game.vue 之帳戶資金
       fetchOrders()
       
@@ -337,11 +338,11 @@ const handleOrderSubmit = async () => {
       orderOrderType.value = 'default'
     } else {
       const errorData = await response.json()
-      alert(`下單失敗：${errorData.detail || '餘額不足或非交易時段'}`)
+      showToast(`下單失敗：${errorData.detail || '餘額不足或非交易時段'}`, { type: 'error' })
     }
   } catch (error) {
     console.error('呼叫下單 API 連線異常:', error)
-    alert('伺服器連線異常，請稍後再試。')
+    showToast('伺服器連線異常，請稍後再試。', { type: 'error' })
   }
 }
 

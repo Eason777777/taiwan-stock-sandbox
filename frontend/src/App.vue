@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { RouterView } from 'vue-router'
 import SessionExpiredModal from './components/SessionExpiredModal.vue'
+import Toast from './components/Toast.vue'
 import { apiFetch } from './api/client.js'
 
 // 全域 session 閒置偵測：只要登入後（localStorage 有 session_id），
@@ -59,6 +60,8 @@ onUnmounted(() => {
   <RouterView />
   <!-- session 因長時間未操作而過期時，在任何頁面都能彈出提示 -->
   <SessionExpiredModal v-if="showExpiredModal" @close="handleExpiredClose" />
+  <!-- 全域 toast 提示，取代 alert() -->
+  <Toast />
 </template>
 
 <style scoped></style>
