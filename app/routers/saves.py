@@ -166,18 +166,17 @@ async def _settle_buy(
     fee: int,
     trading_balance: float,
     next_seq: int,
-) -> tuple[float, int] | None:
-    """結算單筆 BUY 成交。回傳 (結算後餘額, 下一個 seq)；資金不足則回傳 None（破產）。"""
+) -> tuple[float, int, bool]:
+    """結算單筆 BUY 成交。回傳 (結算後餘額, 下一個 seq, 是否資金不足)。
+
+    資金不足時仍正常成交（先做再判定）；結算後餘額 clamp 至 0（避免違反
+    save_files 的 chk_save_files_balances >= 0 限制），並回傳 insufficient=True
+    供呼叫端判斷是否需將存檔標記為 BANKRUPT。
+    """
     order_id = int(order["order_id"])
     stock_id = str(order["stock_id"])
     quantity = int(order["quantity"])
     total_cost = principal + fee
-
-    if trading_balance < total_cost:
-        # 交割戶餘額不足：存檔破產，終止該存檔本次的交易與時間推進
-        # 此單已透過搶佔 UPDATE 標記為 FILLED，但實際未成交，復原為 PENDING
-        await db.query("UPDATE stock_orders SET status = 'PENDING' WHERE order_id = ?", [order_id])
-        return None
 
     holding_rows = (await db.query(
         "SELECT quantity, avg_cost FROM holdings WHERE save_id = ? AND stock_id = ?",
@@ -189,7 +188,9 @@ async def _settle_buy(
 
     new_qty = old_qty + quantity
     new_avg = (old_avg * old_qty + exec_price * quantity) / new_qty
-    new_balance = trading_balance - total_cost
+    raw_balance = trading_balance - total_cost
+    insufficient = raw_balance < 0
+    new_balance = max(raw_balance, 0)
 
     if has_holding:
         await db.query(
@@ -211,7 +212,7 @@ async def _settle_buy(
     )
 
     await _record_fill(db, order_id, exec_price, quantity, fee, 0, new_avg)
-    return new_balance, next_seq + 1
+    return new_balance, next_seq + 1, insufficient
 
 
 async def _settle_sell(
@@ -262,27 +263,32 @@ async def _settle_sell(
     return new_balance, next_seq + 1
 
 
-async def _settle_phase(db: SqlApiClient, save: dict, phase_to_settle: str) -> tuple[float, bool]:
+async def _settle_phase(db: SqlApiClient, save: dict, phase_to_settle: str) -> tuple[float, bool, list[dict]]:
     """結算指定階段（phase_to_settle）送出且尚未結算的委託單。
 
-    回傳 (結算後的交割戶餘額, 是否破產)。
+    回傳 (結算後的交割戶餘額, 是否破產, 本次結算為 FILLED/EXPIRED 的委託明細列表)。
     """
     save_id = int(save["save_id"])
     sim_date = str(save["current_trade_date"])[:10]
     trading_balance = float(save["trading_balance"])
 
     orders = (await db.query(
-        "SELECT * FROM stock_orders WHERE save_id = ? AND phase = ? AND status = 'PENDING'",
+        "SELECT o.*, s.stock_name_zh FROM stock_orders o"
+        " JOIN stocks s ON s.stock_id = o.stock_id"
+        " WHERE o.save_id = ? AND o.phase = ? AND o.status = 'PENDING'",
         [save_id, phase_to_settle],
     ))["rows"]
 
     if not orders:
-        return trading_balance, False
+        return trading_balance, False, []
 
     seq_row = (await db.query(
         "SELECT COALESCE(MAX(seq), 0) AS max_seq FROM account_transactions WHERE save_id = ?", [save_id],
     ))["rows"][0]
     next_seq = int(seq_row["max_seq"]) + 1
+
+    bankrupt = False
+    settled_orders: list[dict] = []
 
     for order in orders:
         order_id = int(order["order_id"])
@@ -311,11 +317,35 @@ async def _settle_phase(db: SqlApiClient, save: dict, phase_to_settle: str) -> t
 
         if not dp_rows:
             await db.query("UPDATE stock_orders SET status = 'EXPIRED' WHERE order_id = ?", [order_id])
+            settled_orders.append({
+                "order_id": order_id,
+                "stock_id": stock_id,
+                "stock_name_zh": order["stock_name_zh"],
+                "side": side,
+                "order_type": order_type,
+                "quantity": quantity,
+                "price": price,
+                "status": "EXPIRED",
+                "exec_price": None,
+                "net_amount": None,
+            })
             continue
 
         exec_price = _compute_exec_price(phase_to_settle, side, order_type, price, dp_rows[0])
         if exec_price is None:
             await db.query("UPDATE stock_orders SET status = 'EXPIRED' WHERE order_id = ?", [order_id])
+            settled_orders.append({
+                "order_id": order_id,
+                "stock_id": stock_id,
+                "stock_name_zh": order["stock_name_zh"],
+                "side": side,
+                "order_type": order_type,
+                "quantity": quantity,
+                "price": price,
+                "status": "EXPIRED",
+                "exec_price": None,
+                "net_amount": None,
+            })
             continue
 
         # 成交本金（元）：tick size 最多 2 位小數 * 1000 股，理論上必為整數，先 round 消除浮點誤差
@@ -323,16 +353,32 @@ async def _settle_phase(db: SqlApiClient, save: dict, phase_to_settle: str) -> t
         fee, tax = _compute_fee_tax(principal, side)
 
         if side == "BUY":
-            result = await _settle_buy(db, save_id, sim_date, order, exec_price, principal, fee, trading_balance, next_seq)
-            if result is None:
-                return trading_balance, True
-            trading_balance, next_seq = result
+            trading_balance, next_seq, insufficient = await _settle_buy(
+                db, save_id, sim_date, order, exec_price, principal, fee, trading_balance, next_seq,
+            )
+            if insufficient:
+                bankrupt = True
+            net_amount = principal + fee
         else:
             trading_balance, next_seq = await _settle_sell(
                 db, save_id, sim_date, order, exec_price, principal, fee, tax, trading_balance, next_seq,
             )
+            net_amount = principal - fee - tax
 
-    return trading_balance, False
+        settled_orders.append({
+            "order_id": order_id,
+            "stock_id": stock_id,
+            "stock_name_zh": order["stock_name_zh"],
+            "side": side,
+            "order_type": order_type,
+            "quantity": quantity,
+            "price": price,
+            "status": "FILLED",
+            "exec_price": exec_price,
+            "net_amount": net_amount,
+        })
+
+    return trading_balance, bankrupt, settled_orders
 
 
 @router.get("")
@@ -532,7 +578,7 @@ async def delete_save(
 
 async def _advance_within_day(db: SqlApiClient, save: dict, save_id: int, phase: str, current_date: str) -> dict:
     """結算「目前階段」自己送出且尚未結算的委託單，再切換到下一階段。"""
-    new_balance, bankrupt = await _settle_phase(db, save, phase)
+    new_balance, bankrupt, settled_orders = await _settle_phase(db, save, phase)
     next_phase = PHASE_SEQUENCE[PHASE_SEQUENCE.index(phase) + 1]
     new_status = "BANKRUPT" if bankrupt else "ACTIVE"
 
@@ -541,19 +587,29 @@ async def _advance_within_day(db: SqlApiClient, save: dict, save_id: int, phase:
         " WHERE save_id = ?",
         [next_phase, int(new_balance), new_status, save_id],
     )
-    return {"current_phase": next_phase, "current_trade_date": current_date, "status": new_status}
+    return {
+        "current_phase": next_phase,
+        "current_trade_date": current_date,
+        "status": new_status,
+        "settled_orders": settled_orders,
+    }
 
 
 async def _advance_from_closed(db: SqlApiClient, save: dict, save_id: int, current_date: str) -> dict:
     """CLOSED -> 結算盤後定價單 -> 下一交易日盤前 或 FINISHED。"""
-    new_balance, bankrupt = await _settle_phase(db, save, "POST_MARKET")
+    new_balance, bankrupt, settled_orders = await _settle_phase(db, save, "POST_MARKET")
 
     if bankrupt:
         await db.query(
             "UPDATE save_files SET trading_balance = ?, status = 'BANKRUPT', advancing = 0 WHERE save_id = ?",
             [int(new_balance), save_id],
         )
-        return {"current_phase": "CLOSED", "current_trade_date": current_date, "status": "BANKRUPT"}
+        return {
+            "current_phase": "CLOSED",
+            "current_trade_date": current_date,
+            "status": "BANKRUPT",
+            "settled_orders": settled_orders,
+        }
 
     next_date_rows = (await db.query(
         "SELECT MIN(trade_date) AS next_date FROM daily_prices WHERE trade_date > ?", [current_date],
@@ -565,7 +621,12 @@ async def _advance_from_closed(db: SqlApiClient, save: dict, save_id: int, curre
             "UPDATE save_files SET trading_balance = ?, status = 'FINISHED', advancing = 0 WHERE save_id = ?",
             [int(new_balance), save_id],
         )
-        return {"current_phase": "CLOSED", "current_trade_date": current_date, "status": "FINISHED"}
+        return {
+            "current_phase": "CLOSED",
+            "current_trade_date": current_date,
+            "status": "FINISHED",
+            "settled_orders": settled_orders,
+        }
 
     next_date = str(next_date)[:10]
     await db.query(
@@ -573,7 +634,12 @@ async def _advance_from_closed(db: SqlApiClient, save: dict, save_id: int, curre
         " advancing = 0 WHERE save_id = ?",
         [next_date, int(new_balance), save_id],
     )
-    return {"current_phase": "PRE_MARKET", "current_trade_date": next_date, "status": "ACTIVE"}
+    return {
+        "current_phase": "PRE_MARKET",
+        "current_trade_date": next_date,
+        "status": "ACTIVE",
+        "settled_orders": settled_orders,
+    }
 
 
 @router.post("/{save_id}/advance")

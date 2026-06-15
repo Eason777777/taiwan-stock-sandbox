@@ -454,6 +454,47 @@ def test_advance_pre_market_to_intraday(flow):
     assert r.json().get("current_phase") == "INTRADAY", r.json()
 
 
+def test_advance_to_intraday_settled_orders_schema(flow):
+    data = flow["advance_to_intraday"].json()
+    assert "settled_orders" in data, data
+    assert isinstance(data["settled_orders"], list), data
+
+
+def test_pre_market_order_in_settled_orders(flow):
+    if not flow["order_id"]:
+        pytest.skip("沒有成功下單，跳過")
+
+    settled = flow["advance_to_intraday"].json().get("settled_orders", [])
+    entry = next((o for o in settled if o.get("order_id") == flow["order_id"]), None)
+    assert entry is not None, settled
+
+    for key in ("order_id", "stock_id", "stock_name_zh", "side", "order_type",
+                "quantity", "price", "status", "exec_price", "net_amount"):
+        assert key in entry, entry
+
+    assert entry["stock_id"] == STOCK_ID, entry
+    assert entry["side"] == "BUY", entry
+    assert entry["order_type"] == "LIMIT", entry
+    assert entry["quantity"] == 1, entry
+    assert entry["stock_name_zh"], entry  # 中文名稱非空
+
+    rows = flow["pre_market_order_row"]
+    if rows and rows[0]["status"] == "FILLED":
+        # 【買入成交】xxx N 張，成交價 exec_price 元，扣款 net_amount 元
+        assert entry["status"] == "FILLED", entry
+        open_price = flow["today"]["open_price"]
+        assert entry["exec_price"] == open_price, entry
+
+        principal = round(open_price * entry["quantity"] * 1000)
+        fee = max(20, principal * 1425 // 1000000)
+        assert entry["net_amount"] == principal + fee, entry
+    else:
+        # 【委託逾期】xxx N 張，已失效
+        assert entry["status"] == "EXPIRED", entry
+        assert entry["exec_price"] is None, entry
+        assert entry["net_amount"] is None, entry
+
+
 def test_pre_market_order_settled(flow):
     if not flow["order_id"]:
         pytest.skip("沒有成功下單，跳過")
@@ -513,6 +554,55 @@ def test_advance_intraday_to_post_market(flow):
     r = flow["advance_to_post_market"]
     assert r.status_code == 200, r.text
     assert r.json().get("current_phase") == "POST_MARKET", r.json()
+
+
+def test_advance_to_post_market_settled_orders_schema(flow):
+    data = flow["advance_to_post_market"].json()
+    assert "settled_orders" in data, data
+    assert isinstance(data["settled_orders"], list), data
+
+
+def test_advance_to_post_market_no_settled_orders_without_sell(flow):
+    if flow["has_holding"]:
+        pytest.skip("有盤中賣單，跳過")
+    data = flow["advance_to_post_market"].json()
+    assert data.get("settled_orders") == [], data
+
+
+def test_intraday_sell_in_settled_orders(flow):
+    if not flow["sell_order_id"]:
+        pytest.skip("沒有盤中賣單，跳過")
+
+    settled = flow["advance_to_post_market"].json().get("settled_orders", [])
+    entry = next((o for o in settled if o.get("order_id") == flow["sell_order_id"]), None)
+    assert entry is not None, settled
+
+    for key in ("order_id", "stock_id", "stock_name_zh", "side", "order_type",
+                "quantity", "price", "status", "exec_price", "net_amount"):
+        assert key in entry, entry
+
+    assert entry["stock_id"] == STOCK_ID, entry
+    assert entry["side"] == "SELL", entry
+    assert entry["order_type"] == "MARKET", entry
+    assert entry["quantity"] == 1, entry
+    assert entry["stock_name_zh"], entry
+
+    rows = flow["sell_order_row"]
+    if rows and rows[0]["status"] == "FILLED":
+        # 【賣出成交】xxx N 張，成交價 exec_price 元，入帳 net_amount 元
+        assert entry["status"] == "FILLED", entry
+        close_price = flow["today"]["close_price"]
+        assert entry["exec_price"] == close_price, entry
+
+        principal = round(close_price * entry["quantity"] * 1000)
+        fee = max(20, principal * 1425 // 1000000)
+        tax = principal * 3 // 1000
+        assert entry["net_amount"] == principal - fee - tax, entry
+    else:
+        # 【委託逾期】xxx N 張，已失效
+        assert entry["status"] == "EXPIRED", entry
+        assert entry["exec_price"] is None, entry
+        assert entry["net_amount"] is None, entry
 
 
 def test_intraday_sell_settled(flow):
@@ -575,6 +665,12 @@ def test_advance_post_market_to_closed(flow):
     assert r.json().get("current_phase") == "CLOSED", r.json()
 
 
+def test_advance_to_closed_settled_orders_schema(flow):
+    data = flow["advance_to_closed"].json()
+    assert "settled_orders" in data, data
+    assert isinstance(data["settled_orders"], list), data
+
+
 def test_closed_phase_rejects_orders(flow):
     assert flow["closed_order_reject"].status_code >= 400, flow["closed_order_reject"].text
 
@@ -633,6 +729,8 @@ def test_advance_closed_to_next_day(flow):
     data = r.json()
     assert data.get("current_phase") == "PRE_MARKET", data
     assert str(data.get("current_trade_date")) > START_DATE, data
+    assert "settled_orders" in data, data
+    assert isinstance(data["settled_orders"], list), data
 
 
 def test_post_market_order_settled_after_next_day(flow):
@@ -640,6 +738,45 @@ def test_post_market_order_settled_after_next_day(flow):
         pytest.skip("沒有盤後定價單，跳過")
     rows = flow["post_market_order_row"]
     assert rows and rows[0]["status"] in ("FILLED", "EXPIRED"), rows
+
+
+def test_post_market_order_in_settled_orders(flow):
+    if not flow["post_order_id"]:
+        pytest.skip("沒有盤後定價單，跳過")
+
+    # 盤後定價單可能在「收市」或「收市 -> 下一交易日」這兩次推進中的任一次被結算
+    settled = (
+        flow["advance_to_closed"].json().get("settled_orders", [])
+        + flow["advance_to_next_day"].json().get("settled_orders", [])
+    )
+    entry = next((o for o in settled if o.get("order_id") == flow["post_order_id"]), None)
+    assert entry is not None, settled
+
+    for key in ("order_id", "stock_id", "stock_name_zh", "side", "order_type",
+                "quantity", "price", "status", "exec_price", "net_amount"):
+        assert key in entry, entry
+
+    assert entry["stock_id"] == STOCK_ID, entry
+    assert entry["side"] == "BUY", entry
+    assert entry["order_type"] == "MARKET", entry
+    assert entry["quantity"] == 1, entry
+    assert entry["stock_name_zh"], entry
+
+    rows = flow["post_market_order_row"]
+    if rows and rows[0]["status"] == "FILLED":
+        # 【買入成交】xxx N 張，成交價 exec_price 元，扣款 net_amount 元
+        assert entry["status"] == "FILLED", entry
+        close_price = flow["today"]["close_price"]
+        assert entry["exec_price"] == close_price, entry
+
+        principal = round(close_price * entry["quantity"] * 1000)
+        fee = max(20, principal * 1425 // 1000000)
+        assert entry["net_amount"] == principal + fee, entry
+    else:
+        # 【委託逾期】xxx N 張，已失效
+        assert entry["status"] == "EXPIRED", entry
+        assert entry["exec_price"] is None, entry
+        assert entry["net_amount"] is None, entry
 
 
 # ── 16. 登出 / session 失效 ─────────────────────────────────────────────
