@@ -3,41 +3,41 @@
     class="fixed inset-0 z-[110] flex justify-center items-center bg-black/60 backdrop-blur-sm"
     @click.self="emit('close')"
   >
-    <div class="bg-nature-800 border-[10px] border-nature-500 rounded-lg px-20! py-10! flex flex-col gap-8 shadow-2xl w-237.5">
-      
+    <div class="bg-nature-800 border-[10px] border-nature-500 rounded-lg px-16! py-10! flex flex-col gap-8 shadow-2xl w-full max-w-[950px] mx-4">
+
       <!-- 左右帳戶金額與箭頭佈局 -->
-      <div class="flex items-start justify-between w-full px-0 gap-2 ">
-        <!-- 左側交割戶 -->
-        <div class="flex flex-col gap-2 items-stretch w-[330px]">
-          <span class="text-white font-sans text-04 font-normal text-left">交割戶</span>
-          <span class="text-white font-sans text-08 font-medium text-right mt-1">{{ deliveryBalance }}</span>
+      <div class="flex items-start justify-between w-full gap-4">
+        <!-- 左側交割戶 (文字與數字皆置中) -->
+        <div class="flex flex-col gap-2 items-center flex-1 min-w-0">
+          <span class="text-white font-sans text-04 font-normal w-full text-center">交割戶</span>
+          <span class="text-white font-sans text-08 font-medium mt-1 truncate max-w-full">{{ deliveryBalance }}</span>
         </div>
 
-        <!-- 中間箭頭 (對齊數字高度，使用 mt-[56px] 微調) -->
-        <div class="flex items-center justify-center py-12.5!">
+        <!-- 中間箭頭 (與數字列垂直置中對齊) -->
+        <div class="flex items-center justify-center shrink-0 self-start mt-[68px]">
           <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
             <path d="M18.6665 32H55.9998" stroke="#DEE2E6" stroke-width="4.33333" stroke-linecap="round" stroke-linejoin="round"/>
             <path d="M5.95058 31.5591L21.2593 20.6242C22.4066 19.8048 24.0002 20.6249 24.0002 22.0347V41.965C24.0002 43.3748 22.4066 44.1949 21.2593 43.3754L5.95058 32.4406C5.64814 32.2246 5.64814 31.7751 5.95058 31.5591Z" fill="#DEE2E6"/>
           </svg>
         </div>
 
-        <!-- 右側存款戶 (輸入框與錯誤訊息展示在數字下方) -->
-        <div class="flex flex-col gap-2 items-stretch w-[330px] relative">
-          <span class="text-white font-sans text-04 font-normal text-left">存款戶 [修改金額]</span>
-          <span class="text-white font-sans text-08 font-medium text-right mt-1">{{ savingsBalance }}</span>
-          
+        <!-- 右側存款戶 (文字、數字、輸入框皆置中) -->
+        <div class="flex flex-col gap-2 items-center flex-1 min-w-0 relative">
+          <span class="text-white font-sans text-04 font-normal w-full text-center">存款戶 [修改金額]</span>
+          <span class="text-white font-sans text-08 font-medium mt-1 truncate max-w-full">{{ savingsBalance }}</span>
+
           <!-- 輸入框與錯誤訊息 -->
-          <div class="flex items-center mt-4 self-end relative w-[330px]">
-              <Input 
+          <div class="flex items-center justify-center mt-4 relative">
+              <Input
                 v-model="transferAmountStr"
                 label=""
                 placeholder="請輸入轉帳金額"
                 variant="pill"
                 type="text"
               />
-            <span 
-              v-if="errorMessage" 
-              class="text-red-500 text-01 font-semibold absolute left-55 whitespace-nowrap animate-pulse"
+            <span
+              v-if="errorMessage"
+              class="text-red-500 text-01 font-semibold absolute left-full ml-3 whitespace-nowrap animate-pulse"
             >
               {{ errorMessage }}
             </span>
