@@ -1,7 +1,7 @@
 <template>
   <div class="w-full flex flex-col items-center justify-center">
     <!-- 1. 下單交易面版 -->
-    <OrderCard 
+    <OrderCard
       :stocks="stocksDb"
       v-model:stock-id="orderStockId"
       v-model:price="orderPrice"
@@ -10,6 +10,7 @@
       v-model:order-type="orderOrderType"
       :is-after-hours="orderIsAfterHours"
       :disabled-market="orderDisabledMarket"
+      :disabled="saveStatus !== 'ACTIVE'"
       :stock-error="orderStockError"
       :price-error="orderPriceError"
       :quantity-error="orderQuantityError"
@@ -49,6 +50,10 @@ const props = defineProps({
   currentDate: {
     type: String,
     required: true
+  },
+  saveStatus: {
+    type: String,
+    default: 'ACTIVE'
   }
 })
 

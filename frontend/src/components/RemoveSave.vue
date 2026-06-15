@@ -58,11 +58,16 @@
 import { apiFetch } from '../api/client.js'
 
 // 🚀 1. 宣告接收從父元件傳來的 saveRecords
-defineProps({
+const props = defineProps({
   saveRecords: {
     type: Array,
     required: true,
     default: () => []
+  },
+  // 玩家目前在遊戲中所在的存檔 ID（不在遊戲內時為 null）
+  currentSaveId: {
+    type: Number,
+    default: null
   }
 })
 
@@ -85,10 +90,18 @@ const removeSave = async (recordId) => {
     // 3. 處理回應 (小心 204 陷阱)
     if (response.ok) {
       // 🚀 注意：因為後端是 204 No Content，這裡不需要也「不能」寫 response.json()
+      if (recordId === props.currentSaveId) {
+        // 刪除的是玩家目前正在遊玩的存檔，狀態已不存在，強制登出回登入頁
+        alert('你已刪除目前所在的存檔，將強制登出。')
+        localStorage.removeItem('session_id')
+        window.location.assign('/')
+        return
+      }
+
       alert('存檔已徹底刪除！')
-      
+
       // 告訴父元件 (SaveRecords.vue) 去重新要一次最新的列表
-      emit('refresh') 
+      emit('refresh')
     } else {
       // 只有失敗時 (例如 403, 404)，後端才會傳回含有 detail 的 JSON 錯誤訊息
       const errorData = await response.json()

@@ -1,8 +1,9 @@
 <template>
   <div class="w-full flex flex-col items-center justify-center">
     <!-- 1. 自選股主列表卡片 -->
-    <WatchlistCard 
+    <WatchlistCard
       :stocks="watchlistStocks"
+      :disable-next-phase="saveStatus !== 'ACTIVE'"
       @select-stock="handleSelectStock"
       @add-stock="openAddWatchlist"
       @next-phase="handleNextPhase"
@@ -74,6 +75,10 @@ const props = defineProps({
   currentDate: {
     type: String,
     required: true
+  },
+  saveStatus: {
+    type: String,
+    default: 'ACTIVE'
   }
 })
 
@@ -155,7 +160,11 @@ const handleNextPhase = async () => {
 
     if (response.ok) {
       const data = await response.json()
-      alert(`已推進至下一階段！`)
+      if (data.status === 'BANKRUPT') {
+        alert('你已經破產了！')
+      } else {
+        alert(`已推進至下一階段！`)
+      }
       emit('refresh-save') // 通知 Game.vue 重新拉取最新的存檔狀態
       loadWatchlist()
     } else {
