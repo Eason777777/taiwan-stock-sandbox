@@ -52,11 +52,24 @@
         </tbody>
       </table>
     </div>
+
+    <!-- 刪除確認彈窗，取代原本的 window.confirm -->
+    <ConfirmModal
+      v-if="pendingRemoveId !== null"
+      title="確定要刪除這個存檔嗎？"
+      message="刪除後，所有的交易紀錄與資產都將無法恢復喔！"
+      confirm-text="刪除"
+      cancel-text="返回"
+      @confirm="confirmRemove"
+      @cancel="pendingRemoveId = null"
+    />
 </template>
 
-<script setup>  
+<script setup>
+import { ref } from 'vue'
 import { apiFetch } from '../api/client.js'
 import { showToast } from './Toast.vue'
+import ConfirmModal from './ConfirmModal.vue'
 
 // 🚀 1. 宣告接收從父元件傳來的 saveRecords
 const props = defineProps({
@@ -87,10 +100,19 @@ const formatPercent = (value) => {
 
 // 🗑️ 3. 刪除 fetchSaves 函式與 onMounted，因為資料現在是由父元件給的！
 
-const removeSave = async (recordId) => {
-  // 1. 防呆確認 (特別提醒玩家相關資料都會消失，呼應你後端清空多張表的設計)
-  const isConfirm = confirm('確定要刪除這個存檔嗎？\n刪除後，所有的交易紀錄與資產都將無法恢復喔！')
-  if (!isConfirm) return
+// 等待玩家確認刪除的存檔 ID（null 代表彈窗未開啟）
+const pendingRemoveId = ref(null)
+
+// 點擊存檔列：先打開確認彈窗，實際刪除交給 confirmRemove
+const removeSave = (recordId) => {
+  pendingRemoveId.value = recordId
+}
+
+// 玩家在彈窗點下「刪除」後才真正送出 DELETE 請求
+const confirmRemove = async () => {
+  const recordId = pendingRemoveId.value
+  pendingRemoveId.value = null
+  if (recordId === null) return
 
   try {
     // 2. 發送 DELETE 請求（x-session-id 與 401 過期處理統一交給 apiFetch）
