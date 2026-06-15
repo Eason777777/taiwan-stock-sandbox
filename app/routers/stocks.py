@@ -3,6 +3,7 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, Query
 from ..database import SqlApiClient
 from ..dependencies import get_db, get_current_user
+from ..save_access import fetch_save_owned
 
 router = APIRouter(
     prefix="/stocks",
@@ -82,14 +83,8 @@ async def get_price_history(
     if not stock["rows"]:
         raise HTTPException(status_code=404, detail="股票不存在")
 
-    save = await db.query(
-        "SELECT user_id, current_trade_date FROM save_files WHERE save_id = ?", [int(save_id)],
-    )
-    if not save["rows"]:
-        raise HTTPException(status_code=404, detail="存檔不存在")
-    if int(save["rows"][0]["user_id"]) != int(current_user["user_id"]):
-        raise HTTPException(status_code=403, detail="無權存取此存檔")
-    current_trade_date = str(save["rows"][0]["current_trade_date"])[:10]
+    save = await fetch_save_owned(save_id, current_user, db, columns="user_id, current_trade_date")
+    current_trade_date = str(save["current_trade_date"])[:10]
 
     # 取得時空隔離範圍內的完整歷史序列（不在 SQL 端套用 from/to），
     # 讓技術指標有足夠的回溯資料可計算，最後再依 from/to 裁切輸出範圍。
@@ -101,17 +96,7 @@ async def get_price_history(
         [str(stock_id), current_trade_date],
     )
 
-    float_fields = ("open_price", "high_price", "low_price", "close_price", "ref_price", "limit_up", "limit_down")
-    rows = []
-    for row in result["rows"]:
-        row = dict(row)
-        row["trade_date"] = str(row["trade_date"])[:10]
-        for field in float_fields:
-            if row.get(field) is not None:
-                row[field] = float(row[field])
-        if row.get("volume") is not None:
-            row["volume"] = int(row["volume"])
-        rows.append(row)
+    rows = _normalize_price_rows(result["rows"])
 
     if interval != "day" and rows:
         rows = _aggregate_prices(rows, interval)
@@ -125,6 +110,22 @@ async def get_price_history(
         rows = [row for row in rows if row["trade_date"] <= to_date]
 
     return rows
+
+
+def _normalize_price_rows(rows: list[dict]) -> list[dict]:
+    """將 sql-api 回傳的字串型數值欄位轉為 float/int，並裁切日期格式。"""
+    float_fields = ("open_price", "high_price", "low_price", "close_price", "ref_price", "limit_up", "limit_down")
+    normalized = []
+    for row in rows:
+        row = dict(row)
+        row["trade_date"] = str(row["trade_date"])[:10]
+        for field in float_fields:
+            if row.get(field) is not None:
+                row[field] = float(row[field])
+        if row.get("volume") is not None:
+            row["volume"] = int(row["volume"])
+        normalized.append(row)
+    return normalized
 
 
 def _aggregate_prices(rows: list[dict], interval: str) -> list[dict]:

@@ -1,14 +1,28 @@
+import asyncio
 import secrets
 import time
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import HTMLResponse
 from passlib.context import CryptContext
 from pydantic import BaseModel
 from ..database import SqlApiClient
 from ..dependencies import get_db, get_current_user, get_client_ip
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# bcrypt__rounds 由預設 12 提高到 14：單次 hash 耗時隨之倍增（約 4 倍），
+# 提高腳本大量註冊帳號的成本，且不需要前端配合（CAPTCHA/email 驗證）。
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__rounds=14)
+
+# 註冊時的 bcrypt hash 屬於 CPU-bound 同步運算，丟到獨立 thread pool 執行，
+# 避免卡住主 event loop（影響其他使用者的請求）。
+# max_workers 限制同時計算 hash 的數量；HASH_QUEUE_MAX 限制「正在等待或計算中」
+# 的總數，超過就直接回 429，避免請求無限堆積。
+_hash_executor = ThreadPoolExecutor(max_workers=2)
+HASH_QUEUE_MAX = 10
+_hash_pending = 0
+_hash_pending_lock = asyncio.Lock()
 
 # 登入暴力破解防護：每個帳號在 LOGIN_WINDOW_SECONDS 內失敗次數達上限即鎖定
 LOGIN_MAX_ATTEMPTS = 5
@@ -18,10 +32,24 @@ _failed_logins: dict[str, list[float]] = defaultdict(list)
 # session 有效期限：每次登入後 SESSION_TTL_HOURS 小時內有效，過期需重新登入
 SESSION_TTL_HOURS = 2
 
+# 註冊防護：honeypot 欄位若被填值，將該 IP 寫入 blacklisted_ips 黑名單；常見腳本工具的 User-Agent 直接拒絕
+_BLOCKED_USER_AGENT_PREFIXES = ("curl", "python-requests", "go-http-client", "postmanruntime", "wget")
+
+_DECOY_HTML = """<!DOCTYPE html>
+<html lang="zh-Hant">
+<head><meta charset="utf-8"><title>Admin Panel</title></head>
+<body>
+<h1>Internal Admin Panel</h1>
+<p>Debug mode is enabled.</p>
+<!-- FLAG{nice_try_but_this_is_a_decoy} -->
+</body>
+</html>"""
+
 
 class RegisterRequest(BaseModel):
     account: str
     password: str
+    website: str | None = None  # honeypot：正常前端不會送這個欄位
 
 class LoginRequest(BaseModel):
     account: str
@@ -29,7 +57,25 @@ class LoginRequest(BaseModel):
 
 
 @router.post("/register", status_code=201)
-async def register(body: RegisterRequest, db: SqlApiClient = Depends(get_db)):
+async def register(body: RegisterRequest, request: Request, db: SqlApiClient = Depends(get_db)):
+    ip = get_client_ip(request)
+    blacklisted = await db.query("SELECT 1 FROM blacklisted_ips WHERE ip = ?", [ip])
+    if blacklisted["rows"]:
+        return HTMLResponse(_DECOY_HTML)
+
+    # honeypot：正常前端不會送 website 欄位，有值代表是自動填表的 bot
+    if body.website:
+        await db.query(
+            "INSERT INTO blacklisted_ips (ip, reason) VALUES (?, 'honeypot')"
+            " ON DUPLICATE KEY UPDATE reason = reason",
+            [ip],
+        )
+        return HTMLResponse(_DECOY_HTML)
+
+    user_agent = request.headers.get("user-agent", "").strip().lower()
+    if not user_agent or user_agent.startswith(_BLOCKED_USER_AGENT_PREFIXES):
+        raise HTTPException(status_code=400, detail="請求格式錯誤")
+
     # 0. 帳號/密碼基本格式檢查
     if not body.account.strip() or not body.password:
         raise HTTPException(status_code=400, detail="帳號與密碼不可為空")
@@ -44,8 +90,19 @@ async def register(body: RegisterRequest, db: SqlApiClient = Depends(get_db)):
     if rows['ok'] and rows['rows']:
         raise HTTPException(status_code=409, detail="帳號已存在")
 
-    # 2. Hash 密碼，INSERT
-    hashed = pwd_context.hash(body.password)
+    # 2. Hash 密碼（丟到 thread pool，避免卡住 event loop），INSERT
+    global _hash_pending
+    async with _hash_pending_lock:
+        if _hash_pending >= HASH_QUEUE_MAX:
+            raise HTTPException(status_code=429, detail="目前註冊請求過多，請稍後再試")
+        _hash_pending += 1
+    try:
+        loop = asyncio.get_running_loop()
+        hashed = await loop.run_in_executor(_hash_executor, pwd_context.hash, body.password)
+    finally:
+        async with _hash_pending_lock:
+            _hash_pending -= 1
+
     try:
         await db.query(
             "INSERT INTO users (account, password_hash) VALUES (?, ?)",
