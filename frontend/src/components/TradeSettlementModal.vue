@@ -5,7 +5,7 @@
     @click.self="emit('close')"
   >
     <!-- 卡片容器 -->
-    <div class="trade-settlement-card w-full max-w-[700px] max-h-[90vh] overflow-y-auto flex flex-col items-stretch p-8 gap-5 border-10 border-solid border-nature-500 bg-nature-800 rounded-xl shadow-2xl relative text-white font-sans custom-scrollbar">
+    <div class="trade-settlement-card w-full max-w-[1000px] max-h-[90vh] overflow-y-auto flex flex-col items-stretch p-8 gap-5 border-10 border-solid border-nature-500 bg-nature-800 rounded-xl shadow-2xl relative text-white font-sans custom-scrollbar">
       
       <!-- 關閉按鈕 -->
       <button 
@@ -31,11 +31,12 @@
           <table class="w-full border-collapse text-nature-800 relative table-fixed">
             <thead class="sticky top-0 bg-nature-200 border-b-[3px] border-nature-800 text-nature-900 font-bold text-02 z-10">
               <tr>
-                <th class="py-3 px-4 text-left w-[150px]">商品</th>
-                <th class="py-3 px-4 text-center w-[100px]">種類</th>
+                <th class="py-3 px-4 text-center w-[80px]">股票</th>
+                <th class="py-3 px-4 text-center w-[120px]">委託類型</th>
+                <th class="py-3 px-4 text-center w-[100px]">買賣</th>
                 <th class="py-3 px-4 text-center w-[100px]">狀態</th>
                 <th class="py-3 px-4 text-center w-[120px]">成交單價</th>
-                <th class="py-3 px-4 text-right">變動款項</th>
+                <th class="py-3 px-4 text-center w-[150px]">交割戶變動款項</th>
               </tr>
             </thead>
             <tbody class="text-01">
@@ -45,11 +46,17 @@
                 class="group border-b-[3px] border-nature-800 hover:bg-nature-600 hover:text-nature-200 transition-colors duration-300 ease-out"
               >
                 <!-- 商品 (代號/中文名) -->
-                <td class="py-3 px-4 text-left font-mono">
+                <td class="py-3 px-4 text-center font-mono">
                   <div class="font-bold">{{ order.stock_id }}</div>
-                  <div class="text-xs text-nature-500 group-hover:text-nature-300 transition-colors">{{ order.stock_name_zh }}</div>
+                  <div class="text-xs text-nature-700 group-hover:text-nature-300 transition-colors">{{ order.stock_name_zh }}</div>
                 </td>
-                
+                <!-- 委託類型 (市價/限價/盤後定價) -->
+                <td class="py-3 px-4 text-center">
+                  <span class="font-bold">
+                    {{ getOrderTypeName(order) }}
+                  </span>
+                </td>
+
                 <!-- 種類 (買入/賣出 & 數量) -->
                 <td class="py-3 px-4 text-center">
                   <span :class="['font-bold', order.side === 'BUY' ? 'text-red-600 group-hover:text-red-300' : 'text-green-700 group-hover:text-green-300']">
@@ -61,7 +68,7 @@
                 <!-- 狀態 (已成交/已逾期) -->
                 <td class="py-3 px-4 text-center">
                   <span v-if="order.status === 'FILLED'" class="font-bold text-nature-900 group-hover:text-nature-100 transition-colors">已成交</span>
-                  <span v-else-if="order.status === 'EXPIRED'" class="text-nature-400 group-hover:text-nature-300 transition-colors">逾期失效</span>
+                  <span v-else-if="order.status === 'EXPIRED'" class="text-nature-900 group-hover:text-nature-300 transition-colors">逾期失效</span>
                   <span v-else class="text-nature-400">{{ order.status }}</span>
                 </td>
 
@@ -76,7 +83,7 @@
                 </td>
 
                 <!-- 變動款項 -->
-                <td class="py-3 px-4 text-right font-mono font-bold">
+                <td class="py-3 px-4 text-center font-mono font-bold">
                   <span v-if="order.status === 'FILLED'">
                     <span :class="order.side === 'BUY' ? 'text-red-600 group-hover:text-red-300' : 'text-green-700 group-hover:text-green-300'">
                       {{ order.side === 'BUY' ? '-' : '+' }}${{ formatAmount(order.net_amount) }}
@@ -143,6 +150,15 @@ const formatAmount = (val) => {
   if (val === null || val === undefined) return '0'
   return Math.round(val).toLocaleString()
 }
+
+const getOrderTypeName = (order) => {
+  // 如果是從盤後或收市推進的，代表此時結算的是盤後定價委託
+  if (props.previousPhase === 'POST_MARKET' || props.previousPhase === 'CLOSED') {
+    return '盤後定價'
+  }
+  return order.order_type === 'MARKET' ? '市價' : '限價'
+}
+
 </script>
 
 <style scoped>
