@@ -38,14 +38,14 @@
     <!-- Clickable Areas -->
     <div class="absolute inset-0 flex z-20" @click="switchState">
       <template v-if="!isAfterHours">
-        <div class="flex-1 cursor-pointer"></div>
+        <div class="flex-1" :class="disabledMarket ? 'cursor-default' : 'cursor-pointer'"></div>
         <div 
           class="flex-1" 
           :class="disabledMarket ? 'cursor-not-allowed' : 'cursor-pointer'"
         ></div>
       </template>
       <template v-else>
-        <div class="w-full h-full cursor-pointer" @click="toggleAfterHours"></div>
+        <div class="w-full h-full cursor-default" @click.stop></div>
       </template>
     </div>
   </div>
@@ -127,6 +127,8 @@ const rightLabelClass = computed(() => {
 })
 
 const switchState = () => {
+  if (props.isAfterHours) return
+  if (props.disabledMarket) return
   if (props.modelValue === 'limit') {
     emit('update:modelValue', 'market')
   } else {
