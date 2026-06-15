@@ -62,6 +62,7 @@ import { ref, onMounted } from 'vue'
 import SaveRecords from '../components/SaveRecords.vue'
 import SessionExpiredModal from '../components/SessionExpiredModal.vue'
 import Input from '../components/Input.vue'
+import { showToast } from '../components/Toast.vue'
 
 // --- 變數狀態管理 ---
 const username = ref('')
@@ -77,6 +78,13 @@ onMounted(() => {
   if (localStorage.getItem('logout_reason') === 'expired') {
     showExpiredModal.value = true
     localStorage.removeItem('logout_reason')
+  }
+
+  // 登出後導回此頁時，在這裡顯示登出成功提示
+  const logoutMessage = localStorage.getItem('logout_message')
+  if (logoutMessage) {
+    showToast(logoutMessage, { type: 'success' })
+    localStorage.removeItem('logout_message')
   }
 })
 

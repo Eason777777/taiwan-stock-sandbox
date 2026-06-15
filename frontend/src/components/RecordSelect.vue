@@ -25,7 +25,7 @@
                 <path d="M11.0122 19.8668L0.574954 4.9564C-0.88647 2.86865 0.607112 -1.75429e-06 3.15553 -1.64289e-06L22.5554 -7.94897e-07C25.1038 -6.83502e-07 26.5974 2.86865 25.136 4.9564L14.6987 19.8668C13.803 21.1464 11.9079 21.1464 11.0122 19.8668Z" fill="#6C757D"/>
             </svg>
         </button>
-        <div class="absolute z-10 right-0">
+        <div class="absolute z-100 right-0">
             <RecordSelectBox :titleType="1" @select="handleSelect" />
             <RecordSelectBox :titleType="2" @select="handleSelect" />
             <RecordSelectBox :titleType="3" :hasBottomBorder="true" @select="handleSelect" />

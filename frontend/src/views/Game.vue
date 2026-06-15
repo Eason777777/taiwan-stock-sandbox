@@ -1,13 +1,14 @@
 <template>
   <div class="min-h-screen flex flex-col bg-nature-900 text-white">
     <!-- 1. 置頂狀態與導覽列 -->
-    <TopBar 
+    <TopBar
       :activeTab="currentTab"
       @update:activeTab="handleTabChange"
       :date="formattedDate"
       :status="formattedPhase"
       :savings="savingsAmount.toLocaleString()"
       :delivery="deliveryAmount.toLocaleString()"
+      :username="username"
     />
 
     <!-- 2. 主內容渲染區 (透過 router-view 傳遞狀態至各分頁，使用 keep-alive 快取狀態) -->
@@ -46,9 +47,10 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import TopBar from '../components/TopBar.vue'
+import { apiFetch } from '../api/client.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -66,6 +68,7 @@ const gamePhase = ref('PRE_MARKET')
 const saveStatus = ref('ACTIVE')
 const savingsAmount = ref(1000)
 const deliveryAmount = ref(2000)
+const username = ref('')
 
 // 3. 格式化顯示欄位
 const formattedDate = computed(() => {
@@ -156,6 +159,15 @@ watch(saveId, () => {
     fetchSaveDetail()
   }
 }, { immediate: true })
+
+// 8. 取得目前登入的使用者帳號，顯示於 TopBar 左側
+onMounted(async () => {
+  const response = await apiFetch('/api/auth/me')
+  if (response.ok) {
+    const data = await response.json()
+    username.value = data.account
+  }
+})
 </script>
 
 <style scoped>

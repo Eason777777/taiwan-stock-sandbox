@@ -55,7 +55,8 @@
 
     <!-- 刪除確認彈窗，取代原本的 window.confirm -->
     <ConfirmModal
-      v-if="pendingRemoveId !== null"
+      :show="pendingRemoveId !== null"
+      type="danger"
       title="確定要刪除這個存檔嗎？"
       message="刪除後，所有的交易紀錄與資產都將無法恢復喔！"
       confirm-text="刪除"
