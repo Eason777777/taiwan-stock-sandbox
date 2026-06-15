@@ -12,7 +12,7 @@
             <thead class="sticky top-0 bg-nature-200 border-b-3 text-nature-900 font-05 text-04">
             <tr>
                 <th class="py-3 px-2">交易日期</th>
-                <th class="py-3 px-2">交易時間</th> 
+                <th class="py-3 px-2">帳戶類型</th> 
                 <th class="py-3 px-2">摘要</th>
                 <th class="py-3 px-2">提款</th>
                 <th class="py-3 px-2">存款</th>
