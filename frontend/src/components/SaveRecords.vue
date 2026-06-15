@@ -74,8 +74,11 @@
             <td class="py-3 px-2">{{ record.save_name }}</td>
             <td class="py-3 px-2">{{ record.start_date }}</td>
             <td class="py-3 px-2">{{ record.current_trade_date || '無' }}</td>
-            <td class="py-3 px-2">{{ record.savings_balance }}</td> 
-            <td class="py-3 px-2">{{ record.returnRate || '0%' }}</td>
+            <td class="py-3 px-2" >
+              <span :class="record.total_asset > 0 ? 'text-red-400' : (record.total_asset < 0 ? 'text-green-300' : 'text-yellow-200')">
+                {{ formatCurrency(record.total_asset) }}
+              </span></td> 
+            <td class="py-3 px-2">{{ formatPercent(record.cumulative_return) }}</td>
             <td class="py-3 px-2">{{ record.status === 'ACTIVE' ? '遊玩中' : '已結束' }}</td>
             <td class="py-3 px-2">{{ record.note || '-' }}</td>
           </tr>
@@ -98,22 +101,32 @@
 
   const router = useRouter()
 
-  // 準備一個空的陣列，用來裝後端傳回來的真實存檔資料
   const saveRecords = ref([])
   const isLoading = ref(true)
   const currentView = ref('list')
 
-  // 呼叫 API 的函式
+  // --- 新增：數值格式化函式 ---
+  const formatCurrency = (value) => {
+    if (value === undefined || value === null) return '0';
+    return Number(value).toLocaleString();
+  }
+
+  const formatPercent = (value) => {
+    if (value === undefined || value === null) return '0%';
+
+    return (Number(value) * 100).toFixed(2) + '%'; 
+  }
+  // -----------------------------
+
   const fetchSaves = async () => {
     try {
-      // x-session-id 與 401 過期處理統一交給 apiFetch
       const response = await apiFetch('/api/saves', {
         method: 'GET',
       })
 
       if (response.ok) {
         const data = await response.json()
-        console.log('✅ 成功拿到後端資料:', data) // 👉 打開 F12 看這裡！確認後端的欄位名稱
+        console.log('✅ 成功拿到後端資料:', data) 
         saveRecords.value = data
       } else {
         console.error('無法取得存檔，可能是尚未登入或 Session 過期')
@@ -133,9 +146,6 @@
     fetchSaves()
     currentView.value = 'list'
   }
-
-  // 🗑️ 注意：請把原本底下的 mockSaveRecords 跟 saveRecords.value = ... 整段刪除！
-  // 讓表格保持乾淨，才能確認真資料有沒有進來。
 
   const loadGame = (recordId) => {
     console.log('準備讀取存檔 ID:', recordId)

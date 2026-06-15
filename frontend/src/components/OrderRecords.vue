@@ -46,24 +46,24 @@
           <tr 
             v-for="record in saveRecords" 
             :key="record.order_id" 
-            class="border-b-[3px] border-nature-800 hover:bg-nature-600 hover:text-nature-200 transition-colors"
+            class="group border-b-[3px] border-nature-800 hover:bg-nature-600 hover:text-nature-200 transition-colors"
           >
             <td class="py-3 px-2">{{ record.stock_id }}</td>
             
             <td class="py-3 px-2">
-              <span :class="record.realized_pnl > 0 ? 'text-red-600' : (record.realized_pnl < 0 ? 'text-green-500' : '')">
+              <span :class="record.realized_pnl > 0 ? 'text-red-600 group-hover:text-red-300' : (record.realized_pnl < 0 ? 'text-green-500 group-hover:text-green-300' : 'text-yellow-600 group-hover:text-yellow-300')">
                 {{ record.realized_pnl !== null ? formatNumber(record.realized_pnl) : '-' }}
               </span>
             </td>
             
             <td class="py-3 px-2">
-              <span :class="record.return_rate > 0 ? 'text-red-600' : (record.return_rate < 0 ? 'text-green-500' : '')">
+              <span :class="record.return_rate > 0 ? 'text-red-600 group-hover:text-red-300' : (record.return_rate < 0 ? 'text-green-500 group-hover:text-green-300' : 'text-yellow-600 group-hover:text-yellow-300')">
                 {{ record.return_rate !== null ? record.return_rate + '%' : '-' }}
               </span>
             </td>
             
             <td class="py-3 px-2">
-              <span :class="record.side === 'BUY' ? 'text-red-600' : 'text-green-500'">
+              <span :class="record.side === 'BUY' ? 'text-red-600 group-hover:text-red-300' : 'text-green-500 group-hover:text-green-300 '">
                 {{ record.side === 'BUY' ? '買進' : '賣出' }}
               </span>
             </td>
