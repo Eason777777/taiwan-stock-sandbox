@@ -3,70 +3,94 @@
     class="fixed inset-0 z-[110] flex justify-center items-center bg-black/60 backdrop-blur-sm"
     @click.self="emit('close')"
   >
-    <div class="bg-nature-800 border-[10px] border-nature-500 rounded-lg px-20! py-10! flex flex-col gap-8 shadow-2xl w-237.5">
+    <div class="bg-nature-800 border-[4px] border-nature-500 px-12 py-10 flex flex-col gap-8 shadow-2xl min-w-[700px]">
       
-      <!-- 左右帳戶金額與箭頭佈局 -->
-      <div class="flex items-start justify-between w-full px-0 gap-2 ">
-        <!-- 左側交割戶 -->
-        <div class="flex flex-col gap-2 items-stretch w-[330px]">
-          <span class="text-white font-sans text-04 font-normal text-left">交割戶</span>
-          <span class="text-white font-sans text-08 font-medium text-right mt-1">{{ deliveryBalance }}</span>
+      <div class="flex items-center justify-between w-full">
+        
+        <div class="flex flex-col items-center w-[220px]">
+          <span class="text-nature-300 font-sans text-03">交割戶 [目標]</span>
+          <span class="text-nature-100 font-sans text-06 font-05">{{ dynamicDelivery }}</span>
         </div>
 
-        <!-- 中間箭頭 (對齊數字高度，使用 mt-[56px] 微調) -->
-        <div class="flex items-center justify-center py-12.5!">
-          <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
-            <path d="M18.6665 32H55.9998" stroke="#DEE2E6" stroke-width="4.33333" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M5.95058 31.5591L21.2593 20.6242C22.4066 19.8048 24.0002 20.6249 24.0002 22.0347V41.965C24.0002 43.3748 22.4066 44.1949 21.2593 43.3754L5.95058 32.4406C5.64814 32.2246 5.64814 31.7751 5.95058 31.5591Z" fill="#DEE2E6"/>
+        <div class="flex items-center justify-center">
+          <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#DEE2E6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="20" y1="12" x2="4" y2="12"></line>
+            <polygon points="10,6 4,12 10,18" fill="#DEE2E6"></polygon>
           </svg>
         </div>
 
-        <!-- 右側存款戶 (輸入框與錯誤訊息展示在數字下方) -->
-        <div class="flex flex-col gap-2 items-stretch w-[330px] relative">
-          <span class="text-white font-sans text-04 font-normal text-left">存款戶 [修改金額]</span>
-          <span class="text-white font-sans text-08 font-medium text-right mt-1">{{ savingsBalance }}</span>
+        <div class="flex flex-col items-center w-[250px]">
+          <span class="text-nature-300 font-sans text-03 mb-3">存款戶 [來源]</span>
+
           
-          <!-- 輸入框與錯誤訊息 -->
-          <div class="flex items-center mt-4 self-end relative w-[330px]">
-              <Input 
-                v-model="transferAmountStr"
-                label=""
-                placeholder="請輸入轉帳金額"
-                variant="pill"
-                type="text"
+          <div class="flex flex-row items-center gap-[5px]">
+            <!-- 減號按鈕 -->
+            <div class="transition duration-200 group hover:bg-nature-400 flex items-center border border-nature-500 rounded-l-[10px] bg-nature-900">
+              <button 
+                @click="adjustTransfer(10000)"
+                class="transition duration-200 flex items-center justify-center w-10 h-20 group-hover:text-green-500 text-green-300 cursor-pointer"
+              >
+                <svg width="22" height="6" viewBox="0 0 22 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M18.8335 2.83325L2.8335 2.83325" stroke="currentColor" stroke-width="5.66667" stroke-linecap="square"/>
+                </svg>
+
+              </button>
+            </div>
+            
+            <!-- Input -->
+            <div class="flex items-center border border-nature-500  bg-nature-900">
+              <input 
+                v-model.number="savingsInput"
+                type="number"
+                class="w-[220px] text-center bg-transparent py-1 h-fit text-nature-100 font-sans text-06 font-05 focus:outline-none"
+                @input="validateInput"
               />
-            <span 
-              v-if="errorMessage" 
-              class="text-red-500 text-01 font-semibold absolute left-55 whitespace-nowrap animate-pulse"
-            >
+            </div>
+
+            <!-- 加號按鈕 -->
+            <div class="transition duration-200 group hover:bg-nature-400 flex items-center border border-nature-500 rounded-r-[10px] bg-nature-900">
+              <button 
+                @click="adjustTransfer(-10000)"
+                class="transition duration-200 flex items-center justify-center w-10 h-20 group-hover:text-red-700 text-red-400 cursor-pointer"
+              >
+                <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M10.8335 18.8333L10.8335 2.83325" stroke="currentColor" stroke-width="5.66667" stroke-linecap="square"/>
+                  <path d="M18.8335 10.8333L2.8335 10.8333" stroke="currentColor" stroke-width="5.66667" stroke-linecap="square"/>
+                </svg>
+
+
+              </button>
+            </div>
+          </div>
+          
+          <div class="h-6 mt-2 w-full text-center">
+            <span v-if="errorMessage" class="text-[#FF4D4F] text-sm font-medium">
               {{ errorMessage }}
             </span>
           </div>
         </div>
+
       </div>
 
-      <!-- 按鈕區 -->
-      <div class="flex justify-center items-center gap-6 mt-4">
-        <button 
-          @click="emit('close')"
-          class="bg-nature-200 hover:bg-nature-300 active:scale-95 text-nature-900 font-bold rounded-lg px-16 py-3.5 transition-all duration-200 cursor-pointer border-none text-02"
-        >
-          取消
-        </button>
-        <button 
-          @click="confirmTransfer"
-          class="bg-yellow-500 hover:bg-yellow-600 active:scale-95 text-nature-900 font-bold rounded-lg px-16 py-3.5 transition-all duration-200 cursor-pointer border-none text-02"
-        >
-          確認
-        </button>
+      <div class="flex w-full h-fit gap-5">
+          <button @click="$emit('close')" 
+                  class="hover:bg-nature-600 hover:text-nature-400 transform duration-200 cursor-pointer w-full text-nature-800 bg-nature-200 text-04 font-07 rounded-[10px]"
+          >
+              取消
+          </button>
+          <button @click="confirmTransfer" 
+                  class="hover:bg-yellow-700 hover:text-yellow-500 transform duration-200 cursor-pointer w-full text-yellow-900 bg-yellow-500 text-04 font-07 rounded-[10px] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+              確認
+          </button>
       </div>
+      
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import Input from './Input.vue'
+import { ref, computed } from 'vue'
 
 const props = defineProps({
   deliveryBalance: {
@@ -83,56 +107,87 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'update-balances'])
 
-const transferAmountStr = ref('')
+// 1. 計算兩戶總金額 (資金池總數不變)
+const totalBalance = computed(() => props.deliveryBalance + props.savingsBalance)
+
+// 2. Input 綁定當前存款戶餘額
+const savingsInput = ref(props.savingsBalance)
 const errorMessage = ref('')
 
-const confirmTransfer = () => {
+// 3. 動態計算交割戶金額 (總額 - 存款戶)
+const dynamicDelivery = computed(() => {
+  const currentSavings = Number(savingsInput.value) || 0
+  return totalBalance.value - currentSavings
+})
+
+// 驗證邏輯
+const validateInput = () => {
   errorMessage.value = ''
-  const val = transferAmountStr.value.trim()
-
-  if (!val) {
+  const currentSavings = Number(savingsInput.value)
+  
+  if (isNaN(currentSavings)) {
     errorMessage.value = '請輸入有效數字'
+    return false
+  }
+  
+  if (currentSavings < 0) {
+    errorMessage.value = '存款戶餘額不能低於 0'
+    return false
+  }
+  
+  if (dynamicDelivery.value < 0) {
+    errorMessage.value = '交割戶餘額不能低於 0'
+    return false
+  }
+  
+  return true
+}
+
+// 4. 按鈕加減邏輯
+const adjustTransfer = (deliveryDelta) => {
+  errorMessage.value = ''
+  let currentSavings = Number(savingsInput.value)
+  if (isNaN(currentSavings)) {
+    currentSavings = props.savingsBalance
+  }
+  
+  // 需求：按 + 讓交割戶增加 (代表存款戶要減少)
+  const newSavings = currentSavings - deliveryDelta
+  
+  // 邊界驗證
+  if (newSavings < 0) {
+    errorMessage.value = '已達存款戶扣款上限'
+    savingsInput.value = 0 // 直接到底
+    return
+  }
+  
+  if (totalBalance.value - newSavings < 0) {
+    errorMessage.value = '已達交割戶扣款上限'
+    savingsInput.value = totalBalance.value // 直接到底
     return
   }
 
-  // 驗證是否為數字 (包含小數、正負號)
-  const amount = Number(val)
-  if (isNaN(amount)) {
-    errorMessage.value = '請輸入有效數字'
-    return
-  }
+  savingsInput.value = newSavings
+}
 
-  if (amount === 0) {
-    errorMessage.value = '轉帳金額不能為 0'
-    return
-  }
-
-  if (amount > 0) {
-    // 存款戶增加，交割戶減少 -> 檢查交割戶餘額是否足夠
-    if (props.deliveryBalance - amount < 0) {
-      errorMessage.value = '交割戶餘額不足'
-      return
-    }
-  } else {
-    // 存款戶減少，交割戶增加 -> 檢查存款戶餘額是否足夠
-    if (props.savingsBalance + amount < 0) {
-      errorMessage.value = '存款戶餘額不足'
-      return
-    }
-  }
-
-  // 計算新餘額並對外發送事件
-  const newDelivery = props.deliveryBalance - amount
-  const newSavings = props.savingsBalance + amount
-  emit('update-balances', newDelivery, newSavings)
+// 確認送出
+const confirmTransfer = () => {
+  if (!validateInput()) return
+  
+  // 回傳最終的 (交割戶餘額, 存款戶餘額)
+  emit('update-balances', dynamicDelivery.value, savingsInput.value)
   emit('close')
 }
 </script>
 
-
 <style scoped>
-/* 穿透並覆寫內部的 input 寬度為您想要的數值（例如 250px） */
-:deep(.relative input) {
-  width: 200px; /* 或者 w-full、200px 等 */
+/* 隱藏原生 number input 的上下小箭頭 */
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+  -webkit-appearance: none; 
+  margin: 0; 
+}
+input[type=number] {
+  -moz-appearance: textfield;
 }
 </style>
