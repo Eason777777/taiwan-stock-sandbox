@@ -17,10 +17,14 @@
       :prices="klinePrices"
       v-model:timeframe="currentTimeframe"
       :stock-name="orderStockName"
+      :orders="ordersList"
+      :current-date="currentDate"
+      :current-phase="currentPhase"
       @select-stock="handleOrderSelectStock"
       @search-stock="handleSearchStock"
       @load-more-stocks="handleLoadMoreStocks"
       @submit="handleOrderSubmit"
+      @cancel-order="handleCancelOrder"
     />
   </div>
 </template>
@@ -323,6 +327,7 @@ const handleOrderSubmit = async () => {
     if (response.ok) {
       alert('委託下單成功！')
       emit('refresh-save') // 刷新 Game.vue 之帳戶資金
+      fetchOrders()
       
       // 清空表單
       orderStockId.value = ''
@@ -347,12 +352,64 @@ watch(() => route.query.stockId, (newStockId) => {
   }
 }, { immediate: true })
 
+// --- 5. 委託單列表資料讀取與撤單 ---
+const ordersList = ref([])
+
+const fetchOrders = async () => {
+  if (!props.saveId) return
+  try {
+    const response = await fetch(`/api/saves/${props.saveId}/orders?limit=100`, {
+      headers: {
+        'x-session-id': localStorage.getItem('session_id') || ''
+      }
+    })
+    if (response.ok) {
+      ordersList.value = await response.json()
+    }
+  } catch (error) {
+    console.error('載入委託紀錄失敗:', error)
+  }
+}
+
+const handleCancelOrder = async (orderId) => {
+  const isConfirm = confirm('確定要撤銷此筆委託單嗎？')
+  if (!isConfirm) return
+
+  try {
+    const response = await fetch(`/api/saves/${props.saveId}/orders/${orderId}`, {
+      method: 'DELETE',
+      headers: {
+        'x-session-id': localStorage.getItem('session_id') || ''
+      }
+    })
+
+    if (response.ok) {
+      alert('已成功撤銷委託！')
+      emit('refresh-save') // 刷新交割戶與持股狀態
+      fetchOrders() // 重新載入列表
+    } else {
+      const errorData = await response.json()
+      alert(`撤單失敗：${errorData.detail || '已成交或已過期'}`)
+    }
+  } catch (error) {
+    console.error('撤單 API 連線異常:', error)
+    alert('伺服器連線異常，請稍後再試。')
+  }
+}
+
+// 監聽存檔變更
+watch(() => props.saveId, () => {
+  fetchOrders()
+}, { immediate: true })
+
 onMounted(() => {
   fetchStocksPage(true)
   applyPhaseRestrictions()
+  fetchOrders()
 })
 
 watch(() => props.currentPhase, () => {
   applyPhaseRestrictions()
+  fetchOrders()
 })
 </script>

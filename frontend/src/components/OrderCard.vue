@@ -89,19 +89,84 @@
     <!-- Divider -->
     <hr class="w-full border-t-[3px] border-nature-500 my-2" />
 
-    <!-- K線圖區塊 -->
-    <div class="w-full">
-      <div v-if="!stockId" class="w-full min-h-[400px] rounded-[10px] bg-nature-900 border border-nature-600 flex items-center justify-center text-nature-500">
-        <span class="text-03 font-bold">請輸入或選擇股票以顯示 K 線圖</span>
+    <!-- 頁籤與篩選器區域 -->
+    <div class="flex flex-row justify-between items-center w-full my-4">
+      <!-- 左側：相連按鈕頁籤 (風格仿 WatchlistCard.vue 上半部) -->
+      <div class="flex gap-0 w-80">
+        <button 
+          type="button"
+          @click="activeTab = 'kline'"
+          :class="[
+            'flex-1 h-12 rounded-l-xl! rounded-r-none! flex justify-center items-center font-sans font-bold text-base cursor-pointer border-none outline-none transition-colors duration-300',
+            activeTab === 'kline'
+              ? 'bg-nature-200 text-nature-900'
+              : 'bg-nature-900 hover:bg-nature-750 text-nature-300'
+          ]"
+        >
+          K線圖
+        </button>
+        <button 
+          type="button"
+          @click="activeTab = 'orders'"
+          :class="[
+            'flex-1 h-12 rounded-r-xl! rounded-l-none! flex justify-center items-center font-sans font-bold text-base cursor-pointer border-none outline-none transition-colors duration-300',
+            activeTab === 'orders'
+              ? 'bg-nature-200 text-nature-900'
+              : 'bg-nature-900 hover:bg-nature-750 text-nature-300'
+          ]"
+        >
+          委託單紀錄
+        </button>
       </div>
-      <div v-else class="w-full">
-        <CandlestickChart 
-          :prices="prices"
-          :timeframe="timeframe"
-          :theme="'dark'"
-          :stockId="stockId"
-          :stockName="stockName"
-          @update:timeframe="(tf) => emit('update:timeframe', tf)"
+
+      <!-- 右側：篩選按鈕 (僅在 activeTab === 'orders' 顯示) -->
+      <div v-show="activeTab === 'orders'" class="flex gap-4 items-center">
+        <!-- 按鈕 1: 待成交 -->
+        <button 
+          type="button"
+          @click="togglePending"
+          :class="['px-5 py-2 rounded-lg font-bold border border-solid transition-all duration-300 ease-out cursor-pointer text-sm outline-none', 
+                   showPending ? 'bg-yellow-500 text-nature-900 border-yellow-500 shadow-md shadow-yellow-500/20' : 'bg-nature-900 text-nature-300 border-nature-600 hover:bg-nature-750']"
+        >
+          待成交
+        </button>
+
+        <!-- 按鈕 2: 今日委託單 -->
+        <button 
+          type="button"
+          @click="toggleToday"
+          :class="['px-5 py-2 rounded-lg font-bold border border-solid transition-all duration-300 ease-out cursor-pointer text-sm outline-none', 
+                   showToday ? 'bg-green-300 text-green-900 border-green-300 shadow-md shadow-green-300/20' : 'bg-nature-900 text-nature-300 border-nature-600 hover:bg-nature-750']"
+        >
+          今日委託單
+        </button>
+      </div>
+    </div>
+
+    <!-- 內容展示區塊 -->
+    <div class="w-full">
+      <!-- 頁籤一：K 線圖 -->
+      <div v-if="activeTab === 'kline'" class="w-full">
+        <div v-if="!stockId" class="w-full min-h-[400px] rounded-[10px] bg-nature-900 border border-nature-600 flex items-center justify-center text-nature-500">
+          <span class="text-03 font-bold">請輸入或選擇股票以顯示 K 線圖</span>
+        </div>
+        <div v-else class="w-full">
+          <CandlestickChart 
+            :prices="prices"
+            :timeframe="timeframe"
+            :theme="'dark'"
+            :stockId="stockId"
+            :stockName="stockName"
+            @update:timeframe="(tf) => emit('update:timeframe', tf)"
+          />
+        </div>
+      </div>
+
+      <!-- 頁籤二：委託單狀態列表 -->
+      <div v-else-if="activeTab === 'orders'" class="w-full">
+        <OrderHistory 
+          :orders="filteredOrders"
+          @cancel-order="emit('cancel-order', $event)"
         />
       </div>
     </div>
@@ -109,11 +174,13 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import StockInput from './StockInput.vue'
 import BuySellSlider from './BuySellSlider.vue'
 import OrderTypeSlider from './OrderTypeSlider.vue'
 import CandlestickChart from './CandlestickChart.vue'
+import OrderHistory from './OrderHistory.vue'
+
 const props = defineProps({
   stocks: {
     type: Array,
@@ -175,6 +242,18 @@ const props = defineProps({
   disabled: {
     type: Boolean,
     default: false
+  },
+  orders: {
+    type: Array,
+    default: () => []
+  },
+  currentDate: {
+    type: String,
+    default: ''
+  },
+  currentPhase: {
+    type: String,
+    default: ''
   }
 })
 
@@ -188,11 +267,72 @@ const emit = defineEmits([
   'select-stock',
   'search-stock',
   'load-more-stocks',
-  'submit'
+  'submit',
+  'cancel-order'
 ])
+
+const activeTab = ref('orders')
+const showPending = ref(true)
+const showToday = ref(false)
 
 const isPriceDisabled = computed(() => {
   return props.orderType === 'market' || props.orderType === 'after_hours'
+})
+
+// 根據 currentPhase 設定預設選取狀態
+const initDefaults = () => {
+  if (props.currentPhase === 'CLOSED') {
+    showPending.value = false
+    showToday.value = true
+  } else {
+    showPending.value = true
+    showToday.value = false
+  }
+}
+
+watch(() => props.currentPhase, () => {
+  initDefaults()
+}, { immediate: true })
+
+// 監聽股號輸入：有輸入自動切至 K線圖，清空則自動切至委託單紀錄
+watch(() => props.stockId, (newId) => {
+  if (newId) {
+    activeTab.value = 'kline'
+  } else {
+    activeTab.value = 'orders'
+  }
+}, { immediate: true })
+
+// 互斥篩選按鈕點擊處理
+const togglePending = () => {
+  showPending.value = !showPending.value
+  if (showPending.value) {
+    showToday.value = false
+  }
+}
+
+const toggleToday = () => {
+  showToday.value = !showToday.value
+  if (showToday.value) {
+    showPending.value = false
+  }
+}
+
+// 根據篩選條件過濾委託單列表
+const filteredOrders = computed(() => {
+  let list = props.orders
+
+  if (showPending.value) {
+    return list.filter(o => o.status === 'PENDING')
+  }
+
+  if (showToday.value) {
+    if (!props.currentDate) return list
+    const todayStr = props.currentDate.slice(0, 10)
+    return list.filter(o => o.sim_date.slice(0, 10) === todayStr)
+  }
+
+  return list
 })
 </script>
 
