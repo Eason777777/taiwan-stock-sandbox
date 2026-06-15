@@ -45,6 +45,11 @@ const router = createRouter({
       path: '/demo',
       name: 'demo',
       component: () => import('../views/WatchlistDemo.vue')
+    },
+    {
+      path: '/demo/confirm',
+      name: 'confirm-demo',
+      component: () => import('../views/ConfirmModalDemo.vue')
     }
   ],
 })
