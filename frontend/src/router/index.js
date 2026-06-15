@@ -45,11 +45,6 @@ const router = createRouter({
       path: '/demo',
       name: 'demo',
       component: () => import('../views/WatchlistDemo.vue')
-    },
-    {
-      path: '/add-save-demo',
-      name: 'add-save-demo',
-      component: () => import('../views/AddSaveDemo.vue')
     }
   ],
 })
