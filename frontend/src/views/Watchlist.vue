@@ -50,6 +50,14 @@
       :suspensions="companyInfoSuspensions"
       @close="showCompanyInfoModal = false; showStockInfoModal = true"
     />
+
+    <!-- 5. 交易成交/失效委託總覽彈窗 -->
+    <TradeSettlementModal
+      v-if="showSettlementModal"
+      :settled-orders="settledOrdersList"
+      :previous-phase="previousPhase"
+      @close="showSettlementModal = false"
+    />
   </div>
 </template>
 
@@ -60,6 +68,7 @@ import WatchlistCard from '../components/WatchlistCard.vue'
 import AddWatchlist from '../components/AddWatchlist.vue'
 import StockInfo from '../components/StockInfo.vue'
 import CompanyInfo from '../components/CompanyInfo.vue'
+import TradeSettlementModal from '../components/TradeSettlementModal.vue'
 import { companyProfileCache } from '../api/cache.js'
 
 const props = defineProps({
@@ -87,6 +96,10 @@ const showStockInfoModal = ref(false)
 const showCompanyInfoModal = ref(false)
 const companyInfoDetail = ref(null)
 const companyInfoSuspensions = ref([])
+
+const showSettlementModal = ref(false)
+const settledOrdersList = ref([])
+const previousPhase = ref('')
 
 // K線圖歷史資料與當前選中週期
 const klinePrices = ref([])
@@ -155,9 +168,14 @@ const handleNextPhase = async () => {
 
     if (response.ok) {
       const data = await response.json()
-      alert(`已推進至下一階段！`)
+      previousPhase.value = props.currentPhase
       emit('refresh-save') // 通知 Game.vue 重新拉取最新的存檔狀態
       loadWatchlist()
+
+      if (data.settled_orders && data.settled_orders.length > 0) {
+        settledOrdersList.value = data.settled_orders
+        showSettlementModal.value = true
+      }
     } else {
       const errorData = await response.json()
       alert(`推進失敗：${errorData.detail || '未知錯誤'}`)
@@ -376,7 +394,7 @@ const handleGoToTrade = (stockId) => {
   showStockInfoModal.value = false
   // 導向交易分頁，並攜帶參數
   router.push({
-    path: '/transact',
+    path: '/game/transact',
     query: { 
       saveId: props.saveId,
       stockId: stockId

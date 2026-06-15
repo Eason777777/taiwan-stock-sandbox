@@ -144,7 +144,7 @@
   const loadGame = (recordId) => {
     console.log('準備讀取存檔 ID:', recordId)
     router.push({
-      path: '/custom', 
+      path: '/game/custom', 
       query: { saveId: recordId } 
     })
   }
