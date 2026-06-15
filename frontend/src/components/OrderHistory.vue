@@ -17,7 +17,7 @@
           </th>
 
           <!-- 委託類型 -->
-          <th @click="handleSort('order_type')" class="py-3 px-2 text-center cursor-pointer select-none w-[100px]">
+          <th  class="py-3 px-2 text-center cursor-pointer select-none w-[100px]">
             委託類型 <span class="text-xs font-normal font-mono" v-if="sortKey === 'order_type'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span>
           </th>
           
@@ -191,7 +191,7 @@ const getOrderPriceDisplay = (order) => {
 // 格式化下單時間
 const getOrderTime = (order) => {
   if (!order.sim_date) return '-'
-  const dateStr = order.sim_date.slice(2, 10).replace(/-/g, '/') // "YY/MM/DD"
+  const dateStr = order.sim_date.slice(0, 10).replace(/-/g, '/') // "YYYY/MM/DD"
   const phaseMap = {
     'PRE_MARKET': '盤前',
     'INTRADAY': '盤中',
@@ -207,7 +207,7 @@ const getFillTime = (order) => {
   if (order.status !== 'FILLED') return '-'
   if (!order.sim_date) return '-'
   
-  const dateStr = order.sim_date.slice(2, 10).replace(/-/g, '/') // "YY/MM/DD"
+  const dateStr = order.sim_date.slice(0, 10).replace(/-/g, '/') // "YYYY/MM/DD"
   
   let fillPhase = ''
   if (order.phase === 'PRE_MARKET') {
