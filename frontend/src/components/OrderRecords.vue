@@ -155,11 +155,9 @@
     try {
       // 💡 注意：依據你上一回合提供的資料結構，這裡的 API 可能是抓取委託單 (Orders)
       // 若後端路由不同，請將 /api/holding/transactions 替換為實際的端點
-      const response = await fetch(`/api/saves/${saveId}/orders`, {
-        method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'x-session-id': localStorage.getItem('session_id')
+          'x-session-id': localStorage.getItem('session_id') || ''
         }
       })
 

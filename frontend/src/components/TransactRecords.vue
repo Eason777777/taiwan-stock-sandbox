@@ -80,10 +80,9 @@
     try {
       // 將拿到的 saveId 動態帶入 API 網址中
       const response = await fetch(`/api/saves/${saveId}/accounts/history`, {
-        method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'x-session-id': localStorage.getItem('session_id')
+          'x-session-id': localStorage.getItem('session_id') || ''
         }
       })
 

@@ -108,12 +108,10 @@
   // 呼叫 API 的函式
   const fetchSaves = async () => {
     try {
-      const response = await fetch('/api/saves', {
-        method: 'GET',
         headers: {
           'Content-Type': 'application/json',
           // 🚀 關鍵修正：必須用後端規定的 x-session-id
-          'x-session-id': localStorage.getItem('session_id')
+          'x-session-id': localStorage.getItem('session_id') || ''
         }
       })
 
