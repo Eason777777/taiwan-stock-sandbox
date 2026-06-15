@@ -78,7 +78,11 @@
               <span :class="record.total_asset > 0 ? 'text-red-600 group-hover:text-red-300' : (record.total_asset < 0 ? 'text-green-500 group-hover:text-green-300' : 'text-yellow-600 group-hover:text-yellow-300')">
                 {{ formatCurrency(record.total_asset) }}
               </span></td> 
-            <td class="py-3 px-2">{{ formatPercent(record.cumulative_return) }}</td>
+            <td class="py-3 px-2">
+              <span :class="record.cumulative_return > 0.00001 ? 'text-red-600 group-hover:text-red-300' : (record.cumulative_return < -0.00001 ? 'text-green-500 group-hover:text-green-300' : 'text-yellow-700 group-hover:text-yellow-300')">
+                {{ formatPercent(record.cumulative_return) }}
+              </span>
+            </td>
             <td class="py-3 px-2">{{ record.status === 'ACTIVE' ? '遊玩中' : '已結束' }}</td>
             <td class="py-3 px-2">{{ record.note || '-' }}</td>
           </tr>

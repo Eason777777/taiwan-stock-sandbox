@@ -29,22 +29,46 @@
 
     <div class="bg-nature-200 rounded-[10px] overflow-y-auto max-h-[400px]">
       <table class="w-full text-center relative">
-        <thead class="sticky top-0 bg-nature-200 border-b-3 text-nature-900 font-05 text-04">
+        <thead class="sticky top-0 bg-nature-200 border-b-3 text-nature-900 font-05 text-04 z-10">
           <tr>
-            <th class="py-3 px-2">名稱</th>
-            <th class="py-3 px-2">損益</th>
-            <th class="py-3 px-2">報酬率</th>
-            <th class="py-3 px-2">交易類別</th>
-            <th class="py-3 px-2">成交股數</th>
-            <th class="py-3 px-2">成交價格</th>
-            <th class="py-3 px-2">出帳金額</th>
-            <th class="py-3 px-2">投資成本</th>
+            <th class="py-3 px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('stock_id')">
+              名稱
+              <SortIcon :active="sortKey === 'stock_id'" :order="sortOrder" />
+            </th>
+            <th class="py-3 px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('realized_pnl')">
+              損益
+              <SortIcon :active="sortKey === 'realized_pnl'" :order="sortOrder" />
+            </th>
+            <th class="py-3 px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('return_rate')">
+              報酬率
+              <SortIcon :active="sortKey === 'return_rate'" :order="sortOrder" />
+            </th>
+            <th class="py-3 px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('side')">
+              交易類別
+              <SortIcon :active="sortKey === 'side'" :order="sortOrder" />
+            </th>
+            <th class="py-3 px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('quantity')">
+              成交股數
+              <SortIcon :active="sortKey === 'quantity'" :order="sortOrder" />
+            </th>
+            <th class="py-3 px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('price')">
+              成交價格
+              <SortIcon :active="sortKey === 'price'" :order="sortOrder" />
+            </th>
+            <th class="py-3 px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('computed_net_amount')">
+              出帳金額
+              <SortIcon :active="sortKey === 'computed_net_amount'" :order="sortOrder" />
+            </th>
+            <th class="py-3 px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('avg_cost')">
+              投資成本
+              <SortIcon :active="sortKey === 'avg_cost'" :order="sortOrder" />
+            </th>
           </tr>
         </thead>
 
         <tbody class="text-04 text-nature-800">
           <tr 
-            v-for="record in saveRecords" 
+            v-for="record in sortedRecords" 
             :key="record.order_id" 
             class="group border-b-[3px] border-nature-800 hover:bg-nature-600 hover:text-nature-200 transition-colors"
           >
@@ -94,19 +118,89 @@
 </template>
 
 <script setup>
-  import { ref, onMounted } from 'vue'
+  import { ref, computed, onMounted, defineComponent, h } from 'vue'
   import { useRoute } from 'vue-router'
   import RecordSelect from './RecordSelect.vue'
+
+  // 🚀 新增：內聯渲染排序箭頭的微型元件，保持模板乾淨
+  const SortIcon = defineComponent({
+    props: ['active', 'order'],
+    setup(props) {
+      return () => {
+        let iconText = '⇅'
+        let colorClass = 'text-nature-900' // 未排序時的淺色
+
+        if (props.active) {
+          if (props.order === 'asc') {
+            iconText = '▲'
+            colorClass = 'text-nature-900' // 排序啟用時的深色
+          } else if (props.order === 'desc') {
+            iconText = '▼'
+            colorClass = 'text-nature-900'
+          }
+        }
+
+        return h('span', { 
+          class: `inline-block ml-1 align-middle text-03 font-bold transition-colors ${colorClass}` 
+        }, iconText)
+      }
+    }
+  })
 
   const saveRecords = ref([])
   const isLoading = ref(true)
   
-  // 上方的總計數字 (若後端沒有直接給，這部分未來可能需要靠前端遍歷 saveRecords 來計算)
+  // 🚀 新增：排序狀態
+  const sortKey = ref('')
+  const sortOrder = ref('') // 'asc' 或 'desc' 或 ''
+
   const spendingAmount = ref(0)
   const profitLoss = ref(0)
   const returnRate = ref(0)
 
-  // 🚀 新增：計算總計數據的函式
+  // 🚀 新增：點擊表頭的排序切換邏輯
+  const sortBy = (key) => {
+    if (sortKey.value === key) {
+      if (sortOrder.value === 'asc') {
+        sortOrder.value = 'desc'
+      } else if (sortOrder.value === 'desc') {
+        sortOrder.value = ''
+        sortKey.value = ''
+      }
+    } else {
+      sortKey.value = key
+      sortOrder.value = 'asc'
+    }
+  }
+
+  // 🚀 新增：依據排序狀態動態計算的陣列
+  const sortedRecords = computed(() => {
+    if (!sortKey.value || !sortOrder.value) return saveRecords.value
+
+    return [...saveRecords.value].sort((a, b) => {
+      let valA = a[sortKey.value]
+      let valB = b[sortKey.value]
+
+      // 針對「出帳金額」的特殊判斷，因為它是前端算出來的
+      if (sortKey.value === 'computed_net_amount') {
+        valA = a.net_amount !== null ? Number(a.net_amount) : (Number(a.price) * Number(a.quantity))
+        valB = b.net_amount !== null ? Number(b.net_amount) : (Number(b.price) * Number(b.quantity))
+      } else {
+        // 確保數字欄位轉型正確，以便正確比對大小
+        if (!isNaN(valA) && valA !== null) valA = Number(valA)
+        if (!isNaN(valB) && valB !== null) valB = Number(valB)
+      }
+
+      // 將 null 值往後排
+      if (valA === null || valA === undefined) return 1
+      if (valB === null || valB === undefined) return -1
+
+      if (valA < valB) return sortOrder.value === 'asc' ? -1 : 1
+      if (valA > valB) return sortOrder.value === 'asc' ? 1 : -1
+      return 0
+    })
+  })
+
   const calculateSummary = (records) => {
     let totalSpent = 0
     let totalPnL = 0
@@ -114,26 +208,20 @@
 
     records.forEach(record => {
       if (record.side === 'BUY') {
-        // 買進：加總所有買進的出帳金額
         totalSpent += Number(record.net_amount || (record.price * record.quantity))
       } else if (record.side === 'SELL') {
-        // 賣出：加總所有賣出的已實現損益
         if (record.realized_pnl !== null) {
           totalPnL += Number(record.realized_pnl)
         }
-        
-        // 🚀 修正這裡！利用「入帳金額 - 損益」精準反推總成本
         if (record.net_amount !== null && record.realized_pnl !== null) {
           totalSoldCost += (Number(record.net_amount) - Number(record.realized_pnl))
         }
       }
     })
 
-    // 更新 ref 變數
     spendingAmount.value = Math.round(totalSpent)
     profitLoss.value = Math.round(totalPnL)
 
-    // 計算總投資報酬率
     if (totalSoldCost > 0) {
       returnRate.value = ((totalPnL / totalSoldCost) * 100).toFixed(2)
     } else {
@@ -153,8 +241,6 @@
     }
 
     try {
-      // 💡 注意：依據你上一回合提供的資料結構，這裡的 API 可能是抓取委託單 (Orders)
-      // 若後端路由不同，請將 /api/holding/transactions 替換為實際的端點
         const response = await fetch(`/api/saves/${saveId}/orders`, {headers: {
           'Content-Type': 'application/json',
           'x-session-id': localStorage.getItem('session_id') || ''
@@ -166,7 +252,6 @@
         console.log('成功拿到股票交易資料:', data)
         saveRecords.value = data
         
-        // 🚀 在這裡呼叫計算函式，把剛拿到的資料傳進去
         calculateSummary(data)
         
       } else {
@@ -183,51 +268,27 @@
     fetchSaves()
   })
 
-  // ==========================================
-  // --- 股票交易專用：顯示轉換邏輯 (Formatters) ---
-  // ==========================================
-
-  /**
-   * 1. 數字千分位格式化
-   * 用途：將數字轉為帶有逗號的金融格式，如 10000 -> 10,000
-   */
   const formatNumber = (num) => {
     if (num === null || num === undefined) return '-'
     return Number(num).toLocaleString()
   }
 
-  /**
-   * 2. 轉換交易類別
-   * 用途：將資料庫的 BUY / SELL 轉換為中文顯示
-   */
   const formatSide = (side) => {
     if (side === 'BUY') return '買進'
     if (side === 'SELL') return '賣出'
     return side 
   }
 
-  /**
-   * 3. 判斷文字顏色
-   * 用途：買進顯示紅色，賣出顯示綠色 (可直接綁定於 HTML 的 :class)
-   */
   const getSideColorClass = (side) => {
     return side === 'BUY' ? 'text-red-500' : 'text-green-500'
   }
 
-  /**
-   * 4. 計算出帳金額 (粗估)
-   * 用途：由於目前委託單資料無手續費與交易稅，此處單純以 價格 * 數量 計算
-   */
   const calculateAmount = (price, quantity) => {
     if (!price || !quantity) return '-'
     const total = Number(price) * Number(quantity)
     return formatNumber(Math.round(total))
   }
 
-  /**
-   * 5. 轉換訂單狀態 (選用)
-   * 用途：若未來你的表格需要顯示該筆交易是「已成交」還是「委託中」，可套用此函式
-   */
   const formatStatus = (status) => {
     const statusMap = {
       'FILLED': '已成交',
