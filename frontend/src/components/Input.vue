@@ -5,6 +5,8 @@
             :value="modelValue"
             :type="type"
             :placeholder="placeholder"
+            :min="min"
+            :max="max"
             :class="inputClass"
             @input="emit('update:modelValue', $event.target.value)"
         />
@@ -30,6 +32,14 @@ const props = defineProps({
     placeholder: {
         type: String,
         default: '',
+    },
+    min: {
+        type: String,
+        default: undefined,
+    },
+    max: {
+        type: String,
+        default: undefined,
     },
     variant: {
         type: String,

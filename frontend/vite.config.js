@@ -22,7 +22,7 @@ export default defineConfig({
     globals: true,
   },
   server: {
-    allowedHosts: ['.taila965b0.ts.net'], // tailscale funnel domain name
+    allowedHosts: ['.taila965b0.ts.net', '.tail9ea705.ts.net'], // tailscale funnel domain names
     proxy: {
       '/api': {
         target: 'http://127.0.0.1:8000',
