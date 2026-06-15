@@ -1,6 +1,6 @@
 <template>
   <div class="py-1 px-1">
-    <div class="account-info-container flex px-1! items-center self-stretch w-full justify-between box-border">
+    <div class="account-info-container flex px-1! items-center self-stretch w-full justify-between box-border" data-tutorial="inventory-accounts">
       <!-- 1. 交割戶 -->
       <div class="account-column flex flex-col justify-center gap-[10px] flex-1 items-stretch max-w-[320px]">
         <span class="account-name text-white font-sans text-[40px] font-normal leading-normal text-left">

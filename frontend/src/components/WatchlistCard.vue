@@ -5,8 +5,9 @@
     <!-- 1. 上半部：兩個相連按鈕 (新增自選股 & 進入下一階段) -->
     <div class="flex gap-0 w-full">
       <!-- 左：新增自選股按鈕 -->
-      <button 
+      <button
         class="group relative flex justify-center items-center flex-1 h-16 rounded-l-xl! rounded-r-none! bg-yellow-500 hover:bg-yellow-700 transition-colors duration-300 ease-out cursor-pointer border-none outline-none"
+        data-tutorial="watchlist-add"
         @click="$emit('add-stock')"
       >
         <!-- 預設狀態 (Default) 加號 SVG -->
@@ -27,6 +28,7 @@
       <button
         class="group relative flex justify-center items-center flex-1 h-16 rounded-r-xl! rounded-l-none! bg-green-300 hover:bg-green-700 active:bg-green-900 active:transition-none transition-colors duration-300 ease-out cursor-pointer border-none outline-none disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none"
         :disabled="disableNextPhase"
+        data-tutorial="watchlist-next"
         @click="$emit('next-phase')"
       >
         <!-- 預設狀態 (Default) 箭頭 SVG -->

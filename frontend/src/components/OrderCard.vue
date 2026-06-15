@@ -2,7 +2,7 @@
 <template>
   <div class="order-card bg-nature-800 border-[10px] border-nature-500 rounded-xl shadow-2xl text-white font-sans">
     <!-- Main Form Area (2-Column Grid Layout) -->
-    <div class="grid grid-cols-2 gap-x-24 gap-y-6 w-full items-start">
+    <div class="grid grid-cols-2 gap-x-24 gap-y-6 w-full items-start" data-tutorial="order-form">
       <!-- Row 1 Left: Stock Code Input -->
       <div>
         <StockInput 

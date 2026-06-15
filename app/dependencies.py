@@ -56,7 +56,7 @@ async def verify_session(
     # 避免把 session_expires_at 拉回 Python 比較而受應用伺服器與 DB 時區不一致影響。
     # 不在 WHERE 過濾過期，是為了能區分「session 過期」與「不存在/錯誤」並回不同的 401。
     result = await db.query(
-        "SELECT user_id, account, session_ip,"
+        "SELECT user_id, account, session_ip, is_new,"
         " (session_expires_at IS NOT NULL AND session_expires_at <= NOW()) AS is_expired"
         " FROM users WHERE session_id = ?",
         [x_session_id],
@@ -78,6 +78,7 @@ async def verify_session(
         raise HTTPException(status_code=401, detail="Not authenticated")
 
     return user
+
 
 
 async def get_current_user(

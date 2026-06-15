@@ -167,7 +167,19 @@ async def me(user: dict = Depends(verify_session)):
     # 用途：前端定期 ping 以偵測 session 是否仍有效。
     # 刻意使用 verify_session（不續期）：若此輪詢端點也續期，session 會因前端定期 ping
     # 而永不過期，使「長時間未操作」永遠偵測不到。續期只由使用者實際操作的端點負責。
-    return {"user_id": user["user_id"], "account": user["account"]}
+    return {"user_id": user["user_id"], "account": user["account"], "is_new": bool(user["is_new"])}
+
+
+@router.post("/mark-tutorial-seen")
+async def mark_tutorial_seen(
+    db: SqlApiClient = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    await db.query(
+        "UPDATE users SET is_new = 0 WHERE user_id = ?",
+        [int(current_user["user_id"])],
+    )
+    return {"message": "ok"}
 
 
 @router.post("/logout")

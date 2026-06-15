@@ -9,7 +9,7 @@
     </div>
 
     <!-- 庫存持股表格 -->
-    <div class="w-full overflow-y-auto max-h-[348px] rounded-[10px] border border-nature-600 bg-[#F8F9FA] holding-info-container">
+    <div class="w-full overflow-y-auto max-h-[348px] rounded-[10px] border border-nature-600 bg-[#F8F9FA] holding-info-container" data-tutorial="inventory-holdings">
       <table class="w-full border-collapse font-sans text-nature-900 table-fixed">
         <thead>
           <tr class="bg-[#E9ECEF] h-[52px]">

@@ -51,6 +51,7 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import TopBar from '../components/TopBar.vue'
 import { apiFetch } from '../api/client.js'
+import { offerTutorial } from '../components/TutorialOverlay.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -166,6 +167,11 @@ onMounted(async () => {
   if (response.ok) {
     const data = await response.json()
     username.value = data.account
+
+    // 新帳號第一次進入遊戲：詢問是否進行新手教學
+    if (data.is_new) {
+      offerTutorial()
+    }
   }
 })
 </script>

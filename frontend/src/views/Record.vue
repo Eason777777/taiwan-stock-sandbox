@@ -1,5 +1,5 @@
 <template>
-    <div class="text-nature-300 flex flex-col items-center gap-[20px] w-full h-full py-[30px]">
+    <div class="text-nature-300 flex flex-col items-center gap-[20px] w-full h-full py-[30px]" data-tutorial="record-area">
         <OrderRecords v-if="selectedType === 1" />
         <TransactRecords v-else-if="selectedType === 2" />
         <SavefileRecords v-else :current-save-id="saveId" />

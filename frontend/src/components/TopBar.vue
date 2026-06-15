@@ -4,7 +4,7 @@
     <!-- 1. 頂部狀態列 TopState -->
     <div class="w-full bg-topbar-blue text-white text-01 px-8.5 py-0.25 flex justify-between items-center font-sans font-medium shadow-sm">
       <!-- 左側：目前使用者與登出鍵 -->
-      <div class="flex items-center gap-4 flex-1">
+      <div class="flex items-center gap-4 flex-1" data-tutorial="topbar-user">
         <div>目前使用者：<span class="text-white font-semibold">{{ username }}</span></div>
         <button
           @click="handleLogout"
@@ -15,13 +15,13 @@
       </div>
 
       <!-- 中間：日期與狀態 -->
-      <div class="flex items-center justify-center gap-4 flex-1">
+      <div class="flex items-center justify-center gap-4 flex-1" data-tutorial="topbar-status">
         <div>日期：<span class="text-white font-semibold">{{ date }}</span></div>
         <div>狀態：<span class="text-white font-semibold">{{ status }}</span></div>
       </div>
 
       <!-- 右側：帳戶餘額 -->
-      <div class="flex justify-end items-center gap-4 flex-1">
+      <div class="flex justify-end items-center gap-4 flex-1" data-tutorial="topbar-balance">
         <div>存款戶：<span class="text-white font-bold">{{ savings }}</span></div>
         <div>交割戶：<span class="text-white font-bold">{{ delivery }}</span></div>
       </div>
