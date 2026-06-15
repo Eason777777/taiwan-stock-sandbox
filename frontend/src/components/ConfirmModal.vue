@@ -5,7 +5,7 @@
       class="fixed inset-0 z-[200] flex justify-center items-center w-full h-full bg-black/60 backdrop-blur-sm"
       @click.self="handleCancel"
     >
-      <div class="z-[201] min-w-[450px] w-[450px] h-fit bg-nature-800 border-nature-500 border-[10px] rounded-lg p-[25px] flex flex-col gap-6 text-white font-sans shadow-2xl">
+      <div class="z-[201] min-w-flex w-[450px] h-fit bg-nature-800 border-nature-500 border-[10px] rounded-lg p-[25px] flex flex-col gap-6 text-white font-sans shadow-2xl">
         <!-- 標題與圖示 -->
         <div class="text-05 font-bold text-nature-200 flex items-center gap-2.5">
           <svg 
