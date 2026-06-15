@@ -21,6 +21,7 @@
 <script setup>
 import { ref } from 'vue'
 import Input from './Input.vue'
+import { apiFetch } from '../api/client.js'
 
 const emit = defineEmits(['close', 'refresh'])
 
@@ -48,13 +49,9 @@ const submitSave = async () => {
     }
 
     try {
-        const response = await fetch('/api/saves', {
+        // x-session-id 與 401 過期處理統一交給 apiFetch
+        const response = await apiFetch('/api/saves', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                // 🚀 關鍵：把你的通行證從 localStorage 拿出來，並夾帶在標頭裡送過去
-                'x-session-id': localStorage.getItem('session_id') 
-            },
             body: JSON.stringify(payload)
         })
 

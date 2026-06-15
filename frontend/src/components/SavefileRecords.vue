@@ -2,57 +2,59 @@
   <div class="fixed inset-0 z-[100] flex justify-center items-center w-full h-full bg-black/60 backdrop-blur-sm"
        v-if="currentView === 'add'" 
        @click.self="currentView = 'list'">
-    <AddSave @close="currentView = 'list'" @refresh="onRefresh" />
+        <AddSave @close="currentView = 'list'" />
   </div>
 
-  <div class="min-w-[1000px] gap-[10px] z-50 p-[30px] bg-nature-800 border-nature-500 border-[10px] w-[80%] h-fit flex flex-col"
+  <div class="min-w-[1280px] gap-[10px] p-[30px] bg-nature-800 border-nature-500 border-[10px] w-[90%] h-fit flex flex-col"
       v-if="currentView === 'remove'" 
       @click.self="currentView = 'list'"
   >
     <RemoveSave :saveRecords="saveRecords" @close="currentView = 'list'" @refresh="onRefresh" />
   </div>
 
-  <div class="min-w-[1000px] gap-[10px] z-50 p-[30px] bg-nature-800 border-nature-500 border-[10px] w-[80%] h-fit flex flex-col"
-      v-if="currentView === 'add' || currentView === 'list'" 
-  >
+  <div class="min-w-[1280px] gap-[10px] p-[30px] bg-nature-800 border-nature-500 border-[10px] w-[90%] h-fit flex flex-col"
+      v-if="currentView === 'add' || currentView === 'list'"
+    >
     
     <div class="flex w-full h-full">
-      <div class="text-06 text-nature-100 "> 存檔紀錄 </div>
+      <div class="text-07 text-nature-100 w-full"> 存檔紀錄 </div>
+      <div class="w-full flex flex-row-reverse"> <RecordSelect :titleType=3 /> </div>
     </div>
 
     <div class="flex w-full h-fit gap-[5px]">
-      <!-- 新增存檔按鈕 -->
-      <button @click="currentView = 'add'" class="relative group w-full h-[64px] bg-yellow-500 flex justify-center items-center cursor-pointer rounded-l-[10px] hover:bg-yellow-700 transition-colors duration-300 ease-in-out"> 
-        <div class="absolute opacity-100 group-hover:opacity-0 transition-opacity duration-300 ease-in-out">
-          <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="32" cy="32" r="24" stroke="#B89300" stroke-width="5.66667"/>
-            <path d="M32 40L32 24" stroke="#B89300" stroke-width="5.66667" stroke-linecap="square"/>
-            <path d="M40 32L24 32" stroke="#B89300" stroke-width="5.66667" stroke-linecap="square"/>
-          </svg>
-        </div>
-        <div class="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-in-out">
-          <div class="text-yellow-500 text-05 font-sans font-06"> 新增存檔 </div>
-        </div>
-      </button>
-      <!-- 移除存檔按鈕 -->
-      <button @click="currentView = 'remove'" class="group w-full h-[64px] bg-red-300 flex justify-center items-center transition-colors cursor-pointer rounded-r-[10px] hover:bg-red-700 transition-colors duration-300 ease-in-out">
-        <div class="absolute opacity-100 group-hover:opacity-0 transition-opacity duration-300 ease-in-out">
-          <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="32" cy="32" r="24" stroke="#A4133C" stroke-width="4.83333"/>
-            <path d="M24 39.9991L40 23.9991" stroke="#A4133C" stroke-width="4.83333"/>
-            <path d="M40 40L24 24" stroke="#A4133C" stroke-width="4.83333"/>
-          </svg>
-        </div>
-        <div class="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-in-out">
-          <div class="text-red-300 text-05 font-sans font-06"> 移除存檔 </div>
-        </div>
-      </button>
+    <!-- 新增存檔按鈕 -->
+        <button @click="currentView = 'add'" class="relative group w-full h-[64px] bg-yellow-500 flex justify-center items-center cursor-pointer rounded-l-[10px] hover:bg-yellow-700 transition-colors duration-300 ease-in-out"> 
+            <div class="absolute opacity-100 group-hover:opacity-0 transition-opacity duration-300 ease-in-out">
+                <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="32" cy="32" r="24" stroke="#B89300" stroke-width="5.66667"/>
+                <path d="M32 40L32 24" stroke="#B89300" stroke-width="5.66667" stroke-linecap="square"/>
+                <path d="M40 32L24 32" stroke="#B89300" stroke-width="5.66667" stroke-linecap="square"/>
+                </svg>
+            </div>
+            <div class="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-in-out">
+                <div class="text-yellow-500 text-05 font-sans font-06"> 新增存檔 </div>
+            </div>
+        </button>
+
+        <!-- 移除存檔按鈕 -->
+        <button @click="currentView = 'remove'" class="group w-full h-[64px] bg-red-300 flex justify-center items-center transition-colors cursor-pointer rounded-r-[10px] hover:bg-red-700 transition-colors duration-300 ease-in-out">
+            <div class="absolute opacity-100 group-hover:opacity-0 transition-opacity duration-300 ease-in-out">
+            <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="32" cy="32" r="24" stroke="#A4133C" stroke-width="4.83333"/>
+                <path d="M24 39.9991L40 23.9991" stroke="#A4133C" stroke-width="4.83333"/>
+                <path d="M40 40L24 24" stroke="#A4133C" stroke-width="4.83333"/>
+            </svg>
+            </div>
+            <div class="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-in-out">
+            <div class="text-red-300 text-05 font-sans font-06"> 移除存檔 </div>
+            </div>
+        </button>
     </div>
-    <!-- 存檔們 -->
+
     <div class="bg-nature-200 rounded-[10px] overflow-y-auto max-h-[400px]">
       <table class="w-full text-center relative">
         
-        <thead class="sticky top-0 z-10 bg-nature-200 border-b-3 text-nature-900 font-05 text-04">
+        <thead class="sticky top-0 bg-nature-200 border-b-3 text-nature-900 font-05 text-04">
           <tr>
             <th class="py-3 px-2">名稱</th>
             <th class="py-3 px-2">日期</th>
@@ -64,7 +66,7 @@
           </tr>
         </thead>
 
-        <tbody class="text-03">
+        <tbody class="text-04 text-nature-800">
           <tr 
             v-for="record in saveRecords" 
             :key="record.save_id" 
@@ -91,10 +93,10 @@
 
 <script setup>
   import { ref, onMounted } from 'vue'
+  import RecordSelect from './RecordSelect.vue'
   import AddSave from './AddSave.vue'
   import RemoveSave from './RemoveSave.vue'
-  import { useRouter } from 'vue-router'
-  import { apiFetch } from '../api/client.js'
+  import { useRouter } from 'vue-router' 
 
   const router = useRouter()
 
@@ -106,9 +108,11 @@
   // 呼叫 API 的函式
   const fetchSaves = async () => {
     try {
-      // x-session-id 與 401 過期處理統一交給 apiFetch
-      const response = await apiFetch('/api/saves', {
-        method: 'GET',
+        const response = await fetch('/api/saves', {headers: {
+          'Content-Type': 'application/json',
+          // 🚀 關鍵修正：必須用後端規定的 x-session-id
+          'x-session-id': localStorage.getItem('session_id') || ''
+        }
       })
 
       if (response.ok) {
@@ -140,8 +144,8 @@
   const loadGame = (recordId) => {
     console.log('準備讀取存檔 ID:', recordId)
     router.push({
-      path: '/game/custom',
-      query: { saveId: recordId }
+      path: '/custom', 
+      query: { saveId: recordId } 
     })
   }
 </script>

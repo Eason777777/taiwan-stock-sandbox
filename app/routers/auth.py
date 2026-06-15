@@ -8,7 +8,8 @@ from fastapi.responses import HTMLResponse
 from passlib.context import CryptContext
 from pydantic import BaseModel
 from ..database import SqlApiClient
-from ..dependencies import get_db, get_current_user, get_client_ip
+from ..dependencies import get_db, get_current_user, get_client_ip, verify_session
+from ..constants import SESSION_TTL_SECONDS
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 # bcrypt__rounds 由預設 12 提高到 14：單次 hash 耗時隨之倍增（約 4 倍），
@@ -29,8 +30,9 @@ LOGIN_MAX_ATTEMPTS = 5
 LOGIN_WINDOW_SECONDS = 60
 _failed_logins: dict[str, list[float]] = defaultdict(list)
 
-# session 有效期限：每次登入後 SESSION_TTL_HOURS 小時內有效，過期需重新登入
-SESSION_TTL_HOURS = 2
+# session 有效期限 SESSION_TTL_HOURS 定義於 app/constants.py（供 dependencies 一同 import）。
+# 改為滑動過期：每次通過驗證的請求都會把過期時間延長至 NOW() + SESSION_TTL_HOURS 小時，
+# 因此這是「閒置上限」而非從登入起算的總時長上限。
 
 # 註冊防護：honeypot 欄位若被填值，將該 IP 寫入 blacklisted_ips 黑名單；常見腳本工具的 User-Agent 直接拒絕
 _BLOCKED_USER_AGENT_PREFIXES = ("curl", "python-requests", "go-http-client", "postmanruntime", "wget")
@@ -150,14 +152,22 @@ async def login(body: LoginRequest, request: Request, db: SqlApiClient = Depends
     # 同時記錄來源 IP，後續請求若來源 IP 不同則拒絕（降低 session_id 外洩後的可用範圍）
     session_id = secrets.token_hex(18)  # 36 chars fits char(36)
     await db.query(
-        # SESSION_TTL_HOURS 為內部常數（非使用者輸入），直接嵌入 SQL 是安全的；
-        # INTERVAL 子句不支援以 ? 佔位符傳入數值。
-        f"UPDATE users SET session_id = ?, session_expires_at = NOW() + INTERVAL {SESSION_TTL_HOURS} HOUR,"
+        # SESSION_TTL_SECONDS 為內部常數（非使用者輸入），直接嵌入 SQL 是安全的；
+        # INTERVAL 子句不支援以 ? 佔位符傳入數值。以秒為單位避免 INTERVAL 截斷小數小時。
+        f"UPDATE users SET session_id = ?, session_expires_at = NOW() + INTERVAL {SESSION_TTL_SECONDS} SECOND,"
         " session_ip = ? WHERE user_id = ?",
         [session_id, get_client_ip(request), int(user["user_id"])],
     )
 
     return {"session_id": session_id}
+
+
+@router.get("/me")
+async def me(user: dict = Depends(verify_session)):
+    # 用途：前端定期 ping 以偵測 session 是否仍有效。
+    # 刻意使用 verify_session（不續期）：若此輪詢端點也續期，session 會因前端定期 ping
+    # 而永不過期，使「長時間未操作」永遠偵測不到。續期只由使用者實際操作的端點負責。
+    return {"user_id": user["user_id"], "account": user["account"]}
 
 
 @router.post("/logout")

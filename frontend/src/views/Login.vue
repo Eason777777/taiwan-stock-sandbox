@@ -4,8 +4,11 @@
       @close="isShowSaveModal = false" >
     <SaveRecords />
   </div>
-  
-  <div class="min-h-screen w-full flex items-center justify-center bg-[#212529] font-sans">
+
+  <!-- session 因長時間未操作而過期時，彈出提示視窗 -->
+  <SessionExpiredModal v-if="showExpiredModal" @close="showExpiredModal = false" />
+
+  <div class="min-h-screen w-full flex items-center justify-center bg-nature-900 font-sans">
     <div class="w-full max-w-md flex flex-col items-center px-6">
 
       <h1 class="text-7xl font-bold text-white mb-5">
@@ -36,12 +39,12 @@
           <button 
             type="submit"
             :disabled="isLoading"
-            class="w-full bg-[#FFC107] hover:bg-[#B79300] hover:cursor-pointer text-[#212529] font-bold text-xl py-3 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            class="w-full bg-yellow-500 hover:bg-yellow-700 hover:cursor-pointer text-nature-900 font-bold text-xl py-3 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {{ isLoading ? '登入中...' : 'Login' }}
           </button>
           
-          <p class="text-gray-300 text-sm mt-2">
+          <p class="text-nature-300 text-sm mt-2">
             Don't have account? 
             <router-link to="/signup" class="text-white hover:underline hover:cursor-pointer">
               sign up
@@ -55,8 +58,9 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import SaveRecords from '../components/SaveRecords.vue'
+import SessionExpiredModal from '../components/SessionExpiredModal.vue'
 import Input from '../components/Input.vue'
 
 // --- 變數狀態管理 ---
@@ -65,10 +69,17 @@ const password = ref('')
 const errorMessage = ref('')
 const isLoading = ref(false)
 const isShowSaveModal = ref(false)
+const showExpiredModal = ref(false)
 
-const saveRecords = ref([
-  { id: 1, name: '存檔一', date: '4/31', time: '9:00', assets: 1000, returnRate: '10%', status: '遊玩中', note: '別點我' },
-])
+// 進入登入頁時，若上一個 session 是因「長時間未操作」而過期（apiFetch 設下旗標），
+// 彈出提示視窗。讀取後立即清除旗標，避免重整或下次進頁又重複彈出。
+onMounted(() => {
+  if (localStorage.getItem('logout_reason') === 'expired') {
+    showExpiredModal.value = true
+    localStorage.removeItem('logout_reason')
+  }
+})
+
 // --- 登入邏輯 ---
 const handleLogin = async () => {
   if (!username.value || !password.value) {

@@ -4,11 +4,27 @@ from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from .routers import auth, saves, accounts, stocks, orders, holdings, watchlist, save_stocks
 
-app = FastAPI(title="錢錢錢市 股票模擬系統")
+app = FastAPI(title="錢錢錢市 股票模擬系統", docs_url=None)
+
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
+
+@app.get("/docs", include_in_schema=False)
+async def custom_swagger_ui_html():
+    response = get_swagger_ui_html(
+        openapi_url=app.openapi_url,
+        title=f"{app.title} - Swagger UI",
+    )
+    extra_css = b'<link rel="stylesheet" href="/static/swagger-dark.css"></head>'
+    response.body = response.body.replace(b"</head>", extra_css)
+    response.headers["content-length"] = str(len(response.body))
+    return response
 
 app.add_middleware(
     CORSMiddleware,
