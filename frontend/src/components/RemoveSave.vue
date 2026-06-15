@@ -40,8 +40,8 @@
             <td class="py-3 px-2">{{ record.save_name }}</td>
             <td class="py-3 px-2">{{ record.start_date }}</td>
             <td class="py-3 px-2">{{ record.current_trade_date || '無' }}</td>
-            <td class="py-3 px-2">{{ record.savings_balance }}</td> 
-            <td class="py-3 px-2">{{ record.returnRate || '0%' }}</td>
+            <td class="py-3 px-2">{{ formatCurrency(record.total_asset) }}</td>
+            <td class="py-3 px-2">{{ formatPercent(record.cumulative_return) }}</td>
             <td class="py-3 px-2">{{ record.status === 'ACTIVE' ? '遊玩中' : '已結束' }}</td>
             <td class="py-3 px-2">{{ record.note || '-' }}</td>
           </tr>
@@ -73,6 +73,16 @@ const props = defineProps({
 
 // 🚀 2. 多宣告一個 'refresh' 事件，等等刪除成功後可以用來通知父元件更新畫面
 const emit = defineEmits(['close', 'refresh'])
+
+const formatCurrency = (value) => {
+  if (value === undefined || value === null) return '0'
+  return Number(value).toLocaleString()
+}
+
+const formatPercent = (value) => {
+  if (value === undefined || value === null) return '0%'
+  return (Number(value) * 100).toFixed(2) + '%'
+}
 
 // 🗑️ 3. 刪除 fetchSaves 函式與 onMounted，因為資料現在是由父元件給的！
 
