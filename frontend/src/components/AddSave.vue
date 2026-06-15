@@ -1,7 +1,7 @@
 <template>
-    <div class="z-101 min-w-[500px] w-[500px] h-fit bg-nature-800 border-nature-500 border-[10px] rounded-lg p-[20px]">
-        <div class="gap-5 flex w-full h-full flex-col font-sans">
-            <div class="text-06 text-nature-200 font-05"> 新增存檔 </div>
+    <div class="z-101 w-[95vw] sm:w-[500px] min-w-0 h-fit bg-nature-800 border-nature-500 border-[3px] sm:border-[6px] md:border-[10px] rounded-lg p-3 sm:p-4 md:p-[20px]">
+        <div class="gap-3 sm:gap-5 flex w-full h-full flex-col font-sans">
+            <div class="text-04 sm:text-05 md:text-06 text-nature-200 font-05"> 新增存檔 </div>
             <Input v-model="saveName" label="存檔名稱" placeholder="請輸入存檔名稱" />
             <Input
                 v-model="startDate"
@@ -14,11 +14,11 @@
             />
             <Input v-model="initialFunds" type="number" label="初始金額" placeholder="50000 ~ 1000000 (選填)" />
             
-            <div class="flex w-full h-fit gap-5">
-                <button @click="$emit('close')" class="cursor-pointer w-full text-nature-800 bg-nature-200 text-04 font-07 rounded-[10px]">
+            <div class="flex w-full h-fit gap-2 sm:gap-5">
+                <button @click="$emit('close')" class="cursor-pointer w-full text-nature-800 bg-nature-200 text-02 sm:text-03 md:text-04 font-07 rounded-[10px] py-2 sm:py-3">
                     取消
                 </button>
-                <button @click="submitSave" :disabled="isSubmitting" class="cursor-pointer w-full text-yellow-900 bg-yellow-500 text-04 font-07 rounded-[10px] disabled:opacity-50 disabled:cursor-not-allowed">
+                <button @click="submitSave" :disabled="isSubmitting" class="cursor-pointer w-full text-yellow-900 bg-yellow-500 text-02 sm:text-03 md:text-04 font-07 rounded-[10px] py-2 sm:py-3 disabled:opacity-50 disabled:cursor-not-allowed">
                     {{ isSubmitting ? '建立中...' : '確認' }}
                 </button>
             </div>

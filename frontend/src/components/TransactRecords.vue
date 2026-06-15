@@ -1,63 +1,63 @@
 <template>
-  <div class="rounded-[10px] gap-[10px] p-[30px] bg-nature-800 border-nature-500 border-[10px] w-[90%] h-fit flex flex-col">
-    
+  <div class="w-[98%] sm:w-[90%] max-w-[1280px] gap-[10px] p-[6px] sm:p-[20px] md:p-[30px] bg-nature-800 border-nature-500 border-[3px] sm:border-[6px] md:border-[10px] h-fit flex flex-col">
+
     <div class="flex w-full h-full">
-      <div class="text-06 text-nature-100 w-full"> 轉帳紀錄 </div>
+      <div class="text-03 sm:text-04 md:text-06 lg:text-07 text-nature-100 w-full"> 轉帳紀錄 </div>
       <div class="w-full flex flex-row-reverse"> <RecordSelect :titleType="2"/> </div>
     </div>
 
-    <div class="bg-nature-200 rounded-[10px] overflow-y-auto max-h-[400px]">
-        <table class="w-full text-center text-nature-800 relative">
-            
-            <thead class="sticky top-0 z-10 bg-nature-200 border-b-3 text-nature-900 font-05 text-03">
+    <div class="bg-nature-200 rounded-[10px] overflow-x-auto">
+        <table class="w-full text-center text-nature-800 relative min-w-[640px]">
+
+            <thead class="sticky top-0 z-10 bg-nature-200 border-b-3 text-nature-900 font-05 text-01 sm:text-02 md:text-03 lg:text-04">
             <tr>
-                <th class="py-3 px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('sim_date')">
+                <th class="py-1.5 px-1 sm:py-3 sm:px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('sim_date')">
                   交易日期 <SortIcon :active="sortKey === 'sim_date'" :order="sortOrder" />
                 </th>
-                <th class="py-3 px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('account_type')">
+                <th class="py-1.5 px-1 sm:py-3 sm:px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('account_type')">
                   帳戶類型 <SortIcon :active="sortKey === 'account_type'" :order="sortOrder" />
                 </th> 
-                <th class="py-3 px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('change_type')">
+                <th class="py-1.5 px-1 sm:py-3 sm:px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('change_type')">
                   摘要 <SortIcon :active="sortKey === 'change_type'" :order="sortOrder" />
                 </th>
-                <th class="py-3 px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('amount_withdrawal')">
+                <th class="py-1.5 px-1 sm:py-3 sm:px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('amount_withdrawal')">
                   提款 <SortIcon :active="sortKey === 'amount_withdrawal'" :order="sortOrder" />
                 </th>
-                <th class="py-3 px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('amount_deposit')">
+                <th class="py-1.5 px-1 sm:py-3 sm:px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('amount_deposit')">
                   存款 <SortIcon :active="sortKey === 'amount_deposit'" :order="sortOrder" />
                 </th>
-                <th class="py-3 px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('balance_after')">
+                <th class="py-1.5 px-1 sm:py-3 sm:px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('balance_after')">
                   結餘 <SortIcon :active="sortKey === 'balance_after'" :order="sortOrder" />
                 </th>
-                <th class="py-3 px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('note')">
+                <th class="py-1.5 px-1 sm:py-3 sm:px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('note')">
                   註記 <SortIcon :active="sortKey === 'note'" :order="sortOrder" />
                 </th>
             </tr>
             </thead>
 
-            <tbody class="text-03">
+            <tbody class="text-01 sm:text-02 md:text-03 lg:text-04">
                 <tr 
                     v-for="record in sortedRecords" 
                     :key="record.seq" 
                     class="group border-b-[3px] border-nature-800 hover:bg-nature-600 hover:text-nature-200 transition-colors"
                 >
-                    <td class="py-3 px-2">{{ record.sim_date.slice(0, 10) }}</td>
+                    <td class="py-1.5 px-1 sm:py-3 sm:px-2">{{ record.sim_date.slice(0, 10) }}</td>
                     
-                    <td class="py-3 px-2">{{ formatAccountType(record.account_type) }}</td>
+                    <td class="py-1.5 px-1 sm:py-3 sm:px-2">{{ formatAccountType(record.account_type) }}</td>
                     
-                    <td class="py-3 px-2">{{ formatChangeType(record.change_type) }}</td>
+                    <td class="py-1.5 px-1 sm:py-3 sm:px-2">{{ formatChangeType(record.change_type) }}</td>
                     
-                    <td class="group-hover:text-green-300 py-3 px-2 text-green-500">
+                    <td class="group-hover:text-green-300 py-1.5 px-1 sm:py-3 sm:px-2 text-green-500">
                         {{ isWithdrawal(record.change_type) ? formatNumber(record.amount) : '-' }}
                     </td>
                     
-                    <td class="group-hover:text-red-300 py-3 px-2 text-red-600">
+                    <td class="group-hover:text-red-300 py-1.5 px-1 sm:py-3 sm:px-2 text-red-600">
                         {{ isDeposit(record.change_type) ? formatNumber(record.amount) : '-' }}
                     </td>
                     
-                    <td class="py-3 px-2">{{ formatNumber(record.balance_after) }}</td>
+                    <td class="py-1.5 px-1 sm:py-3 sm:px-2">{{ formatNumber(record.balance_after) }}</td>
                     
-                    <td class="py-3 px-2">{{ record.note || '-' }}</td>
+                    <td class="py-1.5 px-1 sm:py-3 sm:px-2">{{ record.note || '-' }}</td>
                 </tr>
                 
                 <tr class="h-[50px] bg-nature-200">
@@ -92,8 +92,8 @@
           }
         }
 
-        return h('span', { 
-          class: `inline-block ml-1 align-middle text-01 font-bold transition-colors ${colorClass}` 
+        return h('span', {
+          class: `inline-block ml-1 align-middle text-01 sm:text-02 lg:text-03 font-bold transition-colors ${colorClass}`
         }, iconText)
       }
     }

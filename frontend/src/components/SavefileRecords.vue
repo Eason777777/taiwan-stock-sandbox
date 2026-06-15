@@ -5,19 +5,19 @@
         <AddSave @close="currentView = 'list'" />
   </div>
 
-  <div class=" gap-[10px] p-[30px] bg-nature-800 border-nature-500 border-[10px] rounded-[10px] w-[90%] h-fit flex flex-col"
-      v-if="currentView === 'remove'" 
+  <div class="w-[98%] sm:w-[90%] max-w-[1280px] gap-[10px] p-[6px] sm:p-[20px] md:p-[30px] bg-nature-800 border-nature-500 border-[3px] sm:border-[6px] md:border-[10px] h-fit flex flex-col"
+      v-if="currentView === 'remove'"
       @click.self="currentView = 'list'"
   >
     <RemoveSave :saveRecords="saveRecords" :current-save-id="currentSaveId" @close="currentView = 'list'" @refresh="onRefresh" />
   </div>
 
-  <div class="gap-[10px] p-[30px] bg-nature-800 border-nature-500 border-[10px] rounded-[10px] w-[90%] h-fit flex flex-col"
+  <div class="w-[98%] sm:w-[90%] max-w-[1280px] gap-[10px] p-[6px] sm:p-[20px] md:p-[30px] bg-nature-800 border-nature-500 border-[3px] sm:border-[6px] md:border-[10px] h-fit flex flex-col"
       v-if="currentView === 'add' || currentView === 'list'"
     >
     
     <div class="flex w-full h-full">
-      <div class="text-06 text-nature-100 w-full"> 存檔紀錄 </div>
+      <div class="text-03 sm:text-04 md:text-06 lg:text-07 text-nature-100 w-full"> 存檔紀錄 </div>
       <div class="w-full flex flex-row-reverse"> <RecordSelect :titleType=3 /> </div>
     </div>
 
@@ -49,56 +49,56 @@
         </button>
     </div>
 
-    <div class="bg-nature-200 rounded-[10px] overflow-y-auto max-h-[400px]">
-      <table class="w-full text-center relative">
-        
-        <thead class="sticky top-0 z-10 bg-nature-200 border-b-3 text-nature-900 font-05 text-03">
+    <div class="bg-nature-200 rounded-[10px] overflow-x-auto">
+      <table class="w-full text-center relative min-w-[640px]">
+
+        <thead class="sticky top-0 z-10 bg-nature-200 border-b-3 text-nature-900 font-05 text-01 sm:text-02 md:text-03 lg:text-04">
           <tr>
-            <th class="py-3 px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('save_name')">
+            <th class="py-1.5 px-1 sm:py-3 sm:px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('save_name')">
               名稱 <SortIcon :active="sortKey === 'save_name'" :order="sortOrder" />
             </th>
-            <th class="py-3 px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('start_date')">
+            <th class="py-1.5 px-1 sm:py-3 sm:px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('start_date')">
               日期 <SortIcon :active="sortKey === 'start_date'" :order="sortOrder" />
             </th>
-            <th class="py-3 px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('current_trade_date')">
+            <th class="py-1.5 px-1 sm:py-3 sm:px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('current_trade_date')">
               時間 <SortIcon :active="sortKey === 'current_trade_date'" :order="sortOrder" />
             </th>
-            <th class="py-3 px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('total_asset')">
+            <th class="py-1.5 px-1 sm:py-3 sm:px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('total_asset')">
               總資產 <SortIcon :active="sortKey === 'total_asset'" :order="sortOrder" />
             </th>
-            <th class="py-3 px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('cumulative_return')">
+            <th class="py-1.5 px-1 sm:py-3 sm:px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('cumulative_return')">
               報酬率 <SortIcon :active="sortKey === 'cumulative_return'" :order="sortOrder" />
             </th>
-            <th class="py-3 px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('status')">
+            <th class="py-1.5 px-1 sm:py-3 sm:px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('status')">
               存檔狀態 <SortIcon :active="sortKey === 'status'" :order="sortOrder" />
             </th>
-            <th class="py-3 px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('note')">
+            <th class="py-1.5 px-1 sm:py-3 sm:px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('note')">
               註記 <SortIcon :active="sortKey === 'note'" :order="sortOrder" />
             </th>
           </tr>
         </thead>
 
-        <tbody class="text-03 text-nature-800">
+        <tbody class="text-01 sm:text-02 lg:text-03">
           <tr 
             v-for="record in sortedRecords" 
             :key="record.save_id" 
             class="group border-b-[3px] border-nature-800 hover:bg-nature-600 hover:text-nature-200 transition-colors cursor-pointer"
             @click="loadGame(record.save_id)"
           >
-            <td class="py-3 px-2">{{ record.save_name }}</td>
-            <td class="py-3 px-2">{{ record.start_date }}</td>
-            <td class="py-3 px-2">{{ record.current_trade_date || '無' }}</td>
-            <td class="py-3 px-2" >
+            <td class="py-1.5 px-1 sm:py-3 sm:px-2">{{ record.save_name }}</td>
+            <td class="py-1.5 px-1 sm:py-3 sm:px-2">{{ record.start_date }}</td>
+            <td class="py-1.5 px-1 sm:py-3 sm:px-2">{{ record.current_trade_date || '無' }}</td>
+            <td class="py-1.5 px-1 sm:py-3 sm:px-2" >
               <span :class="record.total_asset > 0 ? 'text-red-600 group-hover:text-red-300' : (record.total_asset < 0 ? 'text-green-500 group-hover:text-green-300' : 'text-yellow-600 group-hover:text-yellow-300')">
                 {{ formatCurrency(record.total_asset) }}
               </span></td> 
-            <td class="py-3 px-2">
+            <td class="py-1.5 px-1 sm:py-3 sm:px-2">
               <span :class="record.cumulative_return > 0.00001 ? 'text-red-600 group-hover:text-red-300' : (record.cumulative_return < -0.00001 ? 'text-green-500 group-hover:text-green-300' : 'text-yellow-700 group-hover:text-yellow-300')">
                 {{ formatPercent(record.cumulative_return) }}
               </span>
             </td>
-            <td class="py-3 px-2">{{ record.status === 'ACTIVE' ? '遊玩中' : '已結束' }}</td>
-            <td class="py-3 px-2">{{ record.note || '-' }}</td>
+            <td class="py-1.5 px-1 sm:py-3 sm:px-2">{{ record.status === 'ACTIVE' ? '遊玩中' : '已結束' }}</td>
+            <td class="py-1.5 px-1 sm:py-3 sm:px-2">{{ record.note || '-' }}</td>
           </tr>
           
           <tr class="h-[50px] bg-nature-200">
@@ -136,8 +136,8 @@
           }
         }
 
-        return h('span', { 
-          class: `inline-block ml-1 align-middle text-01 font-bold transition-colors ${colorClass}` 
+        return h('span', {
+          class: `inline-block ml-1 align-middle text-01 sm:text-02 lg:text-03 font-bold transition-colors ${colorClass}`
         }, iconText)
       }
     }

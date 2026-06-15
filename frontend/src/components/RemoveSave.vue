@@ -1,51 +1,51 @@
 <template>
     <div class="flex w-full h-full">
-      <div class="text-06 text-nature-100 "> 存檔紀錄 </div>
+      <div class="text-02 sm:text-03 md:text-05 lg:text-06 text-nature-100 "> 存檔紀錄 </div>
     </div>
 
     <div class="flex w-full h-fit gap-[5px]">
       <!-- 移除存檔按鈕 -->
-      <button @click="$emit('close')" class="group w-full h-[64px] bg-red-900 flex justify-center items-center transition-colors cursor-pointer rounded-[10px] hover:bg-red-700 transition-colors duration-300 ease-in-out">
+      <button @click="$emit('close')" class="group w-full h-12 sm:h-16 bg-red-900 flex justify-center items-center transition-colors cursor-pointer rounded-[10px] hover:bg-red-700 transition-colors duration-300 ease-in-out">
         <div class="absolute opacity-100 group-hover:opacity-0 transition-opacity duration-300 ease-in-out">
-          <div class="text-red-700 text-05 font-sans font-06"> 移除存檔 </div>
+          <div class="text-red-700 text-03 sm:text-04 md:text-05 font-sans font-06"> 移除存檔 </div>
         </div>
         <div class="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-in-out">
-          <div class="text-red-300 text-05 font-sans font-06"> 返回 </div>
+          <div class="text-red-300 text-03 sm:text-04 md:text-05 font-sans font-06"> 返回 </div>
         </div>
       </button>
     </div>
     <!-- 存檔們 -->
-    <div class="bg-nature-200 rounded-[10px] overflow-y-auto max-h-[400px]">
-      <table class="w-full text-center relative">
-        
-        <thead class="sticky top-0 z-10 bg-nature-200 border-b-3 text-nature-900 font-05 text-04">
+    <div class="bg-nature-200 rounded-[10px] overflow-x-auto">
+      <table class="w-full text-center relative min-w-[640px]">
+
+        <thead class="sticky top-0 z-10 bg-nature-200 border-b-3 text-nature-900 font-05 text-01 sm:text-02 md:text-03 lg:text-04">
           <tr>
-            <th class="py-3 px-2">名稱</th>
-            <th class="py-3 px-2">日期</th>
-            <th class="py-3 px-2">時間</th>
-            <th class="py-3 px-2">總資產</th>
-            <th class="py-3 px-2">報酬率</th>
-            <th class="py-3 px-2">存檔狀態</th>
-            <th class="py-3 px-2">註記</th>
+            <th class="py-1.5 px-1 sm:py-3 sm:px-2">名稱</th>
+            <th class="py-1.5 px-1 sm:py-3 sm:px-2">日期</th>
+            <th class="py-1.5 px-1 sm:py-3 sm:px-2">時間</th>
+            <th class="py-1.5 px-1 sm:py-3 sm:px-2">總資產</th>
+            <th class="py-1.5 px-1 sm:py-3 sm:px-2">報酬率</th>
+            <th class="py-1.5 px-1 sm:py-3 sm:px-2">存檔狀態</th>
+            <th class="py-1.5 px-1 sm:py-3 sm:px-2">註記</th>
           </tr>
         </thead>
 
-        <tbody class="text-03">
-          <tr 
-            v-for="record in saveRecords" 
-            :key="record.save_id" 
+        <tbody class="text-01 sm:text-02 lg:text-03">
+          <tr
+            v-for="record in saveRecords"
+            :key="record.save_id"
             class="border-b-[3px] border-nature-800 bg-red-200 text-red-900 hover:bg-red-700 hover:text-red-400 transition-colors cursor-pointer"
             @click="removeSave(record.save_id)"
           >
-            <td class="py-3 px-2">{{ record.save_name }}</td>
-            <td class="py-3 px-2">{{ record.start_date }}</td>
-            <td class="py-3 px-2">{{ record.current_trade_date || '無' }}</td>
-            <td class="py-3 px-2">{{ formatCurrency(record.total_asset) }}</td>
-            <td class="py-3 px-2">{{ formatPercent(record.cumulative_return) }}</td>
-            <td class="py-3 px-2">{{ record.status === 'ACTIVE' ? '遊玩中' : '已結束' }}</td>
-            <td class="py-3 px-2">{{ record.note || '-' }}</td>
+            <td class="py-1.5 px-1 sm:py-3 sm:px-2">{{ record.save_name }}</td>
+            <td class="py-1.5 px-1 sm:py-3 sm:px-2">{{ record.start_date }}</td>
+            <td class="py-1.5 px-1 sm:py-3 sm:px-2">{{ record.current_trade_date || '無' }}</td>
+            <td class="py-1.5 px-1 sm:py-3 sm:px-2">{{ formatCurrency(record.total_asset) }}</td>
+            <td class="py-1.5 px-1 sm:py-3 sm:px-2">{{ formatPercent(record.cumulative_return) }}</td>
+            <td class="py-1.5 px-1 sm:py-3 sm:px-2">{{ record.status === 'ACTIVE' ? '遊玩中' : '已結束' }}</td>
+            <td class="py-1.5 px-1 sm:py-3 sm:px-2">{{ record.note || '-' }}</td>
           </tr>
-          
+
           <tr class="h-[50px] bg-nature-200">
             <td colspan="7"></td>
           </tr>

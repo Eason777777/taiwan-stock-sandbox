@@ -2,39 +2,39 @@
 <template>
   <div class="w-full flex flex-col">
     <!-- 1. 頂部狀態列 TopState -->
-    <div class="w-full bg-topbar-blue text-white text-01 px-8.5 py-0.25 flex justify-between items-center font-sans font-medium shadow-sm">
+    <div class="w-full bg-topbar-blue text-white text-[10px] sm:text-01 px-2 sm:px-8.5 py-0.5 sm:py-0.25 flex flex-col sm:flex-row justify-between items-center gap-1 sm:gap-0 font-sans font-medium shadow-sm">
       <!-- 左側：目前使用者與登出鍵 -->
-      <div class="flex items-center gap-4 flex-1" data-tutorial="topbar-user">
+      <div class="flex items-center gap-1 sm:gap-4 flex-1 flex-wrap justify-center sm:justify-start" data-tutorial="topbar-user">
         <div>目前使用者：<span class="text-white font-semibold">{{ username }}</span></div>
         <div v-if="saveName">存檔：<span class="text-white font-semibold">{{ saveName }}</span></div>
         <button
           @click="handleLogout"
-          class="rounded-lg border border-white my-1 px-2 py-0.5 text-01 font-bold text-white bg-sky-400 cursor-pointer transition-colors duration-150 hover:bg-topbar-blue"
+          class="rounded-lg border border-white my-1 px-2 py-0.5 text-[10px] sm:text-01 font-bold text-white bg-sky-400 cursor-pointer transition-colors duration-150 hover:bg-topbar-blue"
         >
           LOGOUT
         </button>
       </div>
 
       <!-- 中間：日期與狀態 -->
-      <div class="flex items-center justify-center gap-4 flex-1" data-tutorial="topbar-status">
+      <div class="flex items-center justify-center gap-1 sm:gap-4 flex-1 flex-wrap" data-tutorial="topbar-status">
         <div>日期：<span class="text-white font-semibold">{{ date }}</span></div>
         <div>狀態：<span class="text-white font-semibold">{{ status }}</span></div>
       </div>
 
       <!-- 右側：帳戶餘額 -->
-      <div class="flex justify-end items-center gap-4 flex-1" data-tutorial="topbar-balance">
+      <div class="flex items-center justify-center sm:justify-end gap-1 sm:gap-4 flex-1 flex-wrap" data-tutorial="topbar-balance">
         <div>存款戶：<span class="text-white font-bold">{{ savings }}</span></div>
         <div>交割戶：<span class="text-white font-bold">{{ delivery }}</span></div>
       </div>
     </div>
 
     <!-- 2. 下方導覽分頁列 NavBar  -->
-    <div class="w-full max-w-480 bg-navbar-background p-1.25 gap-2.5 flex font-sans">
+    <div class="w-full max-w-480 bg-navbar-background p-1 sm:p-1.25 gap-1 sm:gap-2.5 flex font-sans">
       <button
         v-for="tab in tabs"
         :key="tab"
         @click="selectTab(tab)"
-        class="flex-1 py-3 text-center text-02 font-bold rounded border-2 cursor-pointer transition-all duration-150 outline-none"
+        class="flex-1 py-1.5 sm:py-3 text-center text-01 sm:text-02 font-bold rounded border-2 cursor-pointer transition-all duration-150 outline-none"
         :class="[
           activeTab === tab
             ? 'bg-nature-600 text-white border-white'

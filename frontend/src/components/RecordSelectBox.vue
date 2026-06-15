@@ -1,11 +1,11 @@
 <template>
     <button
         type="button"
-        class="z-10 cursor-pointer hover:bg-nature-600 transition duration-300 w-full h-fit max-w-[500px] bg-nature-700 border-nature-500 border-[3px]"
+        class="z-10 cursor-pointer hover:bg-nature-600 transition duration-300 w-full h-fit max-w-[500px] bg-nature-700 border-nature-500 border-[2px] sm:border-[3px] md:border-[5px]"
         :class="{ 'border-b-0': !hasBottomBorder }"
         @click="$emit('select', titleType)"
     >
-        <div class="text-03 font-06 text-nature-200 text-center p-[5px] w-full">
+        <div class="text-02 sm:text-03 md:text-04 lg:text-05 font-06 text-nature-200 text-center p-[5px] w-full">
             {{ title }}
         </div>
     </button>

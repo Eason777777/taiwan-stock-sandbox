@@ -13,7 +13,7 @@
 
     <!-- 說明框 -->
     <Transition name="tutorial-fade" mode="out-in">
-      <div :key="currentStep" class="fixed bg-nature-800 text-white rounded-2xl shadow-2xl p-6 border-2 border-yellow-500 flex flex-col gap-3" :style="tooltipStyle">
+      <div :key="currentStep" class="fixed bg-nature-800 text-white rounded-2xl shadow-2xl p-6 border-2 border-yellow-500 flex flex-col gap-3 overflow-y-auto" :style="tooltipStyle">
         <div class="text-nature-300 text-sm font-bold">{{ currentStep + 1 }} / {{ steps.length }}</div>
         <h3 class="text-xl font-bold text-yellow-500">{{ currentStepData.title }}</h3>
         <p class="text-nature-100 text-sm whitespace-pre-line leading-relaxed">{{ currentStepData.desc }}</p>
@@ -201,12 +201,19 @@ const highlightBoxStyle = computed(() => {
 })
 
 // 計算說明框位置：盡量貼在高亮目標下方，超出畫面則改貼上方／置中
+// 寬度與高度都依視窗大小限制，內容過長時交給 overflow-y-auto 內部捲動，避免說明框跑出畫面外
 const tooltipStyle = computed(() => {
-  const width = 340
   const margin = 16
+  const width = Math.min(340, window.innerWidth - margin * 2)
 
   if (!highlightRect.value) {
-    return { top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: `${width}px` }
+    return {
+      top: '50%',
+      left: '50%',
+      transform: 'translate(-50%, -50%)',
+      width: `${width}px`,
+      maxHeight: `${window.innerHeight - margin * 2}px`,
+    }
   }
 
   const r = highlightRect.value
@@ -217,6 +224,10 @@ const tooltipStyle = computed(() => {
     top = r.top - estHeight - margin
     if (top < margin) top = margin
   }
+  // 即使估計高度不足，也確保說明框底部不超出視窗
+  if (top + estHeight > window.innerHeight - margin) {
+    top = Math.max(margin, window.innerHeight - margin - estHeight)
+  }
 
   let left = r.left
   if (left + width > window.innerWidth - margin) {
@@ -224,7 +235,12 @@ const tooltipStyle = computed(() => {
   }
   if (left < margin) left = margin
 
-  return { top: `${top}px`, left: `${left}px`, width: `${width}px` }
+  return {
+    top: `${top}px`,
+    left: `${left}px`,
+    width: `${width}px`,
+    maxHeight: `${window.innerHeight - top - margin}px`,
+  }
 })
 
 // 嘗試定位目標元素，若切換分頁後內容尚未渲染完成則重試幾次
@@ -276,7 +292,9 @@ const skipTutorial = () => {
   tutorialActive.value = false
 }
 
+// 教學進行中鎖定頁面捲動，避免使用者滑走聚光燈鎖定的元素
 watch(tutorialActive, (active) => {
+  document.body.style.overflow = active ? 'hidden' : ''
   if (active) {
     currentStep.value = 0
     goToStep(0)
@@ -293,6 +311,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('resize', resizeHandler)
+  document.body.style.overflow = ''
 })
 </script>
 

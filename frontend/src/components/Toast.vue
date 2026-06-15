@@ -1,10 +1,10 @@
 <template>
-  <div class="fixed top-6 left-1/2 -translate-x-1/2 z-[200] flex flex-col gap-3 items-center pointer-events-none">
+  <div class="fixed top-3 sm:top-6 left-1/2 -translate-x-1/2 z-[200] flex flex-col gap-2 sm:gap-3 items-center pointer-events-none w-full px-3">
     <TransitionGroup name="toast">
       <div
         v-for="toast in toasts"
         :key="toast.id"
-        :class="['pointer-events-auto relative min-w-[240px] overflow-hidden rounded-xl px-6 pt-3 pb-4 shadow-2xl backdrop-blur-md text-white font-bold font-sans text-03 text-center', toast.bgClass]"
+        :class="['pointer-events-auto relative min-w-[240px] max-w-[90vw] overflow-hidden rounded-xl px-3 sm:px-6 pt-2 sm:pt-3 pb-2.5 sm:pb-4 shadow-2xl backdrop-blur-md text-white font-bold font-sans text-02 sm:text-03 text-center', toast.bgClass]"
       >
         {{ toast.message }}
         <!-- 剩餘時間進度條：貼齊底部，從右往左消 -->

@@ -13,11 +13,11 @@
     />
 
     <!-- 2. 主內容渲染區 (透過 router-view 傳遞狀態至各分頁，使用 keep-alive 快取狀態) -->
-    <div class="flex-1 flex flex-col items-center p-6 w-full">
+    <div class="flex-1 flex flex-col items-center p-2 sm:p-4 md:p-6 w-full">
       <!-- 存檔已破產/結束的常駐警示 -->
       <div
         v-if="saveLoaded && saveStatus !== 'ACTIVE'"
-        class="w-full max-w-275 mb-4 px-6 py-3 rounded-xl text-center font-bold text-03 bg-red-700 text-nature-100"
+        class="w-full max-w-[1280px] mb-4 px-3 sm:px-6 py-2 sm:py-3 rounded-xl text-center font-bold text-02 sm:text-03 bg-red-700 text-nature-100"
       >
         {{ saveStatus === 'BANKRUPT' ? '⚠ 此存檔已破產，無法繼續交易' : '此存檔已結束' }}
       </div>

@@ -1,7 +1,7 @@
 <template>
   <div class="holding-info w-full flex flex-col font-sans">
     <!-- 總損益加總標題區 -->
-    <div class="flex items-center gap-3 text-03 font-bold mb-4 text-white">
+    <div class="flex items-center gap-3 text-02 sm:text-03 font-bold mb-4 text-white">
       <span>原幣未實現損益</span>
       <span :class="getProfitLossColorClass(totalPL)">
         {{ formatProfitLoss(totalPL) }}
@@ -9,53 +9,53 @@
     </div>
 
     <!-- 庫存持股表格 -->
-    <div class="w-full overflow-y-auto max-h-[348px] rounded-[10px] border border-nature-600 bg-[#F8F9FA] holding-info-container" data-tutorial="inventory-holdings">
-      <table class="w-full border-collapse font-sans text-nature-900 table-fixed">
+    <div class="w-full overflow-auto max-h-[348px] rounded-[10px] border border-nature-600 bg-[#F8F9FA] holding-info-container" data-tutorial="inventory-holdings">
+      <table class="w-full min-w-[640px] border-collapse font-sans text-nature-900 table-fixed">
         <thead>
           <tr class="bg-[#E9ECEF] h-[52px]">
-            <th @click="handleSort('stock_id')" class="sticky top-0 z-10 bg-[#E9ECEF] border-b-[3px] border-nature-600 py-2 px-2 text-center text-[24px] font-bold cursor-pointer hover:bg-nature-300 transition-colors select-none">
+            <th @click="handleSort('stock_id')" class="sticky top-0 z-10 bg-[#E9ECEF] border-b-[3px] border-nature-600 py-1.5 px-1 sm:py-2 sm:px-2 text-center text-01 sm:text-02 md:text-03 font-bold cursor-pointer hover:bg-nature-300 transition-colors select-none">
               代碼 <span class="ml-1 text-01 font-mono opacity-70">{{ getSortIndicator('stock_id') }}</span>
             </th>
-            <th @click="handleSort('stock_name')" class="sticky top-0 z-10 bg-[#E9ECEF] border-b-[3px] border-nature-600 py-2 px-2 text-center text-[24px] font-bold cursor-pointer hover:bg-nature-300 transition-colors select-none">
+            <th @click="handleSort('stock_name')" class="sticky top-0 z-10 bg-[#E9ECEF] border-b-[3px] border-nature-600 py-1.5 px-1 sm:py-2 sm:px-2 text-center text-01 sm:text-02 md:text-03 font-bold cursor-pointer hover:bg-nature-300 transition-colors select-none">
               名稱 <span class="ml-1 text-01 font-mono opacity-70">{{ getSortIndicator('stock_name') }}</span>
             </th>
-            <th @click="handleSort('quantity')" class="sticky top-0 z-10 bg-[#E9ECEF] border-b-[3px] border-nature-600 py-2 px-2 text-center text-[24px] font-bold cursor-pointer hover:bg-nature-300 transition-colors select-none">
+            <th @click="handleSort('quantity')" class="sticky top-0 z-10 bg-[#E9ECEF] border-b-[3px] border-nature-600 py-1.5 px-1 sm:py-2 sm:px-2 text-center text-01 sm:text-02 md:text-03 font-bold cursor-pointer hover:bg-nature-300 transition-colors select-none">
               庫存 <span class="ml-1 text-01 font-mono opacity-70">{{ getSortIndicator('quantity') }}</span>
             </th>
-            <th @click="handleSort('profit_loss')" class="sticky top-0 z-10 bg-[#E9ECEF] border-b-[3px] border-nature-600 py-2 px-2 text-center text-[24px] font-bold cursor-pointer hover:bg-nature-300 transition-colors select-none">
+            <th @click="handleSort('profit_loss')" class="sticky top-0 z-10 bg-[#E9ECEF] border-b-[3px] border-nature-600 py-1.5 px-1 sm:py-2 sm:px-2 text-center text-01 sm:text-02 md:text-03 font-bold cursor-pointer hover:bg-nature-300 transition-colors select-none">
               原幣損益 <span class="ml-1 text-01 font-mono opacity-70">{{ getSortIndicator('profit_loss') }}</span>
             </th>
-            <th @click="handleSort('profit_rate')" class="sticky top-0 z-10 bg-[#E9ECEF] border-b-[3px] border-nature-600 py-2 px-2 text-center text-[24px] font-bold cursor-pointer hover:bg-nature-300 transition-colors select-none">
+            <th @click="handleSort('profit_rate')" class="sticky top-0 z-10 bg-[#E9ECEF] border-b-[3px] border-nature-600 py-1.5 px-1 sm:py-2 sm:px-2 text-center text-01 sm:text-02 md:text-03 font-bold cursor-pointer hover:bg-nature-300 transition-colors select-none">
               獲利率 <span class="ml-1 text-01 font-mono opacity-70">{{ getSortIndicator('profit_rate') }}</span>
             </th>
-            <th @click="handleSort('current_price')" class="sticky top-0 z-10 bg-[#E9ECEF] border-b-[3px] border-nature-600 py-2 px-2 text-center text-[24px] font-bold cursor-pointer hover:bg-nature-300 transition-colors select-none">
+            <th @click="handleSort('current_price')" class="sticky top-0 z-10 bg-[#E9ECEF] border-b-[3px] border-nature-600 py-1.5 px-1 sm:py-2 sm:px-2 text-center text-01 sm:text-02 md:text-03 font-bold cursor-pointer hover:bg-nature-300 transition-colors select-none">
               現價 <span class="ml-1 text-01 font-mono opacity-70">{{ getSortIndicator('current_price') }}</span>
             </th>
-            <th @click="handleSort('avg_cost')" class="sticky top-0 z-10 bg-[#E9ECEF] border-b-[3px] border-nature-600 py-2 px-2 text-center text-[24px] font-bold cursor-pointer hover:bg-nature-300 transition-colors select-none">
+            <th @click="handleSort('avg_cost')" class="sticky top-0 z-10 bg-[#E9ECEF] border-b-[3px] border-nature-600 py-1.5 px-1 sm:py-2 sm:px-2 text-center text-01 sm:text-02 md:text-03 font-bold cursor-pointer hover:bg-nature-300 transition-colors select-none">
               平均成本 <span class="ml-1 text-01 font-mono opacity-70">{{ getSortIndicator('avg_cost') }}</span>
             </th>
           </tr>
         </thead>
         <tbody>
-          <tr 
-            v-for="holding in sortedHoldings" 
+          <tr
+            v-for="holding in sortedHoldings"
             :key="holding.stock_id"
             @click="emit('select-stock', holding.stock_id)"
             class="bg-[#F8F9FA] hover:bg-[#E2E6EA] border-b border-nature-300 cursor-pointer transition-colors duration-200 ease-out h-[46px]"
           >
-            <td class="py-2 text-[20px] font-medium text-nature-900 font-mono text-center">{{ holding.stock_id }}</td>
-            <td class="py-2 text-[20px] font-medium text-nature-900 text-center">{{ holding.stock_name }}</td>
-            <td class="py-2 text-[20px] font-medium text-nature-900 font-mono text-center">{{ holding.quantity }}</td>
-            <td class="py-2 text-[20px] font-medium font-mono text-center" :class="getProfitLossColorClass(holding.profit_loss)">
+            <td class="py-1.5 px-1 sm:py-2 sm:px-2 text-01 sm:text-02 font-medium text-nature-900 font-mono text-center">{{ holding.stock_id }}</td>
+            <td class="py-1.5 px-1 sm:py-2 sm:px-2 text-01 sm:text-02 font-medium text-nature-900 text-center">{{ holding.stock_name }}</td>
+            <td class="py-1.5 px-1 sm:py-2 sm:px-2 text-01 sm:text-02 font-medium text-nature-900 font-mono text-center">{{ holding.quantity }}</td>
+            <td class="py-1.5 px-1 sm:py-2 sm:px-2 text-01 sm:text-02 font-medium font-mono text-center" :class="getProfitLossColorClass(holding.profit_loss)">
               {{ formatProfitLoss(holding.profit_loss) }}
             </td>
-            <td class="py-2 text-[20px] font-medium font-mono text-center" :class="getProfitLossColorClass(holding.profit_rate)">
+            <td class="py-1.5 px-1 sm:py-2 sm:px-2 text-01 sm:text-02 font-medium font-mono text-center" :class="getProfitLossColorClass(holding.profit_rate)">
               {{ formatProfitRate(holding.profit_rate) }}
             </td>
-            <td class="py-2 text-[20px] font-medium text-nature-900 font-mono text-center">{{ holding.current_price }}</td>
-            <td class="py-2 text-[20px] font-medium text-nature-900 font-mono text-center">{{ holding.avg_cost }}</td>
+            <td class="py-1.5 px-1 sm:py-2 sm:px-2 text-01 sm:text-02 font-medium text-nature-900 font-mono text-center">{{ holding.current_price }}</td>
+            <td class="py-1.5 px-1 sm:py-2 sm:px-2 text-01 sm:text-02 font-medium text-nature-900 font-mono text-center">{{ holding.avg_cost }}</td>
           </tr>
-          
+
           <!-- 表格底層淡灰色橫條列緩衝 -->
           <tr class="bg-[#E9ECEF]/30 h-[20px]">
             <td colspan="7" class="py-1"></td>

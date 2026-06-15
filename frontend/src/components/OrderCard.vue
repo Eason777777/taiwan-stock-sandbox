@@ -1,11 +1,11 @@
 <!-- 下單卡片(尚須調整) -->
 <template>
-  <div class="order-card bg-nature-800 border-[10px] border-nature-500 rounded-xl shadow-2xl text-white font-sans">
+  <div class="order-card bg-nature-800 border-3 sm:border-6 md:border-10 border-nature-500 rounded-xl shadow-2xl text-white font-sans">
     <!-- Main Form Area (2-Column Grid Layout) -->
-    <div class="grid grid-cols-2 gap-x-24 gap-y-6 w-full items-start" data-tutorial="order-form">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 sm:gap-x-12 md:gap-x-24 gap-y-4 sm:gap-y-6 w-full items-start" data-tutorial="order-form">
       <!-- Row 1 Left: Stock Code Input -->
       <div>
-        <StockInput 
+        <StockInput
           :model-value="stockId"
           @update:model-value="emit('update:stockId', $event)"
           :stocks="stocks"
@@ -19,8 +19,8 @@
       </div>
       <!-- Row 1 Right: Buy/Sell Slider -->
       <div class="flex flex-col gap-2">
-        <span class="text-nature-200 font-06 text-03">買賣設定</span>
-        <BuySellSlider 
+        <span class="text-nature-200 font-06 text-02 sm:text-03">買賣設定</span>
+        <BuySellSlider
           :model-value="side"
           @update:model-value="emit('update:side', $event)"
         />
@@ -28,15 +28,15 @@
 
       <!-- Row 2 Left: Price Input -->
       <div class="flex flex-col gap-2">
-        <label class="text-nature-200 font-06 text-03">委託價格</label>
+        <label class="text-nature-200 font-06 text-02 sm:text-03">委託價格</label>
         <div class="flex items-center gap-4">
-          <input 
+          <input
             type="text"
             :value="price"
             @input="emit('update:price', $event.target.value)"
             :disabled="isPriceDisabled"
             placeholder="請輸入委託價格"
-            class="w-[320px] bg-nature-900 border border-nature-200 focus:border-yellow-400 text-nature-100 rounded-[10px] px-5 py-3 focus:outline-none transition-colors duration-200 disabled:bg-nature-950 disabled:border-nature-600 disabled:text-nature-500 disabled:cursor-not-allowed"
+            class="w-full max-w-[320px] bg-nature-900 border border-nature-200 focus:border-yellow-400 text-nature-100 rounded-[10px] px-5 py-3 focus:outline-none transition-colors duration-200 disabled:bg-nature-950 disabled:border-nature-600 disabled:text-nature-500 disabled:cursor-not-allowed"
           />
           <span v-if="priceError" class="text-red-500 text-sm font-medium">
             {{ priceError }}
@@ -45,8 +45,8 @@
       </div>
       <!-- Row 2 Right: Order Type Slider -->
       <div class="flex flex-col gap-2">
-        <span class="text-nature-200 font-06 text-03">委託類型</span>
-        <OrderTypeSlider 
+        <span class="text-nature-200 font-06 text-02 sm:text-03">委託類型</span>
+        <OrderTypeSlider
           :model-value="orderType"
           @update:model-value="emit('update:orderType', $event)"
           :is-after-hours="isAfterHours"
@@ -56,15 +56,15 @@
 
       <!-- Row 3 Left: Quantity Input -->
       <div class="flex flex-col gap-2">
-        <label class="text-nature-200 font-06 text-03">委託張數</label>
+        <label class="text-nature-200 font-06 text-02 sm:text-03">委託張數</label>
         <div class="flex items-center gap-4">
-          <input 
+          <input
             type="number"
             :value="quantity"
             @input="emit('update:quantity', parseInt($event.target.value) || 1)"
             min="1"
             placeholder="請輸入委託張數"
-            class="w-[320px] bg-nature-900 border border-nature-200 focus:border-yellow-400 text-nature-100 rounded-[10px] px-5 py-3 focus:outline-none transition-colors duration-200"
+            class="w-full max-w-[320px] bg-nature-900 border border-nature-200 focus:border-yellow-400 text-nature-100 rounded-[10px] px-5 py-3 focus:outline-none transition-colors duration-200"
           />
           <span v-if="quantityError" class="text-red-500 text-sm font-medium">
             {{ quantityError }}
@@ -72,7 +72,7 @@
         </div>
       </div>
       <!-- Row 3 Right: Empty Space -->
-      <div></div>
+      <div class="hidden sm:block"></div>
     </div>
 
     <!-- 確認下單按鈕 -->
@@ -90,9 +90,9 @@
     <hr class="w-full border-t-[3px] border-nature-500 my-2" />
 
     <!-- 頁籤與篩選器區域 -->
-    <div class="flex flex-row justify-between items-center w-full my-4">
+    <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2 w-full my-4">
       <!-- 左側：相連按鈕頁籤 (風格仿 WatchlistCard.vue 上半部) -->
-      <div class="flex gap-0 w-80">
+      <div class="flex gap-0 w-full sm:w-80">
         <button 
           type="button"
           @click="activeTab = 'kline'"
@@ -120,22 +120,22 @@
       </div>
 
       <!-- 右側：篩選按鈕 (僅在 activeTab === 'orders' 顯示) -->
-      <div v-show="activeTab === 'orders'" class="flex gap-4 items-center">
+      <div v-show="activeTab === 'orders'" class="flex gap-2 sm:gap-4 items-center">
         <!-- 按鈕 1: 待成交 -->
-        <button 
+        <button
           type="button"
           @click="togglePending"
-          :class="['px-5 py-2 rounded-lg font-bold border border-solid transition-all duration-300 ease-out cursor-pointer text-sm outline-none', 
+          :class="['px-3 sm:px-5 py-2 rounded-lg font-bold border border-solid transition-all duration-300 ease-out cursor-pointer text-xs sm:text-sm outline-none',
                    showPending ? 'bg-yellow-500 text-nature-900 border-yellow-500 shadow-md shadow-yellow-500/20' : 'bg-nature-900 text-nature-300 border-nature-600 hover:bg-nature-750']"
         >
           待成交
         </button>
 
         <!-- 按鈕 2: 今日委託單 -->
-        <button 
+        <button
           type="button"
           @click="toggleToday"
-          :class="['px-5 py-2 rounded-lg font-bold border border-solid transition-all duration-300 ease-out cursor-pointer text-sm outline-none', 
+          :class="['px-3 sm:px-5 py-2 rounded-lg font-bold border border-solid transition-all duration-300 ease-out cursor-pointer text-xs sm:text-sm outline-none',
                    showToday ? 'bg-green-300 text-green-900 border-green-300 shadow-md shadow-green-300/20' : 'bg-nature-900 text-nature-300 border-nature-600 hover:bg-nature-750']"
         >
           今日委託單
@@ -341,12 +341,26 @@ const filteredOrders = computed(() => {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 30px;
-  max-width: 1100px;
+  gap: 15px;
+  max-width: 1280px;
   width: 100%;
-  padding: 50px;
+  padding: 15px;
   max-height: 80vh;
   overflow-y: auto;
+}
+
+@media (min-width: 640px) {
+  .order-card {
+    gap: 20px;
+    padding: 20px;
+  }
+}
+
+@media (min-width: 768px) {
+  .order-card {
+    gap: 30px;
+    padding: 50px;
+  }
 }
 
 /* Scrollbar customization for clean styling */
