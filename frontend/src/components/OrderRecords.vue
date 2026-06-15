@@ -29,11 +29,39 @@
 
     <div class="bg-nature-200 rounded-[10px] overflow-x-auto">
       <table class="w-full text-center relative min-w-[640px]">
-        <thead class="sticky top-0 bg-nature-200 border-b-3 text-nature-900 font-05 text-01 sm:text-02 md:text-03 lg:text-04 z-10">
+        <thead class="sticky top-0 bg-nature-200 border-b-3 text-nature-900 font-05 text-[10px] sm:text-01 md:text-02 lg:text-03 z-10">
           <tr>
             <th class="py-1.5 px-1 sm:py-3 sm:px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('stock_id')">
-              名稱
+              股票
               <SortIcon :active="sortKey === 'stock_id'" :order="sortOrder"/>
+            </th>
+            <th class="py-1.5 px-1 sm:py-3 sm:px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('sim_date')">
+              交易日
+              <SortIcon :active="sortKey === 'sim_date'" :order="sortOrder" />
+            </th>
+            <th class="py-1.5 px-1 sm:py-3 sm:px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('side')">
+              交易類別
+              <SortIcon :active="sortKey === 'side'" :order="sortOrder" />
+            </th>
+            <th class="py-1.5 px-1 sm:py-3 sm:px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('quantity')">
+              成交張數
+              <SortIcon :active="sortKey === 'quantity'" :order="sortOrder" />
+            </th>
+            <th class="py-1.5 px-1 sm:py-3 sm:px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('price')">
+              成交價格
+              <SortIcon :active="sortKey === 'price'" :order="sortOrder" />
+            </th>
+            <th class="py-1.5 px-1 sm:py-3 sm:px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('fee')">
+              手續費
+              <SortIcon :active="sortKey === 'fee'" :order="sortOrder" />
+            </th>
+            <th class="py-1.5 px-1 sm:py-3 sm:px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('tax')">
+              交易稅
+              <SortIcon :active="sortKey === 'tax'" :order="sortOrder" />
+            </th>
+            <th class="py-1.5 px-1 sm:py-3 sm:px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('net_amount')">
+              淨收付金額
+              <SortIcon :active="sortKey === 'net_amount'" :order="sortOrder" />
             </th>
             <th class="py-1.5 px-1 sm:py-3 sm:px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('realized_pnl')">
               損益
@@ -43,76 +71,73 @@
               報酬率
               <SortIcon :active="sortKey === 'return_rate'" :order="sortOrder" />
             </th>
-            <th class="py-1.5 px-1 sm:py-3 sm:px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('side')">
-              交易類別
-              <SortIcon :active="sortKey === 'side'" :order="sortOrder" />
-            </th>
-            <th class="py-1.5 px-1 sm:py-3 sm:px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('quantity')">
-              成交股數
-              <SortIcon :active="sortKey === 'quantity'" :order="sortOrder" />
-            </th>
-            <th class="py-1.5 px-1 sm:py-3 sm:px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('price')">
-              成交價格
-              <SortIcon :active="sortKey === 'price'" :order="sortOrder" />
-            </th>
-            <th class="py-1.5 px-1 sm:py-3 sm:px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('computed_net_amount')">
-              出帳金額
-              <SortIcon :active="sortKey === 'computed_net_amount'" :order="sortOrder" />
-            </th>
-            <th class="py-1.5 px-1 sm:py-3 sm:px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('avg_cost')">
-              投資成本
-              <SortIcon :active="sortKey === 'avg_cost'" :order="sortOrder" />
-            </th>
           </tr>
         </thead>
 
-        <tbody class="text-01 sm:text-02 md:text-03 lg:text-04 text-nature-800">
+        <tbody class="text-[10px] sm:text-01 md:text-02 lg:text-03 text-nature-800">
           <tr 
             v-for="record in sortedRecords" 
             :key="record.transaction_id || record.order_id" 
             class="group border-b-[3px] border-nature-800 hover:bg-nature-600 hover:text-nature-200 transition-colors"
           >
+            <!-- 1. 股票 -->
             <td class="py-1.5 px-1 sm:py-3 sm:px-2 font-mono">
               <div class="font-bold">{{ record.stock_id }}</div>
-              <div class="text-01 opacity-60 group-hover:opacity-100 transition-opacity">{{ record.stock_name_zh }}</div>
+              <div class="text-[9px] sm:text-[11px] md:text-01 opacity-60 group-hover:opacity-100 transition-opacity">{{ record.stock_name_zh }}</div>
             </td>
             
-            <td class="py-1.5 px-1 sm:py-3 sm:px-2">
-              <span :class="record.realized_pnl > 0 ? 'text-red-600 group-hover:text-red-300' : (record.realized_pnl < 0 ? 'text-green-500 group-hover:text-green-300' : 'text-yellow-600 group-hover:text-yellow-300')">
-                {{ record.realized_pnl !== null ? formatNumber(record.realized_pnl) : '-' }}
-              </span>
+            <!-- 2. 交易日 -->
+            <td class="py-1.5 px-1 sm:py-3 sm:px-2 font-mono">
+              {{ record.sim_date ? record.sim_date.slice(0, 10).replace(/-/g, '/') : '-' }}
             </td>
             
-            <td class="py-1.5 px-1 sm:py-3 sm:px-2">
-              <span :class="record.return_rate > 0 ? 'text-red-600 group-hover:text-red-300' : (record.return_rate < 0 ? 'text-green-500 group-hover:text-green-300' : 'text-yellow-600 group-hover:text-yellow-300')">
-                {{ record.return_rate !== null ? record.return_rate + '%' : '-' }}
-              </span>
-            </td>
-            
+            <!-- 3. 交易類別 -->
             <td class="py-1.5 px-1 sm:py-3 sm:px-2">
               <span :class="record.side === 'BUY' ? 'text-red-600 group-hover:text-red-300' : 'text-green-500 group-hover:text-green-300 '">
                 {{ record.side === 'BUY' ? '買進' : '賣出' }}
               </span>
             </td>
             
-            <td class="py-1.5 px-1 sm:py-3 sm:px-2">{{ formatNumber(record.quantity) }}</td>
+            <!-- 4. 成交張數 -->
+            <td class="py-1.5 px-1 sm:py-3 sm:px-2 font-mono">{{ formatNumber(record.quantity) }}</td>
             
-            <td class="py-1.5 px-1 sm:py-3 sm:px-2">{{ record.price }}</td>
-            
-            <td class="py-1.5 px-1 sm:py-3 sm:px-2">
-              {{ record.net_amount !== null 
-                ? formatNumber(record.net_amount) 
-                : formatNumber(Math.round(record.price * record.quantity)) 
-              }}
+            <!-- 5. 成交價格 -->
+            <td class="py-1.5 px-1 sm:py-3 sm:px-2 font-mono">{{ record.price }}</td>
+
+            <!-- 6. 手續費 -->
+            <td class="py-1.5 px-1 sm:py-3 sm:px-2 font-mono">
+              {{ record.fee !== null && record.fee !== undefined ? formatNumber(record.fee) : '-' }}
+            </td>
+
+            <!-- 7. 交易稅 -->
+            <td class="py-1.5 px-1 sm:py-3 sm:px-2 font-mono">
+              {{ record.tax && record.side === 'SELL' ? formatNumber(record.tax) : '-' }}
             </td>
             
+            <!-- 8. 淨收付金額 -->
+            <td class="py-1.5 px-1 sm:py-3 sm:px-2 font-mono font-bold">
+              <span :class="record.side === 'BUY' ? 'text-green-600 group-hover:text-green-300' : 'text-red-600 group-hover:text-red-300'">
+                {{ record.side === 'BUY' ? '-' : '' }}{{ formatNumber(record.net_amount !== null ? record.net_amount : Math.round(record.price * record.quantity * 1000)) }}
+              </span>
+            </td>
+
+            <!-- 9. 損益 -->
             <td class="py-1.5 px-1 sm:py-3 sm:px-2">
-              {{ record.avg_cost !== null ? formatNumber(record.avg_cost) : '-' }}
+              <span :class="record.realized_pnl > 0 ? 'text-red-600 group-hover:text-red-300' : (record.realized_pnl < 0 ? 'text-green-500 group-hover:text-green-300' : 'text-yellow-600 group-hover:text-yellow-300')">
+                {{ record.realized_pnl !== null ? (record.realized_pnl > 0 ? '+' : '') + formatNumber(record.realized_pnl) : '-' }}
+              </span>
+            </td>
+            
+            <!-- 10. 報酬率 -->
+            <td class="py-1.5 px-1 sm:py-3 sm:px-2">
+              <span :class="record.return_rate > 0 ? 'text-red-600 group-hover:text-red-300' : (record.return_rate < 0 ? 'text-green-500 group-hover:text-green-300' : 'text-yellow-600 group-hover:text-yellow-300')">
+                {{ record.return_rate !== null ? (record.return_rate > 0 ? '+' : '') + record.return_rate + '%' : '-' }}
+              </span>
             </td>
           </tr>
           
           <tr class="h-[50px] bg-nature-200">
-            <td colspan="8"></td>
+            <td colspan="10"></td>
           </tr>
         </tbody>
       </table>
@@ -184,10 +209,12 @@
       let valA = a[sortKey.value]
       let valB = b[sortKey.value]
 
-      // 針對「出帳金額」的特殊判斷，因為它是前端算出來的
-      if (sortKey.value === 'computed_net_amount') {
-        valA = a.net_amount !== null ? Number(a.net_amount) : (Number(a.price) * Number(a.quantity))
-        valB = b.net_amount !== null ? Number(b.net_amount) : (Number(b.price) * Number(b.quantity))
+      // 針對「淨收付金額」的特殊自訂排序
+      if (sortKey.value === 'net_amount') {
+        const amtA = a.net_amount !== null ? Number(a.net_amount) : (Number(a.price) * Number(a.quantity) * 1000)
+        const amtB = b.net_amount !== null ? Number(b.net_amount) : (Number(b.price) * Number(b.quantity) * 1000)
+        valA = a.side === 'BUY' ? -amtA : amtA
+        valB = b.side === 'BUY' ? -amtB : amtB
       } else {
         // 確保數字欄位轉型正確，以便正確比對大小
         if (!isNaN(valA) && valA !== null) valA = Number(valA)
