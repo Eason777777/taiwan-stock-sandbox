@@ -69,10 +69,13 @@
         <tbody class="text-03 text-nature-800">
           <tr 
             v-for="record in sortedRecords" 
-            :key="record.order_id" 
+            :key="record.transaction_id || record.order_id" 
             class="group border-b-[3px] border-nature-800 hover:bg-nature-600 hover:text-nature-200 transition-colors"
           >
-            <td class="py-3 px-2">{{ record.stock_id }}</td>
+            <td class="py-3 px-2 font-mono">
+              <div class="font-bold">{{ record.stock_id }}</div>
+              <div class="text-xs opacity-60 group-hover:opacity-100 transition-opacity">{{ record.stock_name_zh }}</div>
+            </td>
             
             <td class="py-3 px-2">
               <span :class="record.realized_pnl > 0 ? 'text-red-600 group-hover:text-red-300' : (record.realized_pnl < 0 ? 'text-green-500 group-hover:text-green-300' : 'text-yellow-600 group-hover:text-yellow-300')">
@@ -240,7 +243,8 @@
     }
 
     try {
-        const response = await fetch(`/api/saves/${saveId}/orders`, {headers: {
+      // 💡 取得已成交的股票交易紀錄 (Transactions)
+        const response = await fetch(`/api/saves/${saveId}/holdings/transactions`, {headers: {
           'Content-Type': 'application/json',
           'x-session-id': localStorage.getItem('session_id') || ''
         }
