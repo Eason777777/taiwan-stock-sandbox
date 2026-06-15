@@ -29,7 +29,8 @@
             <RecordSelectBox :titleType="1" @select="handleSelect" />
             <RecordSelectBox :titleType="2" @select="handleSelect" />
             <RecordSelectBox :titleType="3" @select="handleSelect" />
-            <RecordSelectBox :titleType="4" :hasBottomBorder="true" @select="handleSelect" />
+            <RecordSelectBox :titleType="4" @select="handleSelect" />
+            <RecordSelectBox :titleType="5" :hasBottomBorder="true" @select="handleSelect" />
         </div>
     </div>
 </template>
@@ -53,7 +54,7 @@ const router = useRouter()
 const parseRecordType = (value, fallback = 1) => {
     const type = Number(value)
 
-    if ([1, 2, 3, 4].includes(type)) {
+    if ([1, 2, 3, 4, 5].includes(type)) {
         return type
     }
 
@@ -93,6 +94,8 @@ const titleName = computed(() => {
         return '存檔記錄'
     } else if (selectedType.value === 4) {
         return '委託紀錄'
+    } else if (selectedType.value === 5) {
+        return '資產趨勢'
     }
 
     return 'NaN'
