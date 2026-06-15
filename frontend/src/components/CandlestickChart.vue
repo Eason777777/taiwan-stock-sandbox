@@ -1,8 +1,8 @@
 <!-- K線圖 (尚須調整) -->
 <template>
   <div :class="[
-    'w-full flex flex-col items-stretch gap-4 border-10 border-solid rounded-xl shadow-2xl p-6 transition-colors duration-300',
-    theme === 'light' ? 'bg-white border-nature-300 text-nature-900' : 'bg-nature-800 border-nature-500 text-white'
+    'w-full flex flex-col items-stretch gap-4  border-solid rounded-xl shadow-2xl p-3 transition-colors duration-300',
+    theme === 'light' ? 'bg-white border-nature-300 text-nature-900' : 'bg-nature-900 border-nature-500 text-white'
   ]">
     <!-- Header Section -->
     <div class="flex justify-between items-center border-b pb-3" :class="theme === 'light' ? 'border-nature-200' : 'border-nature-700'">

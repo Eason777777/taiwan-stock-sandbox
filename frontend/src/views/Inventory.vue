@@ -42,6 +42,7 @@ import { useRouter } from 'vue-router'
 import InventoryCard from '../components/InventoryCard.vue'
 import StockInfo from '../components/StockInfo.vue'
 import CompanyInfo from '../components/CompanyInfo.vue'
+import { companyProfileCache } from '../api/cache.js'
 
 const props = defineProps({
   saveId: {
@@ -184,15 +185,16 @@ const handleSelectStock = async (stockId) => {
   klinePrices.value = []
 
   try {
-    // 1. 同步載入 K 線歷史資料
-    await fetchKlinePrices(stockId, 'daily')
+    // 用 Promise.all 平行載入 K線歷史與詳細報價
+    const [, detailRes] = await Promise.all([
+      fetchKlinePrices(stockId, 'daily'),
+      fetch(`/api/saves/${props.saveId}/stocks/${stockId}`, {
+        headers: {
+          'x-session-id': localStorage.getItem('session_id') || ''
+        }
+      })
+    ])
 
-    // 2. 取得該存檔的單檔股票即時詳細報價與警告標記
-    const detailRes = await fetch(`/api/saves/${props.saveId}/stocks/${stockId}`, {
-      headers: {
-        'x-session-id': localStorage.getItem('session_id') || ''
-      }
-    })
     if (!detailRes.ok) throw new Error('無法取得股票詳細報價')
     const detail = await detailRes.json()
 
@@ -236,19 +238,39 @@ const handleGoToTrade = (stockId) => {
 
 const handleViewCompanyInfo = async (stockId) => {
   try {
-    const resProfile = await fetch(`/api/stocks/${stockId}`, {
-      headers: {
-        'x-session-id': localStorage.getItem('session_id') || ''
-      }
-    })
-    if (!resProfile.ok) throw new Error('無法取得股票基本資料')
-    companyInfoDetail.value = await resProfile.json()
+    const hasCache = !!companyProfileCache.value[stockId]
 
-    const resSuspensions = await fetch(`/api/stocks/${stockId}/suspensions?save_id=${props.saveId}`, {
+    // 建立平行請求 Promise
+    const suspensionsPromise = fetch(`/api/stocks/${stockId}/suspensions?save_id=${props.saveId}`, {
       headers: {
         'x-session-id': localStorage.getItem('session_id') || ''
       }
     })
+
+    const profilePromise = hasCache 
+      ? Promise.resolve(null)
+      : fetch(`/api/stocks/${stockId}`, {
+          headers: {
+            'x-session-id': localStorage.getItem('session_id') || ''
+          }
+        })
+
+    const [resProfile, resSuspensions] = await Promise.all([
+      profilePromise,
+      suspensionsPromise
+    ])
+
+    // 處理基本資料快取讀寫
+    if (hasCache) {
+      companyInfoDetail.value = companyProfileCache.value[stockId]
+    } else {
+      if (!resProfile || !resProfile.ok) throw new Error('無法取得股票基本資料')
+      const profileData = await resProfile.json()
+      companyProfileCache.value[stockId] = profileData
+      companyInfoDetail.value = profileData
+    }
+
+    // 處理暫停交易紀錄
     if (resSuspensions.ok) {
       companyInfoSuspensions.value = await resSuspensions.json()
     } else {

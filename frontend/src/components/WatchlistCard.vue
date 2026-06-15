@@ -46,7 +46,7 @@
     <div class="w-full max-h-96 overflow-y-auto pr-1">
       <div class="w-full flex flex-col gap-2.5 font-sans">
         <!-- 2.1 表頭 (Table Header) -->
-        <div class="w-full bg-nature-200 rounded-t-lg px-4 py-3 flex text-center font-bold text-02 text-nature-900">
+        <div class="w-full rounded-t-lg px-4 py-3 flex text-center font-bold text-02 text-nature-900 sticky top-0 z-10 bg-nature-200!">
           <div class="flex-1">代碼</div>
           <div class="flex-1">名稱</div>
           <div class="flex-1">股價</div>
