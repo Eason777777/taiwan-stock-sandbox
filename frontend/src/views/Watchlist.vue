@@ -71,6 +71,7 @@ import StockInfo from '../components/StockInfo.vue'
 import CompanyInfo from '../components/CompanyInfo.vue'
 import TradeSettlementModal from '../components/TradeSettlementModal.vue'
 import { companyProfileCache } from '../api/cache.js'
+import { showToast } from '../components/Toast.vue'
 
 const props = defineProps({
   saveId: {
@@ -174,7 +175,9 @@ const handleNextPhase = async () => {
       const data = await response.json()
       previousPhase.value = props.currentPhase
       if (data.status === 'BANKRUPT') {
-        alert('你已經破產了！')
+        showToast('你已經破產了！', { type: 'error' })
+      } else {
+        showToast('已推進至下一階段！', { type: 'success' })
       }
       emit('refresh-save') // 通知 Game.vue 重新拉取最新的存檔狀態
       loadWatchlist()
@@ -185,7 +188,7 @@ const handleNextPhase = async () => {
       }
     } else {
       const errorData = await response.json()
-      alert(`推進失敗：${errorData.detail || '未知錯誤'}`)
+      showToast(`推進失敗：${errorData.detail || '未知錯誤'}`, { type: 'error' })
     }
   } catch (error) {
     console.error('推進階段連線異常:', error)
@@ -304,7 +307,7 @@ const confirmAddWatchlist = async () => {
     loadWatchlist()
   } catch (error) {
     console.error('同步自選股清單失敗:', error)
-    alert('自選股更新失敗，請重試。')
+    showToast('自選股更新失敗，請重試。', { type: 'error' })
   }
 }
 
@@ -454,7 +457,7 @@ const handleViewCompanyInfo = async (stockId) => {
     showCompanyInfoModal.value = true
   } catch (err) {
     console.error('載入基本面資料與暫停交易紀錄失敗:', err)
-    alert('載入公司資料失敗，請稍後再試。')
+    showToast('載入公司資料失敗，請稍後再試。', { type: 'error' })
   }
 }
 

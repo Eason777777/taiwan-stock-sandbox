@@ -43,6 +43,7 @@ import InventoryCard from '../components/InventoryCard.vue'
 import StockInfo from '../components/StockInfo.vue'
 import CompanyInfo from '../components/CompanyInfo.vue'
 import { companyProfileCache } from '../api/cache.js'
+import { showToast } from '../components/Toast.vue'
 
 const props = defineProps({
   saveId: {
@@ -137,14 +138,14 @@ const handleUpdateBalances = async (newDelivery, newSavings) => {
       const data = await response.json()
       // 同步頂部狀態列餘額
       emit('update-balances', data.trading_balance, data.savings_balance)
-      alert('轉帳完成！')
+      showToast('轉帳完成！', { type: 'success' })
     } else {
       const errorData = await response.json()
-      alert(`轉帳失敗：${errorData.detail || '帳戶餘額不足'}`)
+      showToast(`轉帳失敗：${errorData.detail || '帳戶餘額不足'}`, { type: 'error' })
     }
   } catch (error) {
     console.error('呼叫轉帳 API 連線異常:', error)
-    alert('伺服器連線異常，請稍後再試。')
+    showToast('伺服器連線異常，請稍後再試。', { type: 'error' })
   }
 }
 
@@ -281,7 +282,7 @@ const handleViewCompanyInfo = async (stockId) => {
     showCompanyInfoModal.value = true
   } catch (err) {
     console.error('載入基本面資料與暫停交易紀錄失敗:', err)
-    alert('載入公司資料失敗，請稍後再試。')
+    showToast('載入公司資料失敗，請稍後再試。', { type: 'error' })
   }
 }
 
