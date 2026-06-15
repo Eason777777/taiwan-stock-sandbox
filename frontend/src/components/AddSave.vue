@@ -3,7 +3,15 @@
         <div class="gap-5 flex w-full h-full flex-col font-sans">
             <div class="text-06 text-nature-200 font-05"> 新增存檔 </div>
             <Input v-model="saveName" label="存檔名稱" placeholder="請輸入存檔名稱" />
-            <Input v-model="startDate" label="存檔日期" placeholder="YYYY-MM-DD (選填)" />
+            <Input
+                v-model="startDate"
+                type="date"
+                label="存檔日期"
+                placeholder="YYYY-MM-DD (選填)"
+                :min="MIN_DATE"
+                :max="MAX_DATE"
+                class="add-save-date"
+            />
             <Input v-model="initialFunds" type="number" label="初始金額" placeholder="50000 ~ 1000000 (選填)" />
             
             <div class="flex w-full h-fit gap-5">
@@ -25,6 +33,10 @@ import { apiFetch } from '../api/client.js'
 import { showToast } from './Toast.vue'
 
 const emit = defineEmits(['close', 'refresh'])
+
+// 可選日期範圍：對齊資料庫中的台股歷史交易資料區間
+const MIN_DATE = '2023-01-03'
+const MAX_DATE = '2026-06-01'
 
 const saveName = ref('')
 const startDate = ref('')
@@ -90,3 +102,20 @@ const submitSave = async () => {
 }
 
 </script>
+
+<style scoped>
+/* 讓原生日期選擇器（含日曆圖示）在深色背景下清楚可見 */
+.add-save-date :deep(input[type='date']) {
+    color-scheme: dark;
+}
+
+.add-save-date :deep(input[type='date']::-webkit-calendar-picker-indicator) {
+    cursor: pointer;
+    filter: invert(1);
+    opacity: 0.7;
+}
+
+.add-save-date :deep(input[type='date']::-webkit-calendar-picker-indicator:hover) {
+    opacity: 1;
+}
+</style>
