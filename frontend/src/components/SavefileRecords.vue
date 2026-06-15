@@ -70,14 +70,17 @@
           <tr 
             v-for="record in saveRecords" 
             :key="record.save_id" 
-            class="border-b-[3px] border-nature-800 hover:bg-nature-600 hover:text-nature-200 transition-colors cursor-pointer"
+            class="group border-b-[3px] border-nature-800 hover:bg-nature-600 hover:text-nature-200 transition-colors cursor-pointer"
             @click="loadGame(record.save_id)"
           >
             <td class="py-3 px-2">{{ record.save_name }}</td>
             <td class="py-3 px-2">{{ record.start_date }}</td>
             <td class="py-3 px-2">{{ record.current_trade_date || '無' }}</td>
-            <td class="py-3 px-2">{{ record.savings_balance }}</td> 
-            <td class="py-3 px-2">{{ record.returnRate || '0%' }}</td>
+            <td class="py-3 px-2" >
+              <span :class="record.total_asset > 0 ? 'text-red-600 group-hover:text-red-300' : (record.total_asset < 0 ? 'text-green-500 group-hover:text-green-300' : 'text-yellow-600 group-hover:text-yellow-300')">
+                {{ formatCurrency(record.total_asset) }}
+              </span></td> 
+            <td class="py-3 px-2">{{ formatPercent(record.cumulative_return) }}</td>
             <td class="py-3 px-2">{{ record.status === 'ACTIVE' ? '遊玩中' : '已結束' }}</td>
             <td class="py-3 px-2">{{ record.note || '-' }}</td>
           </tr>
@@ -104,6 +107,17 @@
   const saveRecords = ref([])
   const isLoading = ref(true)
   const currentView = ref('list')
+
+  const formatCurrency = (value) => {
+    if (value === undefined || value === null) return '0';
+    return Number(value).toLocaleString();
+  }
+
+  const formatPercent = (value) => {
+    if (value === undefined || value === null) return '0%';
+
+    return (Number(value) * 100).toFixed(2) + '%'; 
+  }
 
   // 呼叫 API 的函式
   const fetchSaves = async () => {
@@ -144,8 +158,8 @@
   const loadGame = (recordId) => {
     console.log('準備讀取存檔 ID:', recordId)
     router.push({
-      path: '/game/custom', 
-      query: { saveId: recordId } 
+      path: '/game/custom',
+      query: { saveId: recordId }
     })
   }
 </script>

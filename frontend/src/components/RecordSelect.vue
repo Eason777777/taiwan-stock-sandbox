@@ -2,7 +2,6 @@
     <!-- 未點選 -->
     <div class="max-w-[600px] w-full"
         v-if="!isPressed"
-        @click="isPressed = true"
     >
         <button class="cursor-pointer ml-auto flex items-center gap-[10px] rounded-full bg-nature-700 border-nature-500 border-[5px] p-[20px] w-full max-w-[300px]"
             @click="isPressed = true"

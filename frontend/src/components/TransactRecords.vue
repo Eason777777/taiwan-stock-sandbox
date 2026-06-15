@@ -25,7 +25,7 @@
                 <tr 
                     v-for="record in saveRecords" 
                     :key="record.seq" 
-                    class="border-b-[3px] border-nature-800 hover:bg-nature-600 hover:text-nature-200 transition-colors"
+                    class="group border-b-[3px] border-nature-800 hover:bg-nature-600 hover:text-nature-200 transition-colors"
                 >
                     <td class="py-3 px-2">{{ record.sim_date.slice(0, 10) }}</td>
                     
@@ -33,11 +33,11 @@
                     
                     <td class="py-3 px-2">{{ formatChangeType(record.change_type) }}</td>
                     
-                    <td class="py-3 px-2 text-green-500">
+                    <td class="group-hover:text-green-300 py-3 px-2 text-green-500">
                         {{ isWithdrawal(record.change_type) ? formatNumber(record.amount) : '-' }}
                     </td>
                     
-                    <td class="py-3 px-2 text-red-500">
+                    <td class="group-hover:text-red-300 py-3 px-2 text-red-600">
                         {{ isDeposit(record.change_type) ? formatNumber(record.amount) : '-' }}
                     </td>
                     
