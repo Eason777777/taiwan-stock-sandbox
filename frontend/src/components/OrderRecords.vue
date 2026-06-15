@@ -1,25 +1,25 @@
 <template>
-  <div class="min-w-[1280px] gap-[10px] p-[30px] bg-nature-800 border-nature-500 border-[10px] w-[90%] h-fit flex flex-col">
+  <div class="rounded-[10px] gap-[10px] p-[30px] bg-nature-800 border-nature-500 border-[10px] w-[90%] h-fit flex flex-col">
     
     <div class="flex w-full h-full">
-      <div class="text-07 text-nature-100 w-full"> 交易紀錄 </div>
+      <div class="text-06 text-nature-100 w-full"> 交易紀錄 </div>
       <div class="w-full flex flex-row-reverse"> <RecordSelect /> </div>
     </div>
 
-    <div class="flex flex-col w-full h-full">
-        <div class="text-04 text-nature-100 "> 
+    <div class="flex flex-col w-full h-full text-03 text-nature-100">
+        <div> 
             已出帳投資總額 
             <span class="text-nature-200">{{ formatNumber(spendingAmount) }}</span> 
         </div>
         
-        <div class="text-04 text-nature-100"> 
+        <div> 
             原幣已實現損益 
             <span :class="profitLoss > 0 ? 'text-red-400' : (profitLoss < 0 ? 'text-green-300' : 'text-yellow-200')">
                 {{ profitLoss > 0 ? '+' : '' }}{{ formatNumber(profitLoss) }}
             </span> 
         </div>
 
-        <div class="text-04 text-nature-100"> 
+        <div> 
             投資報酬率 
             <span :class="returnRate > 0 ? 'text-red-400' : (returnRate < 0 ? 'text-green-300' : 'text-yellow-200')">
                 {{ returnRate > 0 ? '+' : '' }}{{ returnRate }}%
@@ -29,11 +29,11 @@
 
     <div class="bg-nature-200 rounded-[10px] overflow-y-auto max-h-[400px]">
       <table class="w-full text-center relative">
-        <thead class="sticky top-0 bg-nature-200 border-b-3 text-nature-900 font-05 text-04 z-10">
+        <thead class="sticky top-0 bg-nature-200 border-b-3 text-nature-900 font-05 text-03 z-10">
           <tr>
             <th class="py-3 px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('stock_id')">
               名稱
-              <SortIcon :active="sortKey === 'stock_id'" :order="sortOrder" />
+              <SortIcon :active="sortKey === 'stock_id'" :order="sortOrder"/>
             </th>
             <th class="py-3 px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('realized_pnl')">
               損益
@@ -66,7 +66,7 @@
           </tr>
         </thead>
 
-        <tbody class="text-04 text-nature-800">
+        <tbody class="text-03 text-nature-800">
           <tr 
             v-for="record in sortedRecords" 
             :key="record.order_id" 
@@ -141,7 +141,7 @@
         }
 
         return h('span', { 
-          class: `inline-block ml-1 align-middle text-03 font-bold transition-colors ${colorClass}` 
+          class: `inline-block ml-1 align-middle text-01 font-bold transition-colors ${colorClass}` 
         }, iconText)
       }
     }

@@ -1,21 +1,21 @@
 <template>
-  <div class="py-1 px-1">
-    <div class="account-info-container flex px-1! items-center self-stretch w-full justify-between box-border" data-tutorial="inventory-accounts">
+  <div>
+    <div class="flex justify-around" data-tutorial="inventory-accounts">
       <!-- 1. 交割戶 -->
-      <div class="account-column flex flex-col justify-center gap-[10px] flex-1 items-stretch max-w-[320px]">
-        <span class="account-name text-white font-sans text-[40px] font-normal leading-normal text-left">
+      <div class="flex flex-col justify-center">
+        <span class="text-white font-sans text-04 text-left">
           交割戶
         </span>
-        <span class="account-amount text-white font-sans text-[72px] font-medium leading-normal text-right">
+        <span class="text-white font-sans text-07 font-05 text-right">
           {{ deliveryBalance }}
         </span>
       </div>
 
       <!-- 2. 中間互動箭頭按鈕 -->
-      <div class="swap-btn-container flex w-[400px] flex-col justify-center items-center gap-[10px]">
+      <div class="flex flex-col justify-center">
         <button 
           @click="openTransfer"
-          class="swap-icon text-[#E9ECEF] hover:text-yellow-500 active:text-yellow-700 transition-colors duration-300 cursor-pointer outline-none bg-transparent border-none p-0 flex items-center justify-center"
+          class="text-nature-200 hover:text-yellow-500 active:text-yellow-700 transition-colors duration-300 cursor-pointer"
         >
           <!-- 這裡預留 SVG 區域，使用者可自行填寫 arrow SVG -->
           <svg xmlns="http://www.w3.org/2000/svg" width="90" height="90" viewBox="0 0 90 90" fill="none" class="w-[90px] h-[90px]">
@@ -26,11 +26,11 @@
       </div>
 
       <!-- 3. 存款戶 -->
-      <div class="account-column flex flex-col justify-center gap-[10px] flex-1 items-stretch max-w-[320px]">
-        <span class="account-name text-white font-sans text-[40px] font-normal leading-normal text-left">
+      <div class="flex flex-col justify-center">
+        <span class="account-name text-white font-sans text-04 font-normal text-left">
           存款戶
         </span>
-        <span class="account-amount text-white font-sans text-[72px] font-medium leading-normal text-right">
+        <span class="account-amount text-white font-sans text-07 font-05 text-right">
           {{ savingsBalance }}
         </span>
       </div>

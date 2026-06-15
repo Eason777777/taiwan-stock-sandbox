@@ -1,5 +1,5 @@
 <template>
-  <div class="inventory-card w-full max-w-[1200px] bg-nature-800 border-[10px] border-nature-500 rounded-xl py-5 px-[50px]! flex flex-col gap-4 shadow-2xl text-white font-sans">
+  <div class="w-full max-w-[1000px] bg-nature-800 border-[10px] border-nature-500 rounded-[10px] py-5 px-[50px]! flex flex-col gap-4 text-nature-100 font-sans">
     <!-- 帳戶餘額資訊區 (交割戶/存款戶與轉帳控制) -->
     <AccountInfo 
       :delivery-balance="deliveryBalance"

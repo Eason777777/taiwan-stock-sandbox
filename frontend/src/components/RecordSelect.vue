@@ -1,27 +1,27 @@
 <template>
     <!-- 未點選 -->
-    <div class="max-w-[600px] w-full"
+    <div class="max-w-[600px] "
         v-if="!isPressed"
     >
-        <button class="cursor-pointer ml-auto flex items-center gap-[10px] rounded-full bg-nature-700 border-nature-500 border-[5px] p-[20px] w-full max-w-[300px]"
+        <button class="cursor-pointer ml-auto flex items-center gap-[10px] rounded-[10px] bg-nature-700 border-nature-500 border-[5px] p-[20px] w-full max-w-[300px]"
             @click="isPressed = true"
         >
-            <div class="text-nature-200 text-05 font-06">{{ titleName }}</div>
-            <svg width="26" height="21" viewBox="0 0 26 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <div class="text-nature-200 text-03 font-06">{{ titleName }}</div>
+            <svg width="10" height="10" viewBox="0 0 26 21" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M11.0122 19.8668L0.574954 4.9564C-0.88647 2.86865 0.607112 -1.75429e-06 3.15553 -1.64289e-06L22.5554 -7.94897e-07C25.1038 -6.83502e-07 26.5974 2.86865 25.136 4.9564L14.6987 19.8668C13.803 21.1464 11.9079 21.1464 11.0122 19.8668Z" fill="#E9ECEF"/>
             </svg>
         </button>
     </div>
 
     <!-- 已點選 -->
-    <div class="relative max-w-[600px] w-full"
+    <div class="relative max-w-[600px]"
         v-else
     >
-        <button class="cursor-pointer ml-auto flex items-center gap-[10px] rounded-full bg-nature-400 border-nature-700 border-[5px] p-[20px] w-full max-w-[300px]"
+        <button class="cursor-pointer ml-auto flex items-center gap-[10px] rounded-[10px] bg-nature-400 border-nature-700 border-[5px] p-[20px] w-full max-w-[300px]"
             @click="isPressed = false"
         >
-            <div class="text-nature-600 text-05 font-06">{{ titleName }}</div>
-            <svg width="26" height="21" viewBox="0 0 26 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <div class="text-nature-700 text-03 font-06">{{ titleName }}</div>
+            <svg width="10" height="10" viewBox="0 0 26 21" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M11.0122 19.8668L0.574954 4.9564C-0.88647 2.86865 0.607112 -1.75429e-06 3.15553 -1.64289e-06L22.5554 -7.94897e-07C25.1038 -6.83502e-07 26.5974 2.86865 25.136 4.9564L14.6987 19.8668C13.803 21.1464 11.9079 21.1464 11.0122 19.8668Z" fill="#6C757D"/>
             </svg>
         </button>
