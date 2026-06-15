@@ -37,6 +37,8 @@ const title = computed(() => {
         return '存檔記錄'
     } else if (props.titleType === 4) {
         return '委託紀錄'
+    } else if (props.titleType === 5) {
+        return '資產趨勢'
     }
 
     return 'NaN'

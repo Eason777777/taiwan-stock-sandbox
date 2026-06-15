@@ -4,6 +4,7 @@
         <TransactRecords v-else-if="selectedType === 2" />
         <SavefileRecords v-else-if="selectedType === 3" :current-save-id="saveId" />
         <RecordOrderHistory v-else-if="selectedType === 4" :current-date="currentDate" :current-phase="currentPhase" />
+        <AssetChartRecord v-else-if="selectedType === 5" :save-id="saveId" :current-date="currentDate" :current-phase="currentPhase" />
     </div>
 </template>
 
@@ -14,13 +15,14 @@ import SavefileRecords from '../components/SavefileRecords.vue'
 import OrderRecords from '../components/OrderRecords.vue'
 import TransactRecords from '@/components/TransactRecords.vue';
 import RecordOrderHistory from '../components/RecordOrderHistory.vue'
+import AssetChartRecord from '../components/AssetChartRecord.vue'
 
 const route = useRoute()
 
 const selectedType = computed(() => {
     const type = Number(route.query.recordType)
 
-    if ([1, 2, 3, 4].includes(type)) {
+    if ([1, 2, 3, 4, 5].includes(type)) {
         return type
     }
 

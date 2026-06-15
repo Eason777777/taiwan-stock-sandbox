@@ -154,7 +154,7 @@ const applyPhaseRestrictions = () => {
   if (props.currentPhase === 'PRE_MARKET') {
     orderDisabledMarket.value = true
     orderIsAfterHours.value = false
-    if (orderOrderType.value === 'market') {
+    if (orderOrderType.value === 'market' || orderOrderType.value === 'default') {
       orderOrderType.value = 'limit'
     }
   } 
@@ -345,6 +345,7 @@ const handleOrderSubmit = async () => {
       orderQuantity.value = 1
       orderSide.value = 'default'
       orderOrderType.value = 'default'
+      applyPhaseRestrictions()
     } else {
       const errorData = await response.json()
       showToast(`下單失敗：${errorData.detail || '餘額不足或非交易時段'}`, { type: 'error' })
