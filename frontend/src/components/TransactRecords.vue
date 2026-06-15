@@ -1,15 +1,15 @@
 <template>
-  <div class="w-[98%] sm:w-[90%] max-w-[1280px] gap-[10px] p-[6px] sm:p-[20px] md:p-[30px] bg-nature-800 border-nature-500 border-[3px] sm:border-[6px] md:border-[10px] h-fit flex flex-col">
-
+  <div class="rounded-[10px] gap-[10px] p-[30px] bg-nature-800 border-nature-500 border-[10px] w-[90%] h-fit flex flex-col">
+    
     <div class="flex w-full h-full">
-      <div class="text-03 sm:text-04 md:text-06 lg:text-07 text-nature-100 w-full"> 轉帳紀錄 </div>
+      <div class="text-04 lg:text-06 text-nature-100 w-full"> 轉帳紀錄 </div>
       <div class="w-full flex flex-row-reverse"> <RecordSelect :titleType="2"/> </div>
     </div>
 
-    <div class="bg-nature-200 rounded-[10px] overflow-x-auto">
-        <table class="w-full text-center text-nature-800 relative min-w-[640px]">
-
-            <thead class="sticky top-0 z-10 bg-nature-200 border-b-3 text-nature-900 font-05 text-01 sm:text-02 md:text-03 lg:text-04">
+    <div class="bg-nature-200 rounded-[10px] overflow-y-auto max-h-[400px]">
+        <table class="min-w-[900px] md:min-w-[1200px] w-full text-center text-nature-800 relative">
+            
+            <thead class="text-[12px] lg:text-02 sticky top-0 z-10 bg-nature-200 border-b-3 text-nature-900 font-05 text-03">
             <tr>
                 <th class="py-1.5 px-1 sm:py-3 sm:px-2 cursor-pointer hover:bg-nature-300 select-none transition-colors" @click="sortBy('sim_date')">
                   交易日期 <SortIcon :active="sortKey === 'sim_date'" :order="sortOrder" />
@@ -35,7 +35,7 @@
             </tr>
             </thead>
 
-            <tbody class="text-01 sm:text-02 md:text-03 lg:text-04">
+            <tbody class="text-[10px] sm:text-01 md:text-02 lg:text-03">
                 <tr 
                     v-for="record in sortedRecords" 
                     :key="record.seq" 
@@ -92,8 +92,8 @@
           }
         }
 
-        return h('span', {
-          class: `inline-block ml-1 align-middle text-01 sm:text-02 lg:text-03 font-bold transition-colors ${colorClass}`
+        return h('span', { 
+          class: `inline-block ml-1 align-middle text-[10px] lg:text-01 font-bold transition-colors ${colorClass}` 
         }, iconText)
       }
     }
