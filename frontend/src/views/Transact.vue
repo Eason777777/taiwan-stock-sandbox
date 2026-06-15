@@ -17,10 +17,26 @@
       :prices="klinePrices"
       v-model:timeframe="currentTimeframe"
       :stock-name="orderStockName"
+      :orders="ordersList"
+      :current-date="currentDate"
+      :current-phase="currentPhase"
       @select-stock="handleOrderSelectStock"
       @search-stock="handleSearchStock"
       @load-more-stocks="handleLoadMoreStocks"
       @submit="handleOrderSubmit"
+      @cancel-order="handleCancelOrder"
+    />
+
+    <!-- 2. 撤單確認彈窗 -->
+    <ConfirmModal
+      v-model:show="showConfirmModal"
+      title="確認撤銷委託"
+      message="確定要撤銷此筆委託單嗎？此操作將無法復原。"
+      confirm-text="確認撤單"
+      cancel-text="取消"
+      type="danger"
+      @confirm="confirmCancelOrder"
+      @cancel="closeConfirmModal"
     />
   </div>
 </template>
@@ -29,6 +45,7 @@
 import { ref, watch, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import OrderCard from '../components/OrderCard.vue'
+import ConfirmModal from '../components/ConfirmModal.vue'
 import { showToast } from '../components/Toast.vue'
 
 const props = defineProps({
@@ -324,6 +341,7 @@ const handleOrderSubmit = async () => {
     if (response.ok) {
       showToast('委託下單成功！', { type: 'success' })
       emit('refresh-save') // 刷新 Game.vue 之帳戶資金
+      fetchOrders()
       
       // 清空表單
       orderStockId.value = ''
@@ -348,12 +366,77 @@ watch(() => route.query.stockId, (newStockId) => {
   }
 }, { immediate: true })
 
+// --- 5. 委託單列表資料讀取與撤單 ---
+const ordersList = ref([])
+const showConfirmModal = ref(false)
+const orderIdToCancel = ref(null)
+
+const fetchOrders = async () => {
+  if (!props.saveId) return
+  try {
+    const response = await fetch(`/api/saves/${props.saveId}/orders?limit=100`, {
+      headers: {
+        'x-session-id': localStorage.getItem('session_id') || ''
+      }
+    })
+    if (response.ok) {
+      ordersList.value = await response.json()
+    }
+  } catch (error) {
+    console.error('載入委託紀錄失敗:', error)
+  }
+}
+
+const handleCancelOrder = (orderId) => {
+  orderIdToCancel.value = orderId
+  showConfirmModal.value = true
+}
+
+const closeConfirmModal = () => {
+  showConfirmModal.value = false
+  orderIdToCancel.value = null
+}
+
+const confirmCancelOrder = async () => {
+  const orderId = orderIdToCancel.value
+  closeConfirmModal()
+  if (!orderId) return
+
+  try {
+    const response = await fetch(`/api/saves/${props.saveId}/orders/${orderId}`, {
+      method: 'DELETE',
+      headers: {
+        'x-session-id': localStorage.getItem('session_id') || ''
+      }
+    })
+
+    if (response.ok) {
+      showToast('已成功撤銷委託！', { type: 'success' })
+      emit('refresh-save') // 刷新交割戶與持股狀態
+      fetchOrders() // 重新載入列表
+    } else {
+      const errorData = await response.json()
+      showToast(`撤單失敗：${errorData.detail || '已成交或已過期'}`, { type: 'error' })
+    }
+  } catch (error) {
+    console.error('撤單 API 連線異常:', error)
+    showToast('伺服器連線異常，請稍後再試。', { type: 'error' })
+  }
+}
+
+// 監聽存檔變更
+watch(() => props.saveId, () => {
+  fetchOrders()
+}, { immediate: true })
+
 onMounted(() => {
   fetchStocksPage(true)
   applyPhaseRestrictions()
+  fetchOrders()
 })
 
 watch(() => props.currentPhase, () => {
   applyPhaseRestrictions()
+  fetchOrders()
 })
 </script>

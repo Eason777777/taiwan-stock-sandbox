@@ -205,6 +205,7 @@ def _settled_order_fields(row: dict) -> dict:
         row["return_rate"] = None
         row["avg_cost"] = None
         row["net_amount"] = None
+        row["exec_price"] = None
         return row
 
     exec_price = float(exec_price)
@@ -214,6 +215,7 @@ def _settled_order_fields(row: dict) -> dict:
     principal = round(exec_price * quantity * 1000)
 
     row["avg_cost"] = avg_cost
+    row["exec_price"] = exec_price
     if side == "BUY":
         row["net_amount"] = principal + fee
         row["realized_pnl"] = None
