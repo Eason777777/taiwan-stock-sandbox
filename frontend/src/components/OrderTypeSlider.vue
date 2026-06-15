@@ -36,13 +36,12 @@
     </div>
 
     <!-- Clickable Areas -->
-    <div class="absolute inset-0 flex z-20">
+    <div class="absolute inset-0 flex z-20" @click="switchState">
       <template v-if="!isAfterHours">
-        <div class="flex-1 cursor-pointer" @click="selectState('limit')"></div>
+        <div class="flex-1 cursor-pointer"></div>
         <div 
           class="flex-1" 
           :class="disabledMarket ? 'cursor-not-allowed' : 'cursor-pointer'"
-          @click="selectState('market')"
         ></div>
       </template>
       <template v-else>
@@ -126,6 +125,14 @@ const rightLabelClass = computed(() => {
   }
   return 'text-nature-200 opacity-100'
 })
+
+const switchState = () => {
+  if (props.modelValue === 'limit') {
+    emit('update:modelValue', 'market')
+  } else {
+    emit('update:modelValue', 'limit')
+  }
+}
 
 // Handle selection click in regular mode
 const selectState = (state) => {

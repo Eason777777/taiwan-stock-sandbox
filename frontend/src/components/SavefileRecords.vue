@@ -31,7 +31,7 @@
                 </svg>
             </div>
             <div class="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-in-out">
-                <div class="text-yellow-500 font-sans font-06"> 新增存檔 </div>
+                <div class="text-yellow-500 text-04 font-sans font-06"> 新增存檔 </div>
             </div>
         </button>
 

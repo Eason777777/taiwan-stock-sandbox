@@ -27,9 +27,9 @@
     </div>
 
     <!-- Clickable Areas -->
-    <div class="absolute inset-0 flex z-20">
-      <div class="flex-1 cursor-pointer" @click="selectState('buy')"></div>
-      <div class="flex-1 cursor-pointer" @click="selectState('sell')"></div>
+    <div class="absolute inset-0 flex z-20" @click="switchState()">
+      <div class="flex-1 cursor-pointer"></div>
+      <div class="flex-1 cursor-pointer"></div>
     </div>
   </div>
 </template>
@@ -93,6 +93,15 @@ const rightLabelClass = computed(() => {
   // default state
   return 'text-nature-200 opacity-100'
 })
+
+// Handle selection click
+const switchState = () => {
+  if (props.modelValue === 'buy') {
+    emit('update:modelValue', 'sell')
+  } else {
+    emit('update:modelValue', 'buy')
+  }
+}
 
 // Handle selection click
 const selectState = (state) => {
