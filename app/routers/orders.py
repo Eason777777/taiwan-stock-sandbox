@@ -239,8 +239,9 @@ async def list_orders(
 ):
     await fetch_save_owned(save_id, current_user, db)
     result = await db.query(
-        "SELECT o.*, t.exec_price, t.fee, t.tax, t.avg_cost_at_transact"
+        "SELECT o.*, s.stock_name_zh, t.exec_price, t.fee, t.tax, t.avg_cost_at_transact"
         " FROM stock_orders o"
+        " LEFT JOIN stocks s ON s.stock_id = o.stock_id"
         " LEFT JOIN stock_transactions t ON t.order_id = o.order_id"
         " WHERE o.save_id = ? ORDER BY o.order_id DESC LIMIT ? OFFSET ?",
         [int(save_id), limit, offset],

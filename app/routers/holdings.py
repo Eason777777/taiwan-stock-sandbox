@@ -92,6 +92,33 @@ async def list_holdings(
     return [_holding_with_pnl(row) for row in rows]
 
 
+def _settled_transaction_fields(row: dict) -> dict:
+    """依 stock_transactions 的成交結果補上已實現損益／報酬率／投資成本／出帳入帳金額。"""
+    quantity = int(row["quantity"])
+    side = row["side"]
+    exec_price = float(row["exec_price"])
+    avg_cost = float(row["avg_cost_at_transact"])
+    fee = int(float(row["fee"]))
+    tax = int(float(row["tax"]))
+    principal = round(exec_price * quantity * 1000)
+
+    row["avg_cost"] = avg_cost
+    row["exec_price"] = exec_price
+    row["price"] = exec_price  # 前端相容性：對齊為 record.price
+
+    if side == "BUY":
+        row["net_amount"] = principal + fee
+        row["realized_pnl"] = None
+        row["return_rate"] = None
+    else:
+        row["net_amount"] = principal - fee - tax
+        cost_basis = avg_cost * quantity * 1000
+        row["realized_pnl"] = round(row["net_amount"] - cost_basis, 2)
+        row["return_rate"] = round(row["realized_pnl"] / cost_basis * 100, 2) if cost_basis else None
+
+    return row
+
+
 @router.get("/transactions")
 async def list_transactions(
     save_id: int,
@@ -112,4 +139,4 @@ async def list_transactions(
         " ORDER BY t.transaction_id DESC LIMIT ? OFFSET ?",
         [int(save_id), limit, offset],
     )
-    return result["rows"]
+    return [_settled_transaction_fields(row) for row in result["rows"]]
