@@ -50,6 +50,11 @@ const router = createRouter({
       path: '/demo/confirm',
       name: 'confirm-demo',
       component: () => import('../views/ConfirmModalDemo.vue')
+    },
+    {
+      path: '/demo/topbar',
+      name: 'topbar-demo',
+      component: () => import('../views/TopBarDemo.vue')
     }
   ],
 })

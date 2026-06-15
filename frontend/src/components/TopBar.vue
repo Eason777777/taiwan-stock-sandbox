@@ -6,6 +6,7 @@
       <!-- 左側：目前使用者與登出鍵 -->
       <div class="flex items-center gap-4 flex-1">
         <div>目前使用者：<span class="text-white font-semibold">{{ username }}</span></div>
+        <div v-if="saveName">存檔：<span class="text-white font-semibold">{{ saveName }}</span></div>
         <button
           @click="handleLogout"
           class="rounded-lg border border-white my-1 px-2 py-0.5 text-01 font-bold text-white bg-sky-400 cursor-pointer transition-colors duration-150 hover:bg-topbar-blue"
@@ -74,6 +75,11 @@ const props = defineProps({
   },
   // 目前登入的使用者帳號
   username: {
+    type: String,
+    default: ''
+  },
+  // 目前載入的存檔名稱
+  saveName: {
     type: String,
     default: ''
   }
