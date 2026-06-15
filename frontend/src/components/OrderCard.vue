@@ -77,9 +77,10 @@
 
     <!-- 確認下單按鈕 -->
     <div class="w-full flex justify-center py-2">
-      <button 
+      <button
         @click="emit('submit')"
-        class="bg-yellow-500 hover:bg-yellow-600 active:scale-95 text-nature-900 font-bold rounded-[10px] px-20 py-4 transition-all duration-200 font-sans text-02 cursor-pointer border-none outline-none shadow-lg shadow-yellow-500/20"
+        :disabled="disabled"
+        class="bg-yellow-500 hover:bg-yellow-600 active:scale-95 text-nature-900 font-bold rounded-[10px] px-20 py-4 transition-all duration-200 font-sans text-02 cursor-pointer border-none outline-none shadow-lg shadow-yellow-500/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none"
       >
         確認下單
       </button>
@@ -170,6 +171,10 @@ const props = defineProps({
   stockName: {
     type: String,
     default: ''
+  },
+  disabled: {
+    type: Boolean,
+    default: false
   }
 })
 

@@ -24,8 +24,9 @@
       </button>
 
       <!-- 右：進入下一階段按鈕 -->
-      <button 
-        class="group relative flex justify-center items-center flex-1 h-16 rounded-r-xl! rounded-l-none! bg-green-300 hover:bg-green-700 active:bg-green-900 active:transition-none transition-colors duration-300 ease-out cursor-pointer border-none outline-none"
+      <button
+        class="group relative flex justify-center items-center flex-1 h-16 rounded-r-xl! rounded-l-none! bg-green-300 hover:bg-green-700 active:bg-green-900 active:transition-none transition-colors duration-300 ease-out cursor-pointer border-none outline-none disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none"
+        :disabled="disableNextPhase"
         @click="$emit('next-phase')"
       >
         <!-- 預設狀態 (Default) 箭頭 SVG -->
@@ -93,6 +94,10 @@ defineProps({
     type: Array,
     required: true,
     default: () => []
+  },
+  disableNextPhase: {
+    type: Boolean,
+    default: false
   }
 })
 

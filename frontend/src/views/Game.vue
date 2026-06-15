@@ -12,10 +12,18 @@
 
     <!-- 2. 主內容渲染區 (透過 router-view 傳遞狀態至各分頁，使用 keep-alive 快取狀態) -->
     <div class="flex-1 flex flex-col items-center p-6 w-full">
+      <!-- 存檔已破產/結束的常駐警示 -->
+      <div
+        v-if="saveLoaded && saveStatus !== 'ACTIVE'"
+        class="w-full max-w-275 mb-4 px-6 py-3 rounded-xl text-center font-bold text-03 bg-red-700 text-nature-100"
+      >
+        {{ saveStatus === 'BANKRUPT' ? '⚠ 此存檔已破產，無法繼續交易' : '此存檔已結束' }}
+      </div>
+
       <div v-if="saveLoaded" class="w-full h-full flex flex-col items-center justify-center">
         <router-view v-slot="{ Component }">
           <keep-alive>
-            <component 
+            <component
               :is="Component"
               :key="$route.path"
               :save-id="saveId"
@@ -23,6 +31,7 @@
               :delivery-balance="deliveryAmount"
               :current-phase="gamePhase"
               :current-date="gameDate"
+              :save-status="saveStatus"
               @update-balances="syncBalances"
               @refresh-save="fetchSaveDetail"
             />
@@ -54,6 +63,7 @@ const saveId = computed(() => {
 const saveLoaded = ref(false)
 const gameDate = ref('2026-06-14')
 const gamePhase = ref('PRE_MARKET')
+const saveStatus = ref('ACTIVE')
 const savingsAmount = ref(1000)
 const deliveryAmount = ref(2000)
 
@@ -122,6 +132,7 @@ const fetchSaveDetail = async () => {
       const data = await response.json()
       gameDate.value = data.current_trade_date
       gamePhase.value = data.current_phase
+      saveStatus.value = data.status
       savingsAmount.value = data.savings_balance
       deliveryAmount.value = data.trading_balance
       saveLoaded.value = true

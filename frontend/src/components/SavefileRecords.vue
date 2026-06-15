@@ -9,7 +9,7 @@
       v-if="currentView === 'remove'" 
       @click.self="currentView = 'list'"
   >
-    <RemoveSave :saveRecords="saveRecords" @close="currentView = 'list'" @refresh="onRefresh" />
+    <RemoveSave :saveRecords="saveRecords" :current-save-id="currentSaveId" @close="currentView = 'list'" @refresh="onRefresh" />
   </div>
 
   <div class="min-w-[1280px] gap-[10px] p-[30px] bg-nature-800 border-nature-500 border-[10px] w-[90%] h-fit flex flex-col"
@@ -99,7 +99,14 @@
   import RecordSelect from './RecordSelect.vue'
   import AddSave from './AddSave.vue'
   import RemoveSave from './RemoveSave.vue'
-  import { useRouter } from 'vue-router' 
+  import { useRouter } from 'vue-router'
+
+  defineProps({
+    currentSaveId: {
+      type: Number,
+      default: null
+    }
+  })
 
   const router = useRouter()
 
