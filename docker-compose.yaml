@@ -1,0 +1,12 @@
+services:
+  backend:
+    build: .
+    environment:
+      SQL_API_URL: http://sql-api.shiragaserver.lan/query
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
