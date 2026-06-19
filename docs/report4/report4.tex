@@ -19,6 +19,7 @@
 \usepackage[unicode, colorlinks=true, allcolors=black]{hyperref}
 \usepackage{booktabs}
 \usepackage{tabularx}
+\usepackage{longtable}
 \setlength{\skip\footins}{0.5cm}
 
 
@@ -79,6 +80,7 @@
 
 \begin{itemize}
     \item Report 1：\hyperref[sec:report1]{系統簡介}
+    \item Report 2：\hyperref[sec:report2]{ER-diagram 初步設計}
     \item Report 3：\hyperref[sec:report3]{ER-diagram 設計、 SQL relational database create table 的設計}
 \end{itemize}
 \section{系統安裝說明}
@@ -87,11 +89,9 @@
 專案程式碼已公開於 GitHub，包含前端與後端的完整原始碼：\\\href{https://github.com/Eason777777/taiwan-stock-sandbox}{https://github.com/Eason777777/taiwan-stock-sandbox}。
 \subsection{系統需求}
 
-整體需求概述
-
-\vspace{0.1cm}
+\subsubsection{整體需求概述}
 \begin{center}
-\begin{tabular}{|c|p{11cm}|}
+\begin{tabular}{|c|p{10cm}|}
     \hline
     項目 & 需求 \\
     \hline
@@ -107,12 +107,9 @@
     \hline
 \end{tabular}
 \end{center}
-\newpage
-後端相依套件一覽
-
-\vspace{0.3cm}
+\subsubsection{後端相依套件一覽}
 \begin{center}
-\begin{tabular}{|c|p{8cm}|}
+\begin{tabular}{|p{4.5cm}|p{8cm}|}
     \hline
     套件 & 用途 \\
     \hline
@@ -129,13 +126,9 @@
 \end{tabular}
 \end{center}
 
-
-\vspace{0.3cm}
-前端主要相依套件
-
-\vspace{0.3cm}
+\subsubsection{前端主要相依套件}
 \begin{center}
-\begin{tabular}{|c|p{8cm}|}
+\begin{tabular}{|p{4.5cm}|p{8cm}|}
     \hline
     套件 & 用途 \\
     \hline
@@ -480,11 +473,11 @@ curl -X 'POST' \
     \item 時間推進與四階段交易循環
     \item 撮合引擎（盤前限價/盤中限價市價/盤後定價）
     \item 下單系統（限價/市價/升降單位驗證/漲跌停）
-    \item 資金帳戶（存款戶/交割戶/轉帳/帳務紀錄）
+    \item 資金帳戶（存款戶/交割戶/轉帳/帳務紀錄/資產趨勢圖）
     \item 持股管理（持股清單/未實現損益/歷史成交）
     \item 股票查詢（搜尋/基本資料/K 線/技術指標）    
     \item 時空隔離（未來資料不揭露）
-    \item 前端 UI（Vue 3、響應式設計）
+    \item 前端 UI 優化體驗（新手教學、響應式設計）
 \end{itemize}
 
 \textbf{已完成安全性策略：}
@@ -530,10 +523,11 @@ curl -X 'POST' \
 
 \subsection{前端}
 
-\begin{tabular}{|c|p{11cm}|c|}
+\begin{longtable}{|c|p{11cm}|c|}
     \hline
     姓名 & 工作內容 & 份量比重 \\
     \hline
+    \endhead
     楊凱臣 & 將同學用 Figma 設計的 UI 元件實作成 Vue 3 組件，並串接後端 API 實現前端功能。包含但不限於以下部分：
     \begin{itemize}[leftmargin=*, topsep=3pt, partopsep=0pt, parsep=0pt, itemsep=3pt]
         \item 前端 TopBar (網頁上方的固定資訊欄)
@@ -568,9 +562,8 @@ curl -X 'POST' \
         \item 登出功能
     \end{itemize} & 10\%\\
     \hline
-\end{tabular}
-
-\begin{figure}[H]
+\end{longtable}
+\begin{figure}[htbp]
     \centering
     \begin{minipage}{0.48\textwidth}
         \centering
@@ -599,7 +592,9 @@ curl -X 'POST' \
         \caption{資產趨勢圖介面}
         \label{fig:work-asset-trend}
     \end{minipage}
-    \vskip 0.3cm
+\end{figure}
+
+\begin{figure}[H]
     \begin{minipage}{0.48\textwidth}
         \centering
         \includegraphics[width=\textwidth]{image/work-session-expired.png}
@@ -614,14 +609,14 @@ curl -X 'POST' \
         \label{fig:work-delete-save}
     \end{minipage}
     \vskip 0.3cm
-    \begin{minipage}{0.48\textwidth}
+    \begin{minipage}{0.44\textwidth}
         \centering
         \includegraphics[width=\textwidth]{image/work-date-picker.png}
         \caption{存檔日期選擇器}
         \label{fig:work-date-picker}
     \end{minipage}
     \hfill
-    \begin{minipage}{0.48\textwidth}
+    \begin{minipage}{0.44\textwidth}
         \centering
         \includegraphics[width=\textwidth]{image/work-topbar-save.png}
         \caption{TopBar 顯示存檔名稱}
@@ -631,7 +626,7 @@ curl -X 'POST' \
 
 \subsection{後端}
 
-\begin{tabular}{|c|p{11cm}|c|}
+\begin{tabular}{|c|p{10.5cm}|c|}
     \hline
     姓名 & 工作內容 & 份量比重 \\
     \hline
@@ -643,7 +638,7 @@ curl -X 'POST' \
 
 \subsection{資料庫設計與管理}
 
-\begin{tabular}{|c|p{11cm}|c|}
+\begin{tabular}{|c|p{10.5cm}|c|}
     \hline
     姓名 & 工作內容 & 份量比重 \\
     \hline 
@@ -702,7 +697,18 @@ curl -X 'POST' \
 ]{../report1-2/report1-2.pdf}
 
 
-
+\appendix
+\includepdf[
+    pages={1}, 
+    pagecommand={\section{附錄：Report 2}\label{sec:report2}\thispagestyle{headings}}, 
+    scale=0.9, 
+    offset=0 -1cm % 調整 PDF 位置以避免蓋住標題
+]{../report2/report2.pdf}
+\includepdf[
+    pages={2-7}, 
+    pagecommand={\thispagestyle{headings}}, 
+    scale=0.99
+]{../report2/report2.pdf}
 
 \includepdf[
     pages={1}, 
