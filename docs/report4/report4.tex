@@ -77,18 +77,19 @@
 
 \begin{itemize}
     \item Report 1：\hyperref[sec:report1]{系統簡介}
-    \item Report 2：\hyperref[sec:report2]{ER-diagram 設計}
-    \item Report 3：\hyperref[sec:report3]{SQL relational database create table 的設計}
+    \item Report 3：\hyperref[sec:report3]{ER-diagram 設計、 SQL relational database create table 的設計}
 \end{itemize}
 \section{系統安裝說明}
 
 \subsection{專案程式碼連結}
-專案程式碼已公開於 GitHub，包含前端與後端的完整原始碼：https://github.com/Eason777777/taiwan-stock-sandbox。
+專案程式碼已公開於 GitHub，包含前端與後端的完整原始碼：\\https://github.com/Eason777777/taiwan-stock-sandbox。
 \subsection{系統需求}
 
 整體需求概述
 
-\begin{tabularx}{\textwidth}{|c|X|}
+\vspace{0.1cm}
+\begin{center}
+\begin{tabular}{|c|p{11cm}|}
     \hline
     項目 & 需求 \\
     \hline
@@ -102,12 +103,14 @@
     \hline
     資料庫 & MySQL（透過 HTTP SQL API 存取，地址 sql-api.shiragaserver.lan） \\
     \hline
-\end{tabularx}
-
-
-後端相依套件一覽
+\end{tabular}
+\end{center}
 \newpage
-\begin{tabularx}{\textwidth}{|c|X|}
+後端相依套件一覽
+
+\vspace{0.3cm}
+\begin{center}
+\begin{tabular}{|c|p{8cm}|}
     \hline
     套件 & 用途 \\
     \hline
@@ -121,12 +124,16 @@
     \hline
     passlib / bcrypt==4.0.1 & 密碼雜湊 \\
     \hline
-\end{tabularx}
+\end{tabular}
+\end{center}
 
 
+\vspace{0.3cm}
 前端主要相依套件
 
-\begin{tabularx}{\textwidth}{|c|X|}
+\vspace{0.3cm}
+\begin{center}
+\begin{tabular}{|c|p{8cm}|}
     \hline
     套件 & 用途 \\
     \hline
@@ -146,7 +153,8 @@
     \hline
     prettier & 程式碼格式化 \\
     \hline
-\end{tabularx}
+\end{tabular}
+\end{center}
 
 \subsection {後端安裝與啟動（FastAPI）}
 後端為 FastAPI 應用程式，以 uvicorn 作為 ASGI 伺服器。
@@ -170,7 +178,7 @@ export SQL_API_URL=http://sql-api.shiragaserver.lan
 # 5. 啟動開發伺服器
 uvicorn app.main:app --reload
 \end{lstlisting}
-後端預設監聽 http://localhost:8000， 互動式 Swagger 文件位於 http://localhost:8000/docs。
+後端預設監聽 \url{http://localhost:8000}，互動式 Swagger 文件位於 \url{http://localhost:8000/docs}。
 \subsection {前端安裝與啟動（Vue 3 + Vite）}
 
 \begin{lstlisting}[language=bash]
@@ -185,7 +193,7 @@ pnpm dev
 # 建置正式版
 pnpm build
 \end{lstlisting}
-
+\vspace{-0.3cm}
 \subsection{驗證連線}
 \begin{lstlisting}[language=bash]
 # 測試 Tailscale + SQL API 連線
@@ -193,8 +201,9 @@ curl -X POST http://sql-api.shiragaserver.lan/query \
   -H "Content-Type: application/json" \
   -d '{"sql": "SHOW DATABASES"}'
 \end{lstlisting}
-
+\vspace{-0.3cm}
 \subsection{執行測試}
+
 \begin{lstlisting}[language=bash]
 # 後端單元測試（不需 DB）
 pytest tests/unit/
@@ -209,47 +218,469 @@ pnpm test
 # 後端 Smoke Test（需先啟動 uvicorn）
 python backend_tests/smoke_test.py
 \end{lstlisting}
-\section{系統功能評估 （完成度， 可擴展改進部份）}
+\section{介面使用說明 系統內容功能詳細敘述}
+\subsection{使用者說明}
+\begin{enumerate}
+    \item \textbf{登入 / 註冊：} 前往 \texttt{/signup} 建立帳號，再從 \texttt{/} 登入。
+    
+    \begin{figure}[H]
+        \centering
+        \begin{minipage}{0.48\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{image/1-login.png}
+            \caption{登入介面}
+            \label{fig:login}
+        \end{minipage}
+        \hfill
+        \begin{minipage}{0.48\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{image/1-signup.png}
+            \caption{註冊介面}
+            \label{fig:signup}
+        \end{minipage}
+    \end{figure}
+
+    \item \textbf{建立 / 移除存檔：} 
+    \begin{itemize}
+        \item 建立存檔：點擊「新增存檔」，填入存檔名稱、初始資金（5 萬至 100 萬元）、歷史起始日（或隨機）。
+        \item 移除存檔：點擊「移除存檔」，會將當前存檔顯示紅色，點擊任意存檔將跳出是否確定移除存檔。
+    \end{itemize}
+    
+    \begin{figure}[H]
+        \centering
+        \begin{minipage}{0.48\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{image/2-addSave.png}
+            \caption{新增存檔介面}
+            \label{fig:addSave}
+        \end{minipage}
+        \hfill
+        \begin{minipage}{0.48\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{image/2-selectSave.png}
+            \caption{切換存檔介面}
+            \label{fig:selectSave}
+        \end{minipage}
+        \vskip 0.3cm
+        \begin{minipage}{0.48\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{image/2-deleteSave.png}
+            \caption{移除存檔（顯示紅色）}
+            \label{fig:deleteSave}
+        \end{minipage}
+        \hfill
+        \begin{minipage}{0.48\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{image/2-deleteSaveConfirm.png}
+            \caption{確定移除存檔彈窗}
+            \label{fig:deleteSaveConfirm}
+        \end{minipage}
+    \end{figure}
+
+    \item \textbf{研究盤面：} 進入「下單交易」頁或「新增自選股」，搜尋股票，查看 K 線圖（日/週/月線，支援 MA、RSI、MACD 技術指標）。
+    
+    \begin{figure}[H]
+        \centering
+        \begin{minipage}{0.48\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{image/3-watchlist.png}
+            \caption{自選股清單}
+            \label{fig:watchlist}
+        \end{minipage}
+        \hfill
+        \begin{minipage}{0.48\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{image/3-transactKline.png}
+            \caption{K 線圖與技術指標}
+            \label{fig:transactKline}
+        \end{minipage}
+    \end{figure}
+
+    \item \textbf{資金調撥：} 在「庫存」頁將存款戶資金轉入交割戶，才能下單買股。
+    
+    \begin{figure}[H]
+        \centering
+        \begin{minipage}{0.48\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{image/4-inventory.png}
+            \caption{庫存與資金狀態}
+            \label{fig:inventory}
+        \end{minipage}
+        \hfill
+        \begin{minipage}{0.48\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{image/4-transfer.png}
+            \caption{資金調撥（轉帳）介面}
+            \label{fig:transfer}
+        \end{minipage}
+    \end{figure}
+
+    \item \textbf{下單：} 依目前交易階段選擇委託類型（限價單 / 市價單 / 定價）並填入股票代號、價格（限價）、張數。下單後將建立委託單，等待（下一階段）時是否搓合。
+    
+    \begin{figure}[H]
+        \centering
+        \begin{minipage}{0.48\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{image/5-order.png}
+            \caption{下單委託介面}
+            \label{fig:order}
+        \end{minipage}
+        \hfill
+        \begin{minipage}{0.48\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{image/5-orderlist.png}
+            \caption{委託單清單}
+            \label{fig:orderlist}
+        \end{minipage}
+    \end{figure}
+
+    \item \textbf{推進時間：} 點擊頂部導覽列的「進一步」按鈕，系統結算上一階段委託單，時鐘前進至下一階段。
+    
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.7\textwidth]{image/6-nextStage.png}
+        \caption{推進時間（進一步）按鈕}
+        \label{fig:nextStage}
+    \end{figure}
+
+    \item \textbf{檢視結果：} 若有下委託單，點選下一階段時會自動跳出成交結果。若有已購買之股票可以至「資產」查看損益。
+    
+    \begin{figure}[H]
+        \centering
+        \begin{minipage}{0.48\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{image/7-deal.png}
+            \caption{自動彈出的成交結果}
+            \label{fig:deal}
+        \end{minipage}
+        \hfill
+        \begin{minipage}{0.48\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{image/7-inventoryAfterdeal.png}
+            \caption{資產持股與損益查看}
+            \label{fig:inventoryAfterdeal}
+        \end{minipage}
+    \end{figure}
+
+    \item \textbf{各項紀錄：} 為方便使用者復盤，在紀錄欄位裡可以找到交易紀錄、轉帳紀錄、存檔紀錄、委託紀錄、資產趨勢供使用者查閱。
+    
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.4\textwidth]{image/8-recordSelect.png}
+        \caption{各項紀錄查詢頁面}
+        \label{fig:recordSelect}
+    \end{figure}
+
+    \item \textbf{Session id 過期提醒：} 基於資安考量，本系統設有 session id，生命週期為兩小時，若有進行 any API 操作則會重置延長時間，避免影響使用者體驗。過期後會跳出彈窗告知使用者，「長時間未操作，請重新登入」。
+    
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.7\textwidth]{image/9-Section.png}
+        \caption{Session 過期提示彈窗}
+        \label{fig:sessionExpired}
+    \end{figure}
+\end{enumerate}
+
+\subsection{開發者說明 -- API 測試}
+得益於 FastAPI，開發者可使用 FastAPI 的 Swagger 介面進行 API 呼叫測試。
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{image/api-swagger-main.png}
+    \caption{Swagger API 測試介面}
+    \label{fig:api-swagger-main}
+\end{figure}
+
+以 login API 為例，在 Request body 中填入帳號密碼後，點選 Execute 即可在下方的 Response 中看到結果。
+
+\begin{figure}[H]
+    \centering
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{image/api-login-request.png}
+        \caption{Request body 參數設定}
+        \label{fig:api-login-request}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{image/api-login-response.png}
+        \caption{Response 回傳結果}
+        \label{fig:api-login-response}
+    \end{minipage}
+\end{figure}
+
+當然，開發者也可以使用下方 \texttt{curl} 指令進行測試，但對前端開發者而言，\texttt{Swagger} 可以減少瀏覽器與 \texttt{Terminal} 之間的切換。
+
+\begin{lstlisting}[language=bash]
+curl -X 'POST' \
+  'http://localhost:8000/auth/login' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "account": "alice",
+  "password": "mypassword"
+}'
+\end{lstlisting}
+
+\subsection{開發者說明 -- 資料庫管理}
+本組資料庫部署於本組組員自建之 home server，並採用 Docker 容器化方式進行建置與管理。建置時，先透過 Docker Compose 定義資料庫相關服務，並建立單一 stack；再由 Portainer 匯入並管理該 stack。此 stack 下包含 MySQL 資料庫、Adminer 資料庫管理介面、Node.js API 服務與資料庫自動備份服務等 container，使資料庫相關服務能以同一組設定進行啟動、停止、更新與維護。
+
+在使用上，開發者若需要維護資料庫，需先透過 Tailscale VPN 連入私有網路，再連接至 home server 的相關服務。伺服器端搭配自架 DNS 與 Nginx 進行連線與服務轉發管理，使不同服務能依照設定導向指定的內部服務或管理介面。透過此方式，開發者可在非本地網路環境下進行遠端維護，同時避免將所有管理服務直接暴露於公開網路。
+
+進入管理環境後，若需要確認 container 狀態、重新啟動服務或檢查部署設定，可透過 Portainer 查看 Docker Compose stack 中各 container 的執行狀態與紀錄。若需要檢視資料庫內容，則可使用 Adminer 連接 MySQL，查看資料表、欄位設定、foreign key、index、trigger 與資料內容，作為開發、測試與除錯時的資料庫管理工具。
+
+此外，MySQL 的資料透過 volume 掛載至 home server 的指定目錄，使資料不會因 container 重啟或更新而遺失。本組也於同一個 stack 中設定資料庫自動備份服務，依照設定時間定期備份 MySQL 資料庫，並保留指定數量的備份檔案，以降低資料遺失風險。
+
+\begin{figure}[H]
+    \centering
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{image/db-portainer.png}
+        \caption{Portainer 容器管理畫面}
+        \label{fig:db-portainer}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{image/db-adminer.png}
+        \caption{Adminer 管理平台}
+        \label{fig:db-adminer}
+    \end{minipage}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{image/db-query.png}
+        \caption{資料查閱介面}
+        \label{fig:db-query}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{image/db-edit.png}
+        \caption{資料編輯介面}
+        \label{fig:db-edit}
+    \end{minipage}
+\end{figure}
+
+\section{系統功能評估（完成度，可擴展改進部份）}
 \subsection{完成度評估}
 
+\textbf{已完成功能：}
+\begin{itemize}
+    \item 認證系統（註冊/登入/登出/Session 管理）
+    \item 存檔管理（建立/查詢/刪除/結束）
+    \item 時間推進與四階段交易循環
+    \item 撮合引擎（盤前限價/盤中限價市價/盤後定價）
+    \item 下單系統（限價/市價/升降單位驗證/漲跌停）
+    \item 資金帳戶（存款戶/交割戶/轉帳/帳務紀錄）
+    \item 持股管理（持股清單/未實現損益/歷史成交）
+    \item 股票查詢（搜尋/基本資料/K 線/技術指標）    
+    \item 時空隔離（未來資料不揭露）
+    \item 前端 UI（Vue 3、響應式設計）
+\end{itemize}
+
+\textbf{已完成安全性策略：}
+\begin{itemize}
+    \item 密碼儲存：使用 bcrypt 雜湊，不儲存明文。
+    \item Session 管理：2 小時過期、IP /24 網段綁定、登入覆蓋舊 token。
+    \item SQL 注入防護：FastAPI 後端使用參數化查詢（params list）。
+    \item 所有權驗證：集中於 \texttt{save\_access.py} 的 \texttt{fetch\_save\_owned()}，跨存檔存取一律 403。
+    \item 登入速率限制：同帳號 60 秒內失敗 $\ge 5$ 次後回傳 429 Too Many Requests。
+\end{itemize}
+
 \subsection{可擴展改進部分}
-\section{介面使用說明}
+
+\textbf{使用體驗改進：}
+\begin{itemize}
+    \item 進入存檔紀錄介面後無法退回登入介面：因為目前存檔記錄介面是登入介面的子介面（懸浮框）。可以設計取消鍵，取消存檔紀錄懸浮框。
+    \item 階段跳轉的改進：目前階段跳轉須進到自選股介面才能查看，若想一邊進行階段一邊查看資產中股票的損益，則需要一直轉跳介面。之後可以設計在 TopBar 中。
+    \item 新聞描述：目前介面僅顯示股價與基本資料，缺乏新聞或公告等輔助資訊。可加入新聞描述區塊（如上方可放跑馬燈），依股票代號串接相關新聞標題與摘要，協助使用者在交易決策時參考更多面向的資訊。
+    \item 存檔按鈕標示不清晰：目前存檔相關按鈕（如建立存檔、切換存檔）缺乏明確的圖示與文字說明，使用者容易不清楚按鈕實際作用為何。可加入提示文字（tooltip）或更直覺的圖示設計，降低操作疑慮。
+    \item 整體操作邏輯不夠直覺：系統雖已提供新手教學，但操作邏輯（如計算公式、按鈕用途、流程順序等）對使用者而言仍不易理解與記憶，教學結束後缺乏可隨時查閱的說明資源，使用者容易在實際操作中感到困惑。可設計教學按鈕或說明字典，讓使用者隨時查詢操作邏輯與相關公式，降低學習門檻。
+    \item 覆盤功能：目前使用者破產或者推進到 2026/06/01 時，會結束遊戲，但沒有一個良好的覆盤結算與績效分析介面，難以讓使用者回顧與檢討其交易決策與投資損益。
+\end{itemize}
+
+\textbf{系統遊戲規則改進：}
+\begin{itemize}
+    \item 零股交易：目前系統僅支援以「張」（1000 股）為單位的交易。未來可新增零股交易功能，降低交易資金門檻，讓資金規模較小的玩家能更靈活地進行資產配置與分散投資。
+    \item 新增上櫃、興櫃股票：目前的股票標的僅限於上市市場。未來可擴展導入上櫃與興櫃市場的股票數據，增加模擬交易市場的廣度與標的多樣性。
+    \item 增加融資融券功能：目前系統僅支援現股交易。未來可加入信用交易機制（融資與融券），讓使用者能夠使用槓桿操作或進行做空交易，體驗更多元的市場交易策略。
+    \item 增加除權息機制：目前系統尚未處理除權息事件。未來應引入上市櫃公司的除權息日程，並實作現金股利與股票股利的發放邏輯，以正確反映持股的長期投資價值與資產變化。
+    \item T + 2 交割機制：目前交易採取推進階段時即時扣款與交割。未來可模擬台股真實的 T+2 交割制度，讓使用者學習交割款項的資金調度，並體驗違約交割的風險與規則。
+    \item 增加使用者資金來源：例如薪水、貸款、隨機事件等，讓使用者在遊戲中有更多元的資金流入管道，增加遊戲的趣味性與挑戰性。
+\end{itemize}
+
+\textbf{技術架構改進：}
+\begin{itemize}
+    \item 前端快取：目前 \texttt{companyProfileCache} 僅快取公司簡介靜態資料。可擴展至快取當日 K 線資料，減少重複 API 呼叫。
+    \item 測試覆蓋率：目前的單元測試（撮合邏輯、預算邏輯）+ Smoke Test + Schemathesis。可以增加 E2E 測試（Playwright）覆蓋完整玩家流程。
+    \item CI/CD：無自動化流水線。可建立 \texttt{GitHub Actions}，於 PR 時自動執行單元測試、\texttt{oxlint} 與 \texttt{prettier} 檢查。
+    \item 註冊驗證：目前註冊流程僅檢查帳號是否重複，未驗證 Email 真實性、密碼強度，也無防機器人機制（如 CAPTCHA）。可加入 Email 驗證信流程、密碼強度規則檢查，並導入驗證碼機制，提升帳號安全性與防止濫用註冊。
+\end{itemize}
 
 \section{實際工作分配及工作份量比重}
 
+\subsection{前端}
+
+\begin{tabular}{|c|p{11cm}|c|}
+    \hline
+    姓名 & 工作內容 & 份量比重 \\
+    \hline
+    楊凱臣 & 將同學用 Figma 設計的 UI 元件實作成 Vue 3 組件，並串接後端 API 實現前端功能。包含但不限於以下部分：
+    \begin{itemize}[leftmargin=*, topsep=3pt, partopsep=0pt, parsep=0pt, itemsep=3pt]
+        \item 前端 TopBar (網頁上方的固定資訊欄)
+        \item 自選股分頁：新增自選股、查看自選股清單、查看公司基本資料與股票 K 線圖。
+        \item 交易分頁：下單介面、委託單清單、成交結果彈窗。
+        \item 資產分頁：存款戶與交割戶的轉帳功能、持股清單、未實現損益。
+        \item 紀錄分頁：委託單紀錄（見圖 \ref{fig:work-order-history}）、資產趨勢圖（見圖 \ref{fig:work-asset-trend}）。
+    \end{itemize} & 40\% \\
+    \hline
+    周聖詠 & 進行前端功能優化與使用者體驗改進，包含以下部分：
+    \begin{itemize}[leftmargin=*, topsep=3pt, partopsep=0pt, parsep=0pt, itemsep=3pt]
+        \item 重新登入介面（SessionExpiredModal，見圖 \ref{fig:work-session-expired}）
+        \item 刪除存檔確認介面（見圖 \ref{fig:work-delete-save}）
+        \item 存檔日期選擇器（新增日曆選擇，見圖 \ref{fig:work-date-picker}）
+        \item 在 TopBar 加入目前存檔的名稱顯示（見圖 \ref{fig:work-topbar-save}）
+    \end{itemize} & 10\% \\
+    \hline
+    許育綸 & & 40\%\\
+    \hline
+    盧人豪 & 進行前端功能優化與使用者體驗改進，包含以下部分：
+    \begin{itemize}[leftmargin=*, topsep=3pt, partopsep=0pt, parsep=0pt, itemsep=3pt]
+        \item 響應式設計
+        \item 首次登入引導（新手教學）
+        \item 登出功能
+    \end{itemize} & 10\%\\
+    \hline
+\end{tabular}
+
+\begin{figure}[H]
+    \centering
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{image/work-order-history.png}
+        \caption{委託單紀錄介面}
+        \label{fig:work-order-history}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{image/work-asset-trend.png}
+        \caption{資產趨勢圖介面}
+        \label{fig:work-asset-trend}
+    \end{minipage}
+    \vskip 0.3cm
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{image/work-session-expired.png}
+        \caption{重新登入介面 (SessionExpiredModal)}
+        \label{fig:work-session-expired}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{image/work-delete-save.png}
+        \caption{刪除存檔確認介面}
+        \label{fig:work-delete-save}
+    \end{minipage}
+    \vskip 0.3cm
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{image/work-date-picker.png}
+        \caption{存檔日期選擇器}
+        \label{fig:work-date-picker}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{image/work-topbar-save.png}
+        \caption{TopBar 顯示存檔名稱}
+        \label{fig:work-topbar-save}
+    \end{minipage}
+\end{figure}
+
+\subsection{後端}
+
+\begin{tabular}{|c|p{11cm}|c|}
+    \hline
+    姓名 & 工作內容 & 份量比重 \\
+    \hline
+    周聖詠 & 後端實作（FastAPI 框架設計、各 API 撰寫）、單元測試、資安測試（\href{https://blogs.cisco.com/ai/announcing-foundry-security-spec}{foundry}、\href{https://cybersecuritynews.com/owasp-cve-lite-cli-tool/amp/}{OWASP CVE Lite CLI}） & 60\% \\
+    \hline
+    盧人豪 & 後端實作與測試 & 40\%\\
+    \hline
+\end{tabular}
+
+\subsection{資料庫設計與管理}
+
+\begin{tabular}{|c|p{11cm}|c|}
+    \hline
+    姓名 & 工作內容 & 份量比重 \\
+    \hline 
+    楊凱臣 & ER Diagram 設計、DDL 撰寫 & 15\%\\
+    \hline
+    許育綸 & ER Diagram 設計 & 5\%\\
+    \hline
+    盧人豪 & 伺服器提供，維護與建置伺服器和資料庫、API 等 & 100\%\\
+    \hline
+\end{tabular}
 
 \section{個人心得}
-\subsection{楊凱臣}
-\subsection{周聖詠}
-\subsection{許育綸}
-\subsection{盧人豪}
+\subsection*{楊凱臣}
+本專案是我首次從零開始主導並實現如此完整的全端網頁應用程式。從學期初的主題發想、交易規則建構，到學期末實際投入代碼撰寫，整個開發週期中，我無時無刻都在思考系統的優化與細節微調。
+
+在\textbf{規則設計}方面，真實的臺灣證券市場交易規則十分複雜（如逐筆撮合、零股交易等），在本次模擬沙盒系統中，我將其提煉並設計成一套既能保有擬真度又具備開發可行性之交易機制。我們設計了「存款戶」與「交割戶」雙帳戶機制以模擬真實扣款、規定交易以整股（1000 股 / 張）為單位、採用加權移動平均法即時結算持股成本，並針對盤前、盤中、盤後與收市等時段規劃了八種交易撮合與時間切換邏輯（如盤前限價以開盤價撮合、盤後定價以收盤價成交，且排除部分成交的複雜性）。這種有意識的「功能取捨（Trade-off）」使系統既能精確傳達金融交易的學術核心，又避免了開發範疇的過度膨脹。
+
+在\textbf{程式實踐}上，我參與了資料庫 DDL 的初步架構討論，並親自將同學設計的 Figma 設計稿使用 Vue.js 實作出來。這次開發讓我對「元件化（Component-based）」開發理念有了深刻的領悟。透過將 TopBar、K 線圖、交易紀錄與持股明細等高頻元件進行封裝，不僅大幅降低了程式碼的耦合度與維護難度，更提升了排版在響應是設計上的彈性。
+
+在\textbf{團隊協作}方面，我很感謝負責後端的同學完美的代碼實現，使系統完全符合我當初規劃的撮合機制。當前端需要特定的 JSON 數據結構或 API 端點時，夥伴們總能迅速響應。特別是負責後端的同學在「時空隔離」的限制上下了極大的功夫，防堵了利用未來價格套利的行為，並與前端完美對接。此外，同學在短時間內實作的響應式設計，讓 demo時能讓同學和老師實際在手機或平板上操作，極大地提升了展示效果與實用性。這種前後端職責分離、高效對話的協作模式，是專案得以高規格交付的關鍵。
+
+這次專案的最大收穫，超越了單純的資料庫 schema 設計或 SQL 語句撰寫，而是\textbf{學習如何將資料庫的核心概念無縫嵌入一個具備完整業務邏輯與使用者體驗的全端系統中}。此外，「股票模擬系統」這一題材，也逼迫我深入研究金融系統的複雜性，從交割流程到財務結算，都擴展了我的專業視野，更讓我具體認識到資料庫系統在金融科技領域的巨大應用價值。
+
+\subsection*{周聖詠}
+這次專案最值得回味的體驗是團隊合作的品質。雖然之前也有後端開發的經驗，但因為大家對協作流程不熟悉，往往淪為各自為政、單打獨鬥。這次不一樣——我們建立了一套真正有效的開發流程：前後端各自維護獨立的 branch、前端透過 issue 向後端提出功能需求或資料格式的調整、並統一 \href{https://ithelp.ithome.com.tw/articles/10228738}{commit message 規範}，讓任何人都能快速看懂這次改動的意圖。
+
+這些看似瑣碎的流程，實際上大幅降低了溝通成本，也讓每個人能更專注在自己的工作上，而不是花時間猜測別人做了什麼。
+
+除此之外，這次專案也讓我接觸到許多新的技術工具。後端框架方面，以前習慣使用較輕量的 Flask，這次改用 FastAPI，體驗到自動產生 /docs 的 Swagger UI，不需要額外寫文件；async 支援也更原生，適合 I/O 密集的 API（像是這個專案頻繁查資料庫）。外網穿透方面，以前只知道 ngrok，這次透過 Tailscale 才發現原來 VPN mesh network 也能達到類似的效果——而且更穩定、不需要每次重啟都更換網址。
+
+\subsection*{許育綸}
+這次的資料庫理論專題，我主要負責的是前端的設計與實現。
+
+\subsection*{盧人豪}
+在這次資料庫專題中，我主要負責較偏系統整合與後端支援的部分。
+除了參與後端功能開發與測試外，也需要處理伺服器環境、資料庫服務、容器化部署與遠端連線等問題。這些工作在成果展示時不一定會直接出現在畫面上，但卻會影響整個系統是否能穩定執行。透過這次專題，我更深刻體會到，一個資料庫系統不只是資料表設計或 SQL 查詢而已，還包含服務如何啟動、資料如何保存、不同模組如何連接，以及系統出問題時要如何追蹤與維護。
+在開發過程中，我也花了不少時間自學與整理實際部署所需的技術，並將其運用到專題環境中。從後端邏輯、資料庫連線、API 測試，到少量前端響應式調整，每一部分都讓我更清楚完整系統的運作方式。這次經驗讓我意識到，專案中有些貢獻並不一定是最容易被使用者直接看見的功能，但對系統能否真正運作、能否讓團隊共同測試與後續維護，仍然非常重要。也因此，我在這次專題中學到的並不採用資料庫課程內容，而是如何把課堂上的概念放進一個可以實際運行的系統中。
 \appendix
-\section{附錄：Report 1}
-\label{sec:report1}
 \includepdf[
-    pages={-}, 
+    pages={1}, 
+    pagecommand={\section{附錄：Report 1}\label{sec:report1}\thispagestyle{headings}}, 
+    scale=0.9, 
+    offset=0 -1cm % 調整 PDF 位置以避免蓋住標題
+]{../report1-2/report1-2.pdf}
+\includepdf[
+    pages={2-}, 
     pagecommand={\thispagestyle{headings}}, 
-    scale=0.99, 
-    offset=0 -0cm % 調整 PDF 位置以避免蓋住標題
+    scale=0.99
 ]{../report1-2/report1-2.pdf}
 
 
-\section{附錄：Report 2}
-\label{sec:report2}
-\includepdf[
-    pages={-7}, 
-    pagecommand={\thispagestyle{headings}}, 
-    scale=0.99, 
-    offset=0 -0cm % 調整 PDF 位置以避免蓋住標題
-]{../report2/report2.pdf}
 
-\section{附錄：Report 3}
-\label{sec:report3}
+
 \includepdf[
-    pages={-23}, 
+    pages={1}, 
+    pagecommand={\section{附錄：Report 3}\label{sec:report3}\thispagestyle{headings}}, 
+    scale=0.9, 
+    offset=0 -1cm % 調整 PDF 位置以避免蓋住標題
+]{../report3/report3.pdf}
+\includepdf[
+    pages={2-40}, 
     pagecommand={\thispagestyle{headings}}, 
-    scale=0.99, 
-    offset=0 -0cm % 調整 PDF 位置以避免蓋住標題
+    scale=0.99
 ]{../report3/report3.pdf}
 
 \end{document}
